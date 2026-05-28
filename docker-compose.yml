@@ -1,0 +1,50 @@
+version ""
+
+services:
+  backend:
+    build: ./backend
+    dockerfile: Dockerfile
+
+    container_name: backend
+    envoronment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - backend
+
+  db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: klinik_db
+      MYSQL_USER: klinik_user
+      MYSQL_PASSWORD: klinik_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - webklinik_network
+
+  network:
+    webklinik_network:
+      driver: bridge
+
+  volumes:
+    db_data:
