@@ -7,68 +7,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func Pasien(db *gorm.DB) ([]models.Pasien, error) {
-	var pasien []models.Pasien
-	if err := db.Find(&pasien).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data pasien: %w", err)
+func Banner(db *gorm.DB) ([]models.Banner, error) {
+	var banner []models.Banner
+	if err := db.Find(&banner).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil data banner: %w", err)
 	}
-	return pasien, nil
-}
-
-func Admin(db *gorm.DB) ([]models.Admin, error) {
-	var admin []models.Admin
-	if err := db.Find(&admin).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data admin: %w", err)
-	}
-	return admin, nil
-}
-
-func Dokter(db *gorm.DB) ([]models.Dokter, error) {
-	var dokter []models.Dokter
-	if err := db.Find(&dokter).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data dokter: %w", err)
-	}
-	return dokter, nil
-}
-
-func Kamar(db *gorm.DB) ([]models.Kamar, error) {
-	var kamar []models.Kamar
-	if err := db.Find(&kamar).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data kamar: %w", err)
-	}
-	return kamar, nil
-}
-
-func Galeri(db *gorm.DB) ([]models.Galeri, error) {
-	var galeri []models.Galeri
-	if err := db.Find(&galeri).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data galeri: %w", err)
-	}
-	return galeri, nil
-}
-
-func Promo(db *gorm.DB) ([]models.Promo, error) {
-	var promo []models.Promo
-	if err := db.Find(&promo).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data promo: %w", err)
-	}
-	return promo, nil
-}
-
-func ArtikelKategori(db *gorm.DB) ([]models.ArtikelKategori, error) {
-	var kategori []models.ArtikelKategori
-	if err := db.Find(&kategori).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data kategori artikel: %w", err)
-	}
-	return kategori, nil
-}
-
-func Artikel(db *gorm.DB) ([]models.Artikel, error) {
-	var artikel []models.Artikel
-	if err := db.Find(&artikel).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data artikel: %w", err)
-	}
-	return artikel, nil
+	return banner, nil
 }
 
 func Layanan(db *gorm.DB) ([]models.Layanan, error) {
@@ -79,51 +23,42 @@ func Layanan(db *gorm.DB) ([]models.Layanan, error) {
 	return layanan, nil
 }
 
-func JadwalDokter(db *gorm.DB) ([]models.JadwalDokter, error) {
-	var jadwal []models.JadwalDokter
-	if err := db.Find(&jadwal).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data jadwal dokter: %w", err)
+func Dokter(db *gorm.DB) ([]models.Dokter, error) {
+	var dokter []models.Dokter
+	if err := db.Find(&dokter).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil data dokter: %w", err)
 	}
-	return jadwal, nil
+	return dokter, nil
 }
 
-func PesanKontak(db *gorm.DB) ([]models.PesanKontak, error) {
-	var pesan []models.PesanKontak
-	if err := db.Find(&pesan).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data pesan kontak: %w", err)
+func Promo(db *gorm.DB) ([]models.Promo, error) {
+	var promo []models.Promo
+	if err := db.Find(&promo).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil data promo: %w", err)
 	}
-	return pesan, nil
+	return promo, nil
 }
 
-func SiteConfig(db *gorm.DB) ([]models.SiteConfig, error) {
-	var config []models.SiteConfig
-	if err := db.Find(&config).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data site config: %w", err)
+func Galeri(db *gorm.DB) ([]models.Galeri, error) {
+	var galeri []models.Galeri
+	if err := db.Find(&galeri).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil data galeri: %w", err)
 	}
-	return config, nil
+	return galeri, nil
 }
 
-func SocialLink(db *gorm.DB) ([]models.SocialLink, error) {
-	var links []models.SocialLink
-	if err := db.Find(&links).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data social link: %w", err)
+func Event(db *gorm.DB) ([]models.Event, error) {
+	var event []models.Event
+	if err := db.Find(&event).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil data event: %w", err)
 	}
-	return links, nil
+	return event, nil
 }
 
-func JamOperasional(db *gorm.DB) ([]models.JamOperasional, error) {
-	var jam []models.JamOperasional
-	if err := db.Find(&jam).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data jam operasional: %w", err)
+func VisitorSession(db *gorm.DB) ([]models.VisitorSession, error) {
+	var sessions []models.VisitorSession
+	if err := db.Find(&sessions).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil data visitor session: %w", err)
 	}
-	return jam, nil
+	return sessions, nil
 }
-
-func KlikWhatsapp(db *gorm.DB) ([]models.KlikWhatsapp, error) {
-	var klik []models.KlikWhatsapp
-	if err := db.Find(&klik).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data klik whatsapp: %w", err)
-	}
-	return klik, nil
-}
-

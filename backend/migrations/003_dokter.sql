@@ -1,6 +1,0 @@
-CREATE TABLE dokter (
-    id SERIAL PRIMARY KEY,
-    nama VARCHAR(255) NOT NULL,
-    spesialis VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);

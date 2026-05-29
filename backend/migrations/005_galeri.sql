@@ -1,7 +1,0 @@
-CREATE TABLE galeri (
-    id SERIAL PRIMARY KEY,
-    nama VARCHAR(255) NOT NULL,
-    deskripsi TEXT,
-    gambar_url VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);

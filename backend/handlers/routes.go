@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	_ "backend/models"
 	"backend/services"
 
 	"github.com/gin-contrib/cors"
@@ -15,102 +14,25 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 	r.Use(cors.Default())
 
-	r.GET("/api/pasien", func(c *gin.Context) {
-		pasien, err := services.Pasien(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, pasien)
-	})
+	r.GET("/api/banner", bannerHandler(db))
+	r.GET("/api/layanan", layananHandler(db))
+	r.GET("/api/dokter", dokterHandler(db))
+	r.GET("/api/promo", promoHandler(db))
+	r.GET("/api/galeri", galeriHandler(db))
+	r.GET("/api/event", eventHandler(db))
+	r.GET("/api/visitor-sessions", visitorSessionHandler(db))
+
 	return r
 }
 
-func pasienHandler(db *gorm.DB) gin.HandlerFunc {
+func bannerHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		pasien, err := services.Pasien(db)
+		banner, err := services.Banner(db)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, pasien)
-	}
-}
-
-func adminHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		admin, err := services.Admin(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, admin)
-	}
-}
-
-func dokterHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		dokter, err := services.Dokter(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, dokter)
-	}
-}
-
-func kamarHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		kamar, err := services.Kamar(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, kamar)
-	}
-}
-
-func galeriHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		galeri, err := services.Galeri(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, galeri)
-	}
-}
-
-func promoHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		promo, err := services.Promo(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, promo)
-	}
-}
-
-func artikelKategoriHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		artikelKategori, err := services.ArtikelKategori(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, artikelKategori)
-	}
-}
-
-func artikelHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		artikel, err := services.Artikel(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, artikel)
+		c.JSON(http.StatusOK, banner)
 	}
 }
 
@@ -125,69 +47,57 @@ func layananHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func jadwalDokterHandler(db *gorm.DB) gin.HandlerFunc {
+func dokterHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		jadwalDokter, err := services.JadwalDokter(db)
+		dokter, err := services.Dokter(db)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, jadwalDokter)
+		c.JSON(http.StatusOK, dokter)
 	}
 }
 
-func pesanKontakHandler(db *gorm.DB) gin.HandlerFunc {
+func promoHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		pesanKontak, err := services.PesanKontak(db)
+		promo, err := services.Promo(db)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, pesanKontak)
+		c.JSON(http.StatusOK, promo)
 	}
 }
 
-func siteConfigHandler(db *gorm.DB) gin.HandlerFunc {
+func galeriHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		siteConfig, err := services.SiteConfig(db)
+		galeri, err := services.Galeri(db)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, siteConfig)
+		c.JSON(http.StatusOK, galeri)
 	}
 }
 
-func socialLinkHandler(db *gorm.DB) gin.HandlerFunc {
+func eventHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		socialLink, err := services.SocialLink(db)
+		event, err := services.Event(db)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, socialLink)
+		c.JSON(http.StatusOK, event)
 	}
 }
 
-func jamOperasionalHandler(db *gorm.DB) gin.HandlerFunc {
+func visitorSessionHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		jamOperasional, err := services.JamOperasional(db)
+		sessions, err := services.VisitorSession(db)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, jamOperasional)
+		c.JSON(http.StatusOK, sessions)
 	}
 }
-
-func KlikWhatappHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		klikWhatsapp, err := services.KlikWhatsapp(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, klikWhatsapp)
-	}
-}
-
