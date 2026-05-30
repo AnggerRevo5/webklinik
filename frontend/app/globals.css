@@ -1,0 +1,288 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@layer components {
+  .all-\[unset\] {
+    all: unset;
+  }
+}
+
+:root {
+  --animate-spin: spin 1s linear infinite;
+
+  --background: 0 0% 100%;
+  --foreground: 222.2 47.4% 11.2%;
+
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
+
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 210 40% 98%;
+
+  --ring: 215 20.2% 65.1%;
+
+  --radius: 0.5rem;
+
+  /* ===== DESIGN TOKENS — TYPOGRAPHY ===== */
+  /* Heading scale */
+  --fs-h1: clamp(2.25rem, 4.5vw, 4rem);           /* 36 – 64 px */
+  --fs-h2: clamp(1.75rem, 3vw, 2.75rem);          /* 28 – 44 px */
+  --fs-h3: clamp(1.25rem, 1.6vw, 1.5rem);         /* 20 – 24 px */
+  --fs-h4: clamp(1rem, 1.2vw, 1.125rem);          /* 16 – 18 px */
+
+  /* Body scale */
+  --fs-body-lg: clamp(1rem, 1.2vw, 1.125rem);     /* 16 – 18 px */
+  --fs-body: clamp(0.875rem, 1vw, 1rem);          /* 14 – 16 px */
+  --fs-body-sm: clamp(0.8125rem, 0.9vw, 0.875rem); /* 13 – 14 px */
+  --fs-caption: clamp(0.6875rem, 0.8vw, 0.75rem); /* 11 – 12 px */
+  --fs-overline: clamp(0.6875rem, 0.8vw, 0.75rem); /* 11 – 12 px */
+
+  /* Line heights */
+  --lh-tight: 1.15;
+  --lh-snug: 1.3;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+
+  /* ===== DESIGN TOKENS — SPACING ===== */
+  --section-py: clamp(3.75rem, 7vw, 6.25rem);     /* 60 – 100 px */
+  --section-px: clamp(1.25rem, 5vw, 5rem);        /* 20 – 80 px */
+  --section-max-w: 1440px;
+  --gap-header: clamp(2rem, 3vw, 3rem);           /* 32 – 48 px */
+  --gap-cards: clamp(1rem, 1.5vw, 1.5rem);        /* 16 – 24 px */
+  --card-padding: clamp(1.25rem, 2vw, 2rem);      /* 20 – 32 px */
+  --card-radius: 16px;
+  --card-radius-sm: 12px;
+  --btn-height: 48px;
+  --input-height: 48px;
+}
+
+.dark {
+  --background: 224 71% 4%;
+  --foreground: 213 31% 91%;
+
+  --muted: 223 47% 11%;
+  --muted-foreground: 215.4 16.3% 56.9%;
+
+  --accent: 216 34% 17%;
+  --accent-foreground: 210 40% 98%;
+
+  --popover: 224 71% 4%;
+  --popover-foreground: 215 20.2% 65.1%;
+
+  --border: 216 34% 17%;
+  --input: 216 34% 17%;
+
+  --card: 224 71% 4%;
+  --card-foreground: 213 31% 91%;
+
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 1.2%;
+
+  --secondary: 222.2 47.4% 11.2%;
+  --secondary-foreground: 210 40% 98%;
+
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+
+  --ring: 216 34% 17%;
+
+  --radius: 0.5rem;
+}
+
+.animate-fade-in {
+  animation: fade-in 1s var(--animation-delay, 0s) ease forwards;
+}
+
+.animate-fade-up {
+  animation: fade-up 1s var(--animation-delay, 0s) ease forwards;
+}
+
+.animate-marquee {
+  animation: marquee var(--duration) infinite linear;
+}
+
+.animate-marquee-vertical {
+  animation: marquee-vertical var(--duration) linear infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 8s infinite;
+}
+
+.animate-spin {
+  animation: var(--animate-spin);
+}
+
+@keyframes spin {
+  to { transform: rotate(1turn); }
+}
+
+@keyframes image-glow {
+  0%   { opacity: 0; animation-timing-function: cubic-bezier(0.74, 0.25, 0.76, 1); }
+  10%  { opacity: 0.7; animation-timing-function: cubic-bezier(0.12, 0.01, 0.08, 0.99); }
+  to   { opacity: 0.4; }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes shimmer {
+  0%, 90%, to { background-position: calc(-100% - var(--shimmer-width)) 0; }
+  30%, 60% { background-position: calc(100% + var(--shimmer-width)) 0; }
+}
+
+@keyframes marquee {
+  0% { transform: translate(0); }
+  to { transform: translateX(calc(-100% - var(--gap))); }
+}
+
+@keyframes marquee-vertical {
+  0% { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - var(--gap))); }
+}
+
+@layer base {
+  html { font-size: 16px; }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-size: var(--fs-body);
+    line-height: var(--lh-normal);
+  }
+
+  h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); }
+  h2 { font-size: var(--fs-h2); line-height: var(--lh-tight); }
+  h3 { font-size: var(--fs-h3); line-height: var(--lh-snug); }
+  h4 { font-size: var(--fs-h4); line-height: var(--lh-snug); }
+
+  * { @apply border-border; }
+}
+
+@layer components {
+  /* ===== SECTION LAYOUT ===== */
+  .section-shell { @apply w-full; }
+
+  .section-screen {
+    @apply w-full lg:flex lg:items-start max-lg:min-h-0;
+  }
+
+  /* Standard section wrapper: full-bleed background + centered content with consistent padding */
+  .section-wrap {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: var(--section-max-w);
+    padding-left: var(--section-px);
+    padding-right: var(--section-px);
+    padding-top: var(--section-py);
+    padding-bottom: var(--section-py);
+  }
+
+  /* Container only (no vertical padding) — for hero / banners that bring their own */
+  .section-container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: var(--section-max-w);
+    padding-left: var(--section-px);
+    padding-right: var(--section-px);
+  }
+
+  /* Legacy alias kept for backwards-compat */
+  .section-content {
+    @apply mx-auto w-full;
+    max-width: var(--section-max-w);
+    padding-left: var(--section-px);
+    padding-right: var(--section-px);
+    padding-top: var(--section-py);
+    padding-bottom: var(--section-py);
+  }
+
+  /* ===== SECTION HEADER ===== */
+  .section-header {
+    margin-bottom: var(--gap-header);
+  }
+
+  /* ===== TYPOGRAPHY UTILITIES ===== */
+  .t-h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); }
+  .t-h2 { font-size: var(--fs-h2); line-height: var(--lh-tight); }
+  .t-h3 { font-size: var(--fs-h3); line-height: var(--lh-snug); }
+  .t-h4 { font-size: var(--fs-h4); line-height: var(--lh-snug); }
+  .t-body-lg { font-size: var(--fs-body-lg); line-height: var(--lh-relaxed); }
+  .t-body { font-size: var(--fs-body); line-height: var(--lh-normal); }
+  .t-body-sm { font-size: var(--fs-body-sm); line-height: var(--lh-normal); }
+  .t-caption { font-size: var(--fs-caption); line-height: var(--lh-snug); }
+  .t-overline {
+    font-size: var(--fs-overline);
+    line-height: var(--lh-tight);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ===== CARD UTILITIES ===== */
+  .card-base {
+    padding: var(--card-padding);
+    border-radius: var(--card-radius);
+  }
+  .card-radius { border-radius: var(--card-radius); }
+  .card-radius-sm { border-radius: var(--card-radius-sm); }
+
+  /* ===== GRID UTILITIES ===== */
+  .grid-cards {
+    display: grid;
+    gap: var(--gap-cards);
+  }
+}
