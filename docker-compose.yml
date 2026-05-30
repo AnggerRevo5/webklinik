@@ -1,12 +1,11 @@
-version ""
 
 services:
   backend:
-    build: ./backend
-    dockerfile: Dockerfile
-
+    build:
+      context: ./packages/backend
+      dockerfile: dockerfile
     container_name: backend
-    envoronment:
+    environment:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=${DB_HOST}
@@ -15,16 +14,18 @@ services:
     ports:
       - "5000:5000"
     env_file:
-      - ./backend/.env
+      - ./packages/backend/.env
     depends_on:
       - db
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./packages/website
+      dockerfile: dockerfile
     ports:
       - "3000:3000"
     env_file:
-      - ./frontend/.env
+      - ./packages/website/.env
     depends_on:
       - backend
 
@@ -42,9 +43,9 @@ services:
     networks:
       - webklinik_network
 
-  network:
-    webklinik_network:
-      driver: bridge
+networks:
+  webklinik_network:
+    driver: bridge
 
-  volumes:
-    db_data:
+volumes:
+  db_data:
