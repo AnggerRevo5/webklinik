@@ -6,10 +6,21 @@ import {
 	Plus,
 	Eye,
 	Edit3,
+	Trash2,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+	createDoctor,
+	deleteDoctor,
+	type CreateDoctorPayload,
+	type Doctor,
+	updateDoctor,
+	useHomeData,
+} from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 
 type DoctorCard = {
+	id: number;
 	initials: string;
 	name: string;
 	specialty: string;
@@ -23,88 +34,126 @@ type DoctorCard = {
 	dayDots: boolean[];
 };
 
-const weeklySchedule = [
-	{ day: "Sen", date: "12", doctor: "dr. Angga", active: true },
-	{ day: "Sel", date: "13", doctor: "dr. Angga", active: false },
-	{ day: "Rab", date: "14", doctor: "dr. Ikhwan", active: false },
-	{ day: "Kam", date: "15", doctor: "dr. Ikhwan", active: false },
-	{ day: "Jum", date: "16", doctor: "dr. Ikhwan", active: false },
-	{ day: "Sab", date: "17", doctor: "dr. Nikma", active: false },
-	{ day: "Min", date: "18", doctor: "dr. Nikma", active: false },
-] as const;
-
-const doctorCards: DoctorCard[] = [
-	{
-		initials: "MA",
-		name: "dr. Muhammad Angga Dewa Sudin",
-		specialty: "Dokter Umum",
-		badge: "Aktif",
-		badgeClassName: "bg-emerald-50 text-emerald-600",
-		avatarClassName: "bg-sky-600",
-		scheduleTitle: "Jadwal praktik",
-		primarySchedule: "Senin - Selasa",
-		secondarySchedule: "24 Jam",
-		stats: [
-			{ value: "124", label: "Pasien/bulan" },
-			{ value: "4.9", label: "Rating" },
-			{ value: "3th", label: "Bergabung" },
-		],
-		dayDots: [true, true, false, false, false, false, false],
-	},
-	{
-		initials: "IR",
-		name: "dr. Ikhwan Rizki Rasyid Turino",
-		specialty: "Dokter Umum",
-		badge: "Libur hari ini",
-		badgeClassName: "bg-rose-50 text-rose-600",
-		avatarClassName: "bg-emerald-600",
-		scheduleTitle: "Jadwal praktik",
-		primarySchedule: "Rabu - Jumat",
-		secondarySchedule: "24 Jam",
-		stats: [
-			{ value: "98", label: "Pasien/bulan" },
-			{ value: "4.7", label: "Rating" },
-			{ value: "2th", label: "Bergabung" },
-		],
-		dayDots: [false, false, true, true, true, false, false],
-	},
-	{
-		initials: "NF",
-		name: "dr. Nikma Fitriasari, MMRS",
-		specialty: "Dokter Umum",
-		badge: "Pendiri",
-		badgeClassName: "bg-amber-50 text-amber-700",
-		avatarClassName: "bg-amber-600",
-		scheduleTitle: "Jadwal praktik",
-		primarySchedule: "Sabtu - Minggu",
-		secondarySchedule: "24 Jam",
-		stats: [
-			{ value: "86", label: "Pasien/bulan" },
-			{ value: "5.0", label: "Rating" },
-			{ value: "15th", label: "Bergabung" },
-		],
-		dayDots: [false, false, false, false, false, true, true],
-	},
-	{
-		initials: "DA",
-		name: "drg. Dina Andriana",
-		specialty: "Dokter Gigi",
-		badge: "Libur hari ini",
-		badgeClassName: "bg-rose-50 text-rose-600",
-		avatarClassName: "bg-violet-600",
-		scheduleTitle: "Jadwal praktik",
-		primarySchedule: "Rabu - Jumat",
-		secondarySchedule: "15:00 - 21:00",
-		stats: [
-			{ value: "62", label: "Pasien/bulan" },
-			{ value: "4.8", label: "Rating" },
-			{ value: "1th", label: "Bergabung" },
-		],
-		dayDots: [false, false, true, true, true, true, true],
-	},
-] as const;
-
 export default function DokterJadwalAdmin() {
+	const { data } = useHomeData();
+	const [doctors, setDoctors] = useState<Doctor[]>([]);
+	const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
+	const [form, setForm] = useState<CreateDoctorPayload>({ url: "", nama_dokter: "", jadwal_praktek: "", kategori: "" });
+	const [editForm, setEditForm] = useState<CreateDoctorPayload>({ url: "", nama_dokter: "", jadwal_praktek: "", kategori: "" });
+	const [submitError, setSubmitError] = useState<string | null>(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+ 	const [isSaving, setIsSaving] = useState(false);
+ 	const [actionError, setActionError] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (data?.dokter) {
+			setDoctors(data.dokter);
+			if (selectedDoctorId == null && data.dokter[0]) {
+				setSelectedDoctorId(data.dokter[0].id);
+			}
+		}
+	}, [data?.dokter, selectedDoctorId]);
+
+	const selectedDoctor = useMemo(() => doctors.find((item) => item.id === selectedDoctorId) ?? null, [doctors, selectedDoctorId]);
+
+	useEffect(() => {
+		if (selectedDoctor) {
+			setEditForm({
+				url: selectedDoctor.url,
+				nama_dokter: selectedDoctor.nama_dokter,
+				jadwal_praktek: selectedDoctor.jadwal_praktek,
+				kategori: selectedDoctor.kategori,
+			});
+		}
+	}, [selectedDoctor]);
+
+	const doctorCards: DoctorCard[] = doctors.map((doctor, index) => ({
+		id: doctor.id,
+		initials: doctor.nama_dokter
+			.split(" ")
+			.slice(0, 2)
+			.map((part) => part[0]?.toUpperCase() ?? "")
+			.join("") || "DR",
+			name: doctor.nama_dokter,
+			specialty: doctor.kategori,
+			badge: index === 0 ? "Aktif" : "Tersedia",
+			badgeClassName: index === 0 ? "bg-emerald-50 text-emerald-600" : "bg-sky-50 text-sky-600",
+			avatarClassName: index % 3 === 0 ? "bg-sky-600" : index % 3 === 1 ? "bg-emerald-600" : "bg-amber-600",
+			scheduleTitle: "Jadwal praktik",
+			primarySchedule: doctor.jadwal_praktek || "Belum diisi",
+			secondarySchedule: doctor.url || "",
+			stats: [
+				{ value: String(index + 1), label: "Urutan" },
+				{ value: doctor.kategori || "-", label: "Kategori" },
+				{ value: String(doctor.id), label: "ID" },
+			],
+			dayDots: [true, true, true, true, true, true, true],
+		}));
+	const weeklySchedule: Array<{ day: string; date: string; doctor: string; active: boolean }> = [];
+
+	async function handleCreateDoctor(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		setSubmitError(null);
+		setIsSubmitting(true);
+
+		try {
+			const created = await createDoctor(form);
+			setDoctors((current) => [created, ...current]);
+			setSelectedDoctorId(created.id);
+			setEditForm({
+				url: created.url,
+				nama_dokter: created.nama_dokter,
+				jadwal_praktek: created.jadwal_praktek,
+				kategori: created.kategori,
+			});
+			setForm({ url: "", nama_dokter: "", jadwal_praktek: "", kategori: "" });
+		} catch (error) {
+			setSubmitError(error instanceof Error ? error.message : "Gagal menambah dokter");
+		} finally {
+			setIsSubmitting(false);
+		}
+	}
+
+	async function handleUpdateDoctor(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		if (selectedDoctor == null) return;
+
+		setActionError(null);
+		setIsSaving(true);
+
+		try {
+			const updated = await updateDoctor(selectedDoctor.id, editForm);
+			setDoctors((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+			setSelectedDoctorId(updated.id);
+			setEditForm({
+				url: updated.url,
+				nama_dokter: updated.nama_dokter,
+				jadwal_praktek: updated.jadwal_praktek,
+				kategori: updated.kategori,
+			});
+		} catch (error) {
+			setActionError(error instanceof Error ? error.message : "Gagal mengubah dokter");
+		} finally {
+			setIsSaving(false);
+		}
+	}
+
+	async function handleDeleteDoctor(doctorId: number) {
+		setActionError(null);
+		try {
+			await deleteDoctor(doctorId);
+			setDoctors((current) => {
+				const nextDoctors = current.filter((item) => item.id !== doctorId);
+				if (selectedDoctorId === doctorId) {
+					setSelectedDoctorId(nextDoctors[0]?.id ?? null);
+				}
+				return nextDoctors;
+			});
+		} catch (error) {
+			setActionError(error instanceof Error ? error.message : "Gagal menghapus dokter");
+		}
+	}
+
 	return (
 		<main className="min-h-screen bg-slate-100 p-3 sm:p-4">
 			<h2 className="sr-only">Halaman admin kelola dokter KRI AMC</h2>
@@ -116,15 +165,31 @@ export default function DokterJadwalAdmin() {
 					<header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
 						<div>
 							<div className="text-[15px] font-semibold text-slate-900">Dokter & Jadwal</div>
-							<div className="text-[9px] text-slate-400">Kelola data dokter dan jadwal praktik</div>
+							<div className="text-[9px] text-slate-400">Data diambil dari tabel dokter</div>
 						</div>
-						<button type="button" className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white">
-							<Plus className="h-3 w-3" />
-							Tambah dokter
-						</button>
 					</header>
 
 					<div className="flex-1 overflow-y-auto p-4 lg:p-5">
+						<form onSubmit={handleCreateDoctor} className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+							<div className="mb-3 flex items-center justify-between gap-2">
+								<div className="text-[12px] font-medium text-slate-900">Tambah dokter</div>
+								<span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">POST /api/dokter</span>
+							</div>
+							<div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+								<input value={form.nama_dokter} onChange={(event) => setForm((current) => ({ ...current, nama_dokter: event.target.value }))} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none" placeholder="Nama dokter" />
+								<input value={form.kategori} onChange={(event) => setForm((current) => ({ ...current, kategori: event.target.value }))} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none" placeholder="Kategori" />
+								<input value={form.jadwal_praktek} onChange={(event) => setForm((current) => ({ ...current, jadwal_praktek: event.target.value }))} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none" placeholder="Jadwal praktek" />
+								<input value={form.url} onChange={(event) => setForm((current) => ({ ...current, url: event.target.value }))} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none" placeholder="URL gambar" />
+							</div>
+							<div className="mt-2 flex flex-wrap items-center gap-2">
+								{submitError ? <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">{submitError}</div> : null}
+								<button type="submit" disabled={isSubmitting} className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white disabled:opacity-60">
+									<Plus className="h-3 w-3" />
+									{isSubmitting ? "Menyimpan..." : "Tambah dokter"}
+								</button>
+							</div>
+						</form>
+
 						<section className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
 							<div className="mb-3 flex items-center justify-between">
 								<div className="flex items-center gap-2 text-[12px] font-medium text-slate-900">
@@ -134,7 +199,7 @@ export default function DokterJadwalAdmin() {
 								<span className="text-[9px] text-slate-400">12 - 18 Mei 2026</span>
 							</div>
 							<div className="grid grid-cols-2 gap-2 md:grid-cols-7">
-								{weeklySchedule.map((item) => (
+								{weeklySchedule.length > 0 ? weeklySchedule.map((item) => (
 									<div
 										key={`${item.day}-${item.date}`}
 										className={`rounded-lg border p-2 text-center transition-colors ${item.active ? "border-sky-600 bg-sky-600 text-white" : "border-slate-100 bg-slate-50 hover:bg-sky-50"}`}
@@ -143,13 +208,18 @@ export default function DokterJadwalAdmin() {
 										<div className="font-serif text-[14px] font-semibold leading-none">{item.date}</div>
 										<div className={`mt-1 text-[7px] ${item.active ? "text-white/60" : "text-slate-400"}`}>{item.doctor}</div>
 									</div>
-								))}
+								)) : (
+									<div className="col-span-full rounded-lg bg-slate-50 p-4 text-center text-[10px] text-slate-500 md:col-span-7">
+										Jadwal mingguan belum tersedia di db_klinik.sql.
+									</div>
+								)}
 							</div>
 						</section>
 
-						<section className="grid grid-cols-1 gap-3 md:grid-cols-2">
-							{doctorCards.map((doctor) => (
-								<article key={doctor.name} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+						{doctorCards.length > 0 ? (
+							<section className="grid grid-cols-1 gap-3 md:grid-cols-2">
+								{doctorCards.map((doctor) => (
+								<article key={doctor.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 									<div className="relative flex items-start gap-3 p-4">
 										<div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white ${doctor.avatarClassName}`}>
 											{doctor.initials}
@@ -191,7 +261,7 @@ export default function DokterJadwalAdmin() {
 										</div>
 
 										<div className="flex gap-2">
-											<button type="button" className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-sky-50 px-2 py-2 text-[9px] font-medium text-sky-600">
+											<button type="button" onClick={() => setSelectedDoctorId(doctor.id)} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-sky-50 px-2 py-2 text-[9px] font-medium text-sky-600">
 												<Edit3 className="h-3 w-3" />
 												Edit
 											</button>
@@ -204,10 +274,40 @@ export default function DokterJadwalAdmin() {
 												Profil
 											</button>
 										</div>
+										<div className="mt-2 flex justify-end">
+											<button type="button" onClick={() => handleDeleteDoctor(doctor.id)} className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-1.5 text-[9px] font-medium text-rose-600">
+												<Trash2 className="h-3 w-3" />
+												Hapus
+											</button>
+										</div>
 									</div>
 								</article>
-							))}
-						</section>
+								))}
+							</section>
+						) : (
+							<div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-[10px] text-slate-500 shadow-sm">
+								Belum ada data dokter di database.
+							</div>
+						)}
+						{selectedDoctor ? (
+							<form onSubmit={handleUpdateDoctor} className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+								<div className="mb-3 flex items-center justify-between gap-2">
+									<div className="text-[12px] font-medium text-slate-900">Edit dokter</div>
+									<span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">ID {selectedDoctor.id}</span>
+								</div>
+								<div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+									<input value={editForm.nama_dokter} onChange={(event) => setEditForm((current) => ({ ...current, nama_dokter: event.target.value }))} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none" placeholder="Nama dokter" />
+									<input value={editForm.kategori} onChange={(event) => setEditForm((current) => ({ ...current, kategori: event.target.value }))} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none" placeholder="Kategori" />
+									<input value={editForm.jadwal_praktek} onChange={(event) => setEditForm((current) => ({ ...current, jadwal_praktek: event.target.value }))} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none" placeholder="Jadwal praktek" />
+									<input value={editForm.url} onChange={(event) => setEditForm((current) => ({ ...current, url: event.target.value }))} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none" placeholder="URL gambar" />
+								</div>
+								{actionError ? <div className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">{actionError}</div> : null}
+								<div className="mt-3 flex gap-2">
+									<button type="button" onClick={() => selectedDoctor && setEditForm({ url: selectedDoctor.url, nama_dokter: selectedDoctor.nama_dokter, jadwal_praktek: selectedDoctor.jadwal_praktek, kategori: selectedDoctor.kategori })} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-medium text-slate-500">Batal</button>
+									<button type="submit" disabled={isSaving} className="rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white disabled:opacity-60">{isSaving ? "Menyimpan..." : "Simpan perubahan"}</button>
+								</div>
+							</form>
+						) : null}
 					</div>
 				</section>
 			</div>

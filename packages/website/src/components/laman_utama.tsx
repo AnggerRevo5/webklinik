@@ -13,7 +13,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
-import { useHomeData } from "@/src/lib/api";
+import { type HomeData, useHomeData } from "@/src/lib/api";
 import { Button } from "@/src/UiKecil/button";
 import { Card, CardContent } from "@/src/UiKecil/card";
 import { Input } from "@/src/UiKecil/input";
@@ -103,12 +103,6 @@ const btnSoft =
 const btnHeight = "h-11 lg:h-12";
 
 /* ─── Section data ─── */
-
-const heroStats: HeroStat[] = [
-  { icon: Clock3, title: "24 jam", subtitle: "UGD & rawat inap" },
-  { icon: Star, title: "4.8 / 5", subtitle: "Rating Google" },
-  { icon: Star, title: "BPJS", subtitle: "Umum & BPJS" },
-];
 
 const layananCards: LayananItem[] = [
   { title: "HOME VISIT", image: "/assets/services/service1.png" },
@@ -240,6 +234,12 @@ const socialIconMap: Record<string, string> = {
   whatsapp: ASSETS.icons.whatsapp,
 };
 
+function resolveAssetPath(url: string | undefined, fallback: string) {
+  if (!url) return fallback;
+  if (url.startsWith("/")) return url;
+  return fallback;
+}
+
 function CoverImage({
   src,
   alt,
@@ -305,18 +305,34 @@ function PromoCard({ promo }: { promo: PromoItem }) {
 }
 
 /* Section promo. */
-function PromoSection() {
+function PromoSection({ homeData }: { homeData?: HomeData | null }) {
+  const apiPromos = homeData?.promo?.length
+    ? homeData.promo.map((promo, index) => ({
+        title: `Promo ${index + 1}`,
+        image: resolveAssetPath(promo.url, "/assets/promo/promo1.png"),
+        date: "Promo aktif di database",
+        description: "Buka dashboard admin untuk mengubah detail promo.",
+      }))
+    : [];
+
   return (
     <Section id="promo">
       <SectionHeader label="PROMO" title="Penawaran khusus untuk Anda" />
 
-      <div
-        className="grid-cards md:grid-cols-2 xl:grid-cols-4"
-      >
-        {promoCards.map((promo, idx) => (
-          <PromoCard key={`promo-${idx}`} promo={promo} />
-        ))}
-      </div>
+      {apiPromos.length > 0 ? (
+        <div className="grid-cards md:grid-cols-2 xl:grid-cols-4">
+          {apiPromos.map((promo, idx) => (
+            <PromoCard key={`promo-${idx}`} promo={promo} />
+          ))}
+        </div>
+      ) : (
+        <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
+          <CardContent className="card-base text-center">
+            <h3 className="t-h3 font-semibold text-[#3f3f3f]">Belum ada promo di database</h3>
+            <p className="t-body mt-3 text-[#3f3f3f]">Tambahkan data ke tabel promo untuk menampilkan kartu promo di website.</p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="mt-8 flex justify-center gap-2">
         <div className="h-2 w-8 rounded-full bg-[#00b4d8]" />
@@ -330,8 +346,6 @@ function PromoSection() {
 
 /* Section artikel. */
 function ArtikelSection() {
-  const [selectedArticleTab, setSelectedArticleTab] = React.useState("Semua");
-
   return (
     <Section id="artikel">
       <SectionHeader
@@ -344,125 +358,39 @@ function ArtikelSection() {
         }
       />
 
-      <div className="mb-8">
-        <ToggleGroup
-          type="single"
-          value={selectedArticleTab}
-          onValueChange={(value) => value && setSelectedArticleTab(value)}
-          className="flex flex-wrap justify-start gap-2 md:gap-3"
-        >
-          {articleTabs.map((tab) => (
-            <ToggleGroupItem
-              key={tab}
-              value={tab}
-              className="h-10 rounded-full border border-black bg-[#f7f5f2] px-4 t-body-sm font-medium text-black data-[state=on]:border-transparent data-[state=on]:bg-[#837ff6] data-[state=on]:text-white"
-            >
-              {tab}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
-
-      <div className="grid-cards xl:grid-cols-[1.02fr_0.98fr]">
-        <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-          <CardContent className="card-base">
-            <div className="rounded-[20px] bg-[#4200ff] p-3 md:p-4 xl:p-5">
-              <CoverImage
-                src={featuredArticle.image}
-                alt={featuredArticle.title}
-                aspectClass="aspect-[1.47]"
-                roundedClass="rounded-[14px]"
-              />
-            </div>
-            <div className="mt-6 max-w-[560px]">
-              <h3 className="t-h3 font-semibold text-[#3f3f3f]">
-                {featuredArticle.title}
-              </h3>
-              <p className="t-body mt-3 text-[#3f3f3f]">
-                {featuredArticle.description}
-              </p>
-              <Button
-                variant="link"
-                className="mt-4 h-auto p-0 t-body font-semibold text-[#4200ff] no-underline"
-              >
-                See more
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid-cards">
-          {articleCards.map((article) => (
-            <Card
-              key={article.image}
-              className={cn("card-radius border-0 bg-white", cardShadowMd)}
-            >
-              <CardContent className="card-base flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="shrink-0 rounded-[18px] bg-[#4200ff] p-2.5 md:p-3">
-                  <div className="relative h-[120px] w-full overflow-hidden rounded-[12px] sm:h-[140px] sm:w-[140px] md:h-[150px] md:w-[150px]">
-                    <Image
-                      src={article.image}
-                      alt={article.title}
-                      fill
-                      className="object-cover"
-                      sizes="183px"
-                    />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="t-h4 font-semibold text-[#3f3f3f]">
-                    {article.title}
-                  </h3>
-                  <p className="t-body-sm mt-2 text-[#3f3f3f]">
-                    {article.description}
-                  </p>
-                  <Button
-                    variant="link"
-                    className="mt-3 h-auto p-0 t-body font-semibold text-[#4200ff] no-underline"
-                  >
-                    See more
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
+        <CardContent className="card-base text-center">
+          <h3 className="t-h3 font-semibold text-[#3f3f3f]">Artikel belum tersedia di database</h3>
+          <p className="t-body mt-3 text-[#3f3f3f]">Tabel artikel belum ada di db_klinik.sql, jadi section ini tidak lagi menampilkan data dummy.</p>
+        </CardContent>
+      </Card>
     </Section>
   );
 }
 
 /* Section hubungi kami. */
-function HubungiKamiSection() {
-  const { data } = useHomeData();
-
+function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
+  const data = homeData;
   const clinicPhone = getSettingValue(
     data?.site_settings ?? [],
     ["phone", "whatsapp", "wa", "telepon"],
-    CLINIC_PHONE,
+    "",
   );
   const clinicAddress = getSettingValue(
     data?.site_settings ?? [],
     ["address", "alamat"],
-    "Dsn. Krajan RT.013 RW.005, Desa Tirtomarto, Kec. Ampelgading, Kab. Malang, Jawa Timur 65183",
+    "",
   );
   const hasOperationalHours = (data?.operational_hours?.length ?? 0) > 0;
   const operationalHoursData =
     hasOperationalHours && data
-      ? formatOperationalHours(data.operational_hours)
-      : [
-          { label: "UGD & Rawat inap", value: "24 JAM", badge: true },
-          { label: "Poli Umum", value: "24 JAM", badge: true },
-          { label: "Poli Gigi (Rabu - Jumat)", value: "15.00 - 21.00", badge: false },
-          { label: "Poli Gigi (Sabtu - Minggu)", value: "08.00 - 14.00", badge: false },
-          { label: "Laboratorium", value: "07.00 - 21.00", badge: false },
-          { label: "Apotek", value: "07.00 - 21.00", badge: false },
-        ];
+      ? formatOperationalHours(data.operational_hours ?? [])
+      : [];
   const hasSocialLinks = (data?.social_links?.length ?? 0) > 0;
   const socialLinkItems =
     hasSocialLinks && data
-      ? data.social_links.map((item) => ({ label: item.label, href: item.url }))
-      : socialCards;
+      ? (data.social_links ?? []).map((item) => ({ label: item.label, href: item.url }))
+      : [];
 
   const whatsappNumber = normalizePhoneNumber(clinicPhone).replace(/^0/, "62");
   const whatsappUrl = `https://wa.me/${whatsappNumber || "6281225566055"}`;
@@ -498,7 +426,7 @@ function HubungiKamiSection() {
                 <div>
                   <div className="t-body-sm text-[#3f3f3f]">Alamat</div>
                   <div className="t-body mt-1 font-bold text-[#3f3f3f]">
-                    {clinicAddress}
+                    {clinicAddress || "Data alamat belum tersedia di database"}
                   </div>
                 </div>
               </div>
@@ -521,7 +449,7 @@ function HubungiKamiSection() {
                 <div>
                   <div className="t-body-sm text-[#3f3f3f]">Whatsapp</div>
                   <div className="t-h3 mt-1 font-bold text-[#3f3f3f]">
-                    {clinicPhone}
+                    {clinicPhone || "Data kontak belum tersedia"}
                   </div>
                   <div className="t-body-sm mt-1 text-[#3f3f3f]">
                     Chat langsung dengan kami
@@ -554,7 +482,7 @@ function HubungiKamiSection() {
                 <div>
                   <div className="t-body-sm text-[#3f3f3f]">Telepone</div>
                   <div className="t-h3 mt-1 font-bold text-[#3f3f3f]">
-                    {clinicPhone}
+                    {clinicPhone || "Data kontak belum tersedia"}
                   </div>
                   <div className="t-body-sm mt-1 text-[#3f3f3f]">
                     Tersedia 24 jam untuk keadaan darurat
@@ -577,38 +505,46 @@ function HubungiKamiSection() {
           </Card>
 
           <div className="grid-cards grid-cols-2 sm:grid-cols-4">
-            {socialLinkItems.map((item) => (
-              <Card
-                key={item.label}
-                className={cn("card-radius border-0 bg-white", cardShadowMd)}
-              >
-                <CardContent className="card-base flex flex-col items-center justify-center gap-3">
-                  <a
-                    href={item.href}
-                    target={item.href.startsWith("http") ? "_blank" : undefined}
-                    rel={
-                      item.href.startsWith("http")
-                        ? "noopener noreferrer"
-                        : undefined
-                    }
-                    className="transition-transform hover:scale-105"
-                    aria-label={item.label}
-                  >
-                    <AssetIcon
-                      src={
-                        socialIconMap[item.label.toLowerCase()] ??
-                        ASSETS.icons.whatsapp
+            {socialLinkItems.length > 0 ? (
+              socialLinkItems.map((item) => (
+                <Card
+                  key={item.label}
+                  className={cn("card-radius border-0 bg-white", cardShadowMd)}
+                >
+                  <CardContent className="card-base flex flex-col items-center justify-center gap-3">
+                    <a
+                      href={item.href}
+                      target={item.href.startsWith("http") ? "_blank" : undefined}
+                      rel={
+                        item.href.startsWith("http")
+                          ? "noopener noreferrer"
+                          : undefined
                       }
-                      alt={item.label}
-                      size={40}
-                    />
-                  </a>
-                  <div className="t-body text-center font-bold text-[#3f3f3f]">
-                    {item.label}
-                  </div>
+                      className="transition-transform hover:scale-105"
+                      aria-label={item.label}
+                    >
+                      <AssetIcon
+                        src={
+                          socialIconMap[item.label.toLowerCase()] ??
+                          ASSETS.icons.whatsapp
+                        }
+                        alt={item.label}
+                        size={40}
+                      />
+                    </a>
+                    <div className="t-body text-center font-bold text-[#3f3f3f]">
+                      {item.label}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
+                <CardContent className="card-base text-center text-[#3f3f3f]">
+                  Data sosial media belum tersedia di database
                 </CardContent>
               </Card>
-            ))}
+            )}
           </div>
         </div>
 
@@ -659,25 +595,31 @@ function HubungiKamiSection() {
                 <h3 className="t-h3 font-bold text-[#3f3f3f]">Jam operasional</h3>
               </div>
               <div>
-                {operationalHoursData.map((item, index) => (
-                  <div key={item.label}>
-                    <div className="flex items-center justify-between gap-4 py-3">
-                      <div className="t-body text-[#3f3f3f]">{item.label}</div>
-                      {item.badge ? (
-                        <div className="rounded-[16px] bg-[#d9d9d9] px-3 py-1 t-caption font-semibold uppercase tracking-wide text-black">
-                          {item.value}
-                        </div>
-                      ) : (
-                        <div className="t-body font-medium text-[#3f3f3f]">
-                          {item.value}
-                        </div>
-                      )}
+                {operationalHoursData.length > 0 ? (
+                  operationalHoursData.map((item, index) => (
+                    <div key={item.label}>
+                      <div className="flex items-center justify-between gap-4 py-3">
+                        <div className="t-body text-[#3f3f3f]">{item.label}</div>
+                        {item.badge ? (
+                          <div className="rounded-[16px] bg-[#d9d9d9] px-3 py-1 t-caption font-semibold uppercase tracking-wide text-black">
+                            {item.value}
+                          </div>
+                        ) : (
+                          <div className="t-body font-medium text-[#3f3f3f]">
+                            {item.value}
+                          </div>
+                        )}
+                      </div>
+                      {index < operationalHoursData.length - 1 ? (
+                        <Separator className="bg-[#e8e8e8]" />
+                      ) : null}
                     </div>
-                    {index < operationalHoursData.length - 1 ? (
-                      <Separator className="bg-[#e8e8e8]" />
-                    ) : null}
+                  ))
+                ) : (
+                  <div className="rounded-2xl bg-white p-4 text-center t-body text-[#3f3f3f]">
+                    Data jam operasional belum tersedia di database
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -738,7 +680,14 @@ function EmergencyCta() {
 }
 
 /* Section layanan utama klinik. */
-function LayananSection() {
+function LayananSection({ homeData }: { homeData?: HomeData | null }) {
+  const apiLayanan = homeData?.layanan?.length
+    ? homeData.layanan.map((item, index) => ({
+        title: item.nama_layanan || `Layanan ${index + 1}`,
+        image: resolveAssetPath(item.url, layananCards[index % layananCards.length].image),
+      }))
+    : [];
+
   return (
     <Section id="layanan" bg="bg-[#d9d9d9]">
       <div className="grid gap-8 lg:grid-cols-[355px_1fr] lg:items-start">
@@ -750,26 +699,35 @@ function LayananSection() {
           />
         </div>
 
-        <div className="grid-cards md:grid-cols-3">
-          {layananCards.slice(0, 3).map((layanan) => (
-            <Card
-              key={layanan.title}
-              className={cn(
-                "overflow-hidden card-radius border-0 bg-[#f7f5f2]",
-                cardShadowSoft,
-              )}
-            >
-              <CardContent className="space-y-3 p-3 pb-4">
-                <CoverImage
-                  src={layanan.image}
-                  alt={layanan.title}
-                  roundedClass="card-radius-sm"
-                />
-                <h3 className="t-h4 px-2 font-medium text-black">{layanan.title}</h3>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {apiLayanan.length > 0 ? (
+          <div className="grid-cards md:grid-cols-3">
+            {apiLayanan.slice(0, 3).map((layanan) => (
+              <Card
+                key={layanan.title}
+                className={cn(
+                  "overflow-hidden card-radius border-0 bg-[#f7f5f2]",
+                  cardShadowSoft,
+                )}
+              >
+                <CardContent className="space-y-3 p-3 pb-4">
+                  <CoverImage
+                    src={layanan.image}
+                    alt={layanan.title}
+                    roundedClass="card-radius-sm"
+                  />
+                  <h3 className="t-h4 px-2 font-medium text-black">{layanan.title}</h3>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
+            <CardContent className="card-base text-center">
+              <h3 className="t-h3 font-semibold text-[#3f3f3f]">Belum ada layanan di database</h3>
+              <p className="t-body mt-3 text-[#3f3f3f]">Tambahkan data ke tabel layanan untuk menampilkan kartu layanan di website.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div
@@ -777,26 +735,28 @@ function LayananSection() {
         style={{ gap: "var(--gap-cards)" }}
       >
         <div />
-        <div className="grid-cards md:grid-cols-3">
-          {layananCards.slice(3).map((layanan) => (
-            <Card
-              key={layanan.title}
-              className={cn(
-                "overflow-hidden card-radius border-0 bg-[#f7f5f2]",
-                cardShadowSoft,
-              )}
-            >
-              <CardContent className="space-y-3 p-3 pb-4">
-                <CoverImage
-                  src={layanan.image}
-                  alt={layanan.title}
-                  roundedClass="card-radius-sm"
-                />
-                <h3 className="t-h4 px-2 font-medium text-black">{layanan.title}</h3>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {apiLayanan.length > 3 ? (
+          <div className="grid-cards md:grid-cols-3">
+            {apiLayanan.slice(3).map((layanan) => (
+              <Card
+                key={layanan.title}
+                className={cn(
+                  "overflow-hidden card-radius border-0 bg-[#f7f5f2]",
+                  cardShadowSoft,
+                )}
+              >
+                <CardContent className="space-y-3 p-3 pb-4">
+                  <CoverImage
+                    src={layanan.image}
+                    alt={layanan.title}
+                    roundedClass="card-radius-sm"
+                  />
+                  <h3 className="t-h4 px-2 font-medium text-black">{layanan.title}</h3>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : null}
       </div>
     </Section>
   );
@@ -834,13 +794,29 @@ function WhatsappBanner() {
 }
 
 /* Section profil dokter. */
-function DokterSection() {
+function DokterSection({ homeData }: { homeData?: HomeData | null }) {
+  const apiDoctors = homeData?.dokter?.length
+    ? homeData.dokter.map((doctor, index) => {
+        const fallback = doctorCards[index % doctorCards.length];
+
+        return {
+          name: doctor.nama_dokter || fallback.name,
+          role: doctor.kategori || fallback.role,
+          schedule: doctor.jadwal_praktek || fallback.schedule,
+          time: fallback.time,
+          gradient: fallback.gradient,
+          avatarClassName: fallback.avatarClassName,
+        };
+      })
+    : [];
+
   return (
     <Section id="dokter">
       <SectionHeader label="DOKTER KAMI" title="Dokter Kami" />
 
-      <div className="grid-cards lg:grid-cols-2">
-        {doctorCards.map((doctor, idx) => (
+      {apiDoctors.length > 0 ? (
+        <div className="grid-cards lg:grid-cols-2">
+          {apiDoctors.map((doctor, idx) => (
           <Card
             key={`doctor-${idx}`}
             className={cn(
@@ -888,14 +864,29 @@ function DokterSection() {
               </Button>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
+          <CardContent className="card-base text-center">
+            <h3 className="t-h3 font-semibold text-[#3f3f3f]">Belum ada data dokter di database</h3>
+            <p className="t-body mt-3 text-[#3f3f3f]">Tambahkan data ke tabel dokter untuk menampilkan profil dokter di website.</p>
+          </CardContent>
+        </Card>
+      )}
     </Section>
   );
 }
 
 /* Hero utama. */
-function HeroSection() {
+function HeroSection({ homeData }: { homeData?: HomeData | null }) {
+  const heroImage = resolveAssetPath(homeData?.banner?.[0]?.url, ASSETS.hero);
+  const heroStats: HeroStat[] = [
+    { icon: Clock3, title: String(homeData?.banner?.length ?? 0), subtitle: "Banner aktif" },
+    { icon: Star, title: String(homeData?.layanan?.length ?? 0), subtitle: "Layanan" },
+    { icon: Star, title: String(homeData?.dokter?.length ?? 0), subtitle: "Dokter" },
+  ];
+
   return (
     <Section id="beranda">
       <div className="grid gap-8 lg:grid-cols-[52%_48%] lg:items-center lg:gap-10">
@@ -973,7 +964,7 @@ function HeroSection() {
           <div className="card-radius bg-[#00b4d8] p-2">
             <div className="relative h-[40vh] min-h-[260px] w-full overflow-hidden card-radius-sm md:h-[50vh] lg:h-auto lg:max-w-[760px] lg:aspect-[1.73]">
               <Image
-                src={ASSETS.hero}
+                src={heroImage}
                 alt="Klinik Ampelgading Medical Centre"
                 fill
                 className="object-cover"
@@ -990,16 +981,18 @@ function HeroSection() {
 
 /* Komponen utama. */
 export default function LamanUtama() {
+  const { data } = useHomeData();
+
   return (
     <main className="min-h-screen bg-[#f7f5f2] text-[#3f3f3f]">
       <Navbar />
-      <HeroSection />
-      <LayananSection />
+      <HeroSection homeData={data} />
+      <LayananSection homeData={data} />
       <WhatsappBanner />
-      <DokterSection />
-      <PromoSection />
+      <DokterSection homeData={data} />
+      <PromoSection homeData={data} />
       <ArtikelSection />
-      <HubungiKamiSection />
+      <HubungiKamiSection homeData={data} />
       <EmergencyCta />
       <Footer />
     </main>

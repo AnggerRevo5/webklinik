@@ -2,15 +2,10 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
-	Bed,
 	ChartBar,
-	ClipboardList,
 	HeartPlus,
 	Image as ImageIcon,
 	LayoutDashboard,
-	Mail,
-	Newspaper,
-	Settings,
 	Star,
 	Stethoscope,
 	Tag,
@@ -19,17 +14,11 @@ import Link from "next/link";
 
 export type SidebarKey =
 	| "dashboard"
-	| "pendaftaran"
 	| "dokter"
 	| "layanan"
-	| "kamar"
 	| "promo"
-	| "artikel"
 	| "galeri"
-	| "review"
-	| "analytics"
-	| "pesan"
-	| "settings";
+	| "review";
 
 type SidebarItem = {
 	icon: LucideIcon;
@@ -40,17 +29,11 @@ type SidebarItem = {
 
 const sidebarItems: SidebarItem[] = [
 	{ icon: LayoutDashboard, href: "/dashboard_admin", key: "dashboard" },
-	{ icon: ClipboardList, href: "/pendaftaran_admin", dot: true, key: "pendaftaran" },
 	{ icon: Stethoscope, href: "/dokter_jadwal_admin", key: "dokter" },
 	{ icon: HeartPlus, href: "/admin_layanan_crud", key: "layanan" },
-	{ icon: Bed, key: "kamar" },
 	{ icon: Tag, href: "/admin_promo_page", key: "promo" },
-	{ icon: Newspaper, href: "/galeri-artikel_admin", key: "artikel" },
 	{ icon: ImageIcon, href: "/galeri-artikel_admin", key: "galeri" },
 	{ icon: Star, href: "/admin_review_pesan", key: "review" },
-	{ icon: ChartBar, key: "analytics" },
-	{ icon: Mail, href: "/admin_pesan_login", dot: true, key: "pesan" },
-	{ icon: Settings, href: "/admin_pengaturan_page", key: "settings" },
 ];
 
 export default function SidebarAdmin({ activeKey }: { activeKey?: SidebarKey }) {

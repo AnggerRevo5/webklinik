@@ -8,17 +8,23 @@ import {
 	Download,
 	Eye,
 	HeartPlus,
+	Image as ImageIcon,
 	MapPin,
 	MousePointerClick,
-	Plus,
 	Search,
 	Settings,
 	Star,
 	Tag,
+	Stethoscope,
 	Users,
 	Workflow,
 } from "lucide-react";
+import { useState } from "react";
+import { useHomeData } from "@/src/lib/api";
+import { useRouter } from "next/navigation";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+
+type DashboardTab = "overview" | "analytics" | "konten";
 
 type MetricCard = {
 	title: string;
@@ -49,133 +55,9 @@ type ContentCard = {
 	gradient: string;
 	icon: LucideIcon;
 	iconClassName: string;
+	previewPath: string;
+	editPath: string;
 };
-
-const metrics: MetricCard[] = [
-	{
-		title: "Pengunjung website",
-		value: "3,847",
-		trend: "+24%",
-		icon: Eye,
-		iconClassName: "text-sky-600",
-		containerClassName: "bg-sky-50 text-sky-600",
-		bars: [40, 55, 45, 70, 60, 85, 90],
-		barClassName: "bg-sky-600",
-	},
-	{
-		title: "Klik WhatsApp",
-		value: "312",
-		trend: "+18%",
-		icon: MousePointerClick,
-		iconClassName: "text-emerald-500",
-		containerClassName: "bg-emerald-50 text-emerald-500",
-		bars: [30, 45, 50, 40, 65, 70, 80],
-		barClassName: "bg-emerald-500",
-	},
-	{
-		title: "Klik daftar online",
-		value: "89",
-		trend: "+32%",
-		icon: CalendarDays,
-		iconClassName: "text-amber-600",
-		containerClassName: "bg-amber-50 text-amber-600",
-		bars: [25, 35, 50, 45, 60, 75, 90],
-		barClassName: "bg-amber-600",
-	},
-	{
-		title: "Rata-rata waktu di website",
-		value: "4:23",
-		icon: Clock3,
-		iconClassName: "text-violet-600",
-		containerClassName: "bg-violet-50 text-violet-600",
-	},
-	{
-		title: "Klik sosial media",
-		value: "156",
-		trend: "+15%",
-		icon: Workflow,
-		iconClassName: "text-rose-600",
-		containerClassName: "bg-rose-50 text-rose-600",
-	} as MetricCard,
-];
-
-const socialCards: SocialCard[] = [
-	{
-		name: "Instagram",
-		followers: "1,240",
-		delta: "+187",
-		clicks: "78 klik dari web",
-		icon: Users,
-		iconClassName: "text-pink-600",
-		iconWrapClassName: "bg-pink-50 text-pink-600",
-	},
-	{
-		name: "Facebook",
-		followers: "856",
-		delta: "+64",
-		clicks: "43 klik dari web",
-		icon: Users,
-		iconClassName: "text-blue-600",
-		iconWrapClassName: "bg-blue-50 text-blue-600",
-	},
-	{
-		name: "TikTok",
-		followers: "2,450",
-		delta: "+312",
-		clicks: "35 klik dari web",
-		icon: Users,
-		iconClassName: "text-slate-900",
-		iconWrapClassName: "bg-zinc-100 text-slate-900",
-	},
-	{
-		name: "Google Business",
-		followers: "4.8",
-		delta: "+8",
-		clicks: "420 temukan via Google",
-		icon: MapPin,
-		iconClassName: "text-sky-600",
-		iconWrapClassName: "bg-sky-50 text-sky-600",
-	},
-];
-
-const contentCards: ContentCard[] = [
-	{
-		title: "Promo Kemerdekaan 17-an",
-		date: "1-31 Agu 2026",
-		status: "Aktif",
-		statusClassName: "bg-emerald-50 text-emerald-600",
-		gradient: "from-cyan-200 to-sky-400",
-		icon: Tag,
-		iconClassName: "text-white/40",
-	},
-	{
-		title: "Promo Hari Raya",
-		date: "1-15 Jun 2026",
-		status: "Aktif",
-		statusClassName: "bg-emerald-50 text-emerald-600",
-		gradient: "from-emerald-200 to-teal-400",
-		icon: Star,
-		iconClassName: "text-white/40",
-	},
-	{
-		title: "Promo Paket Persalinan",
-		date: "Belum dijadwalkan",
-		status: "Draft",
-		statusClassName: "bg-amber-50 text-amber-600",
-		gradient: "from-amber-200 to-orange-400",
-		icon: HeartPlus,
-		iconClassName: "text-white/40",
-	},
-	{
-		title: "Promo MCU Awal Tahun",
-		date: "1-31 Jan 2026",
-		status: "Expired",
-		statusClassName: "bg-rose-50 text-rose-600",
-		gradient: "from-rose-200 to-rose-400",
-		icon: ClipboardList,
-		iconClassName: "text-white/40",
-	},
-];
 
 function SectionTitle({ icon: Icon, title, subtitle }: { icon: LucideIcon; title: string; subtitle?: string }) {
 	return (
@@ -205,7 +87,237 @@ function MetricSpark({ bars, colorClass }: { bars?: number[]; colorClass: string
 	);
 }
 
+function escapeCsvValue(value: string) {
+	return `"${value.replace(/"/g, '""')}"`;
+}
+
+function formatNumber(value: number) {
+	return new Intl.NumberFormat("id-ID").format(value);
+}
+
 export default function DashboardAdmin() {
+	const { data } = useHomeData();
+	const router = useRouter();
+	const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
+
+	const visitorSessions = (data?.visitor_sessions ?? []) as Array<{ pages_visited?: number; duration_second?: number }>;
+	const socialMediaStats = (data?.social_media_stats ?? []) as Array<{ platform?: string; follower_count?: number; engagement_rate?: number }>;
+	const events = (data?.event ?? []) as Array<{ event_type?: string }>;
+	const totalVisitorPages = visitorSessions.reduce((total, session) => total + Number(session.pages_visited ?? 0), 0);
+	const totalSessionDuration = visitorSessions.reduce((total, session) => total + Number(session.duration_second ?? 0), 0);
+	const averageSessionMinutes = visitorSessions.length > 0 ? (totalSessionDuration / visitorSessions.length / 60).toFixed(1) : "0.0";
+	const totalFollowers = socialMediaStats.reduce((total, item) => total + Number(item.follower_count ?? 0), 0);
+	const averageEngagementRate = socialMediaStats.length > 0 ? (socialMediaStats.reduce((total, item) => total + Number(item.engagement_rate ?? 0), 0) / socialMediaStats.length).toFixed(2) : "0.00";
+	const latestReviewCount = data?.google_reviews?.[0]?.review_count ?? 0;
+	const latestRating = data?.google_reviews?.[0]?.average_rating ?? 0;
+	const topPlatform = [...socialMediaStats].sort((left, right) => Number(right.follower_count ?? 0) - Number(left.follower_count ?? 0))[0]?.platform ?? "-";
+
+	const socialMediaEngagementCount = data?.social_media_engagement?.length ?? 0;
+	const socialMediaStatsCount = data?.social_media_stats?.length ?? 0;
+	const gbpInteractionCount = data?.gbp_interactions?.length ?? 0;
+	const googleReviewCount = data?.google_reviews?.length ?? 0;
+	const googleReviews = (data?.google_reviews ?? []) as Array<{ average_rating?: number }>;
+	const averageGoogleRating =
+		googleReviewCount > 0
+			? (
+				googleReviews.reduce((total, review) => total + Number(review.average_rating ?? 0), 0) /
+				googleReviewCount
+			).toFixed(2)
+			: "0.00";
+
+	const metrics = [
+		{
+			title: "Banner aktif",
+			value: String(data?.banner?.length ?? 0),
+			trend: data?.banner?.length ? "Sinkron" : "Kosong",
+			icon: Eye,
+			iconClassName: "text-sky-600",
+			containerClassName: "bg-sky-50 text-sky-600",
+			bars: [40, 55, 45, 70, 60, 85, 90],
+			barClassName: "bg-sky-600",
+		},
+		{
+			title: "Layanan",
+			value: String(data?.layanan?.length ?? 0),
+			trend: data?.layanan?.length ? "Aktif" : "Kosong",
+			icon: HeartPlus,
+			iconClassName: "text-emerald-500",
+			containerClassName: "bg-emerald-50 text-emerald-500",
+			bars: [30, 45, 50, 40, 65, 70, 80],
+			barClassName: "bg-emerald-500",
+		},
+		{
+			title: "Dokter",
+			value: String(data?.dokter?.length ?? 0),
+			trend: data?.dokter?.length ? "Tersedia" : "Kosong",
+			icon: Users,
+			iconClassName: "text-amber-600",
+			containerClassName: "bg-amber-50 text-amber-600",
+			bars: [25, 35, 50, 45, 60, 75, 90],
+			barClassName: "bg-amber-600",
+		},
+		{
+			title: "Promo",
+			value: String(data?.promo?.length ?? 0),
+			trend: data?.promo?.length ? "Tersedia" : "Kosong",
+			icon: Tag,
+			iconClassName: "text-violet-600",
+			containerClassName: "bg-violet-50 text-violet-600",
+			bars: [22, 30, 42, 38, 56, 68, 74],
+			barClassName: "bg-violet-600",
+		},
+		{
+			title: "Galeri",
+			value: String(data?.galeri?.length ?? 0),
+			trend: data?.galeri?.length ? "Tersedia" : "Kosong",
+			icon: ImageIcon,
+			iconClassName: "text-rose-600",
+			containerClassName: "bg-rose-50 text-rose-600",
+			bars: [20, 36, 44, 52, 60, 72, 84],
+			barClassName: "bg-rose-600",
+		},
+	];
+
+	const socialCards = [
+		{
+			name: "Engagement",
+			followers: String(socialMediaEngagementCount),
+			delta: `${(data?.social_media_engagement?.[0] as { likes_count?: number } | undefined)?.likes_count ?? 0} like`,
+			clicks: `${(data?.social_media_engagement?.[0] as { comments_count?: number } | undefined)?.comments_count ?? 0} komentar`,
+			icon: Users,
+			iconClassName: "text-pink-600",
+			iconWrapClassName: "bg-pink-50 text-pink-600",
+		},
+		{
+			name: "Statistik",
+			followers: String(socialMediaStatsCount),
+			delta: `${averageGoogleRating} rating`,
+			clicks: "Ringkasan performa",
+			icon: Star,
+			iconClassName: "text-blue-600",
+			iconWrapClassName: "bg-blue-50 text-blue-600",
+		},
+		{
+			name: "GBP",
+			followers: String(gbpInteractionCount),
+			delta: `${(data?.gbp_interactions?.[0] as { count?: number } | undefined)?.count ?? 0} klik`,
+			clicks: "Interaksi Google Business",
+			icon: MapPin,
+			iconClassName: "text-slate-900",
+			iconWrapClassName: "bg-zinc-100 text-slate-900",
+		},
+		{
+			name: "Review",
+			followers: String(googleReviewCount),
+			delta: `${averageGoogleRating}/5`,
+			clicks: "Ulasan Google",
+			icon: Star,
+			iconClassName: "text-sky-600",
+			iconWrapClassName: "bg-sky-50 text-sky-600",
+		},
+	];
+
+	const contentCards = [
+		{
+			title: data?.banner?.[0]?.url ? "Banner utama" : "Banner belum diisi",
+			date: `${data?.banner?.length ?? 0} item`,
+			status: data?.banner?.length ? "Aktif" : "Kosong",
+			statusClassName: data?.banner?.length ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600",
+			gradient: "from-cyan-200 to-sky-400",
+			icon: Tag,
+			iconClassName: "text-white/40",
+			previewPath: "/#beranda",
+			editPath: "/",
+		},
+		{
+			title: data?.layanan?.[0]?.nama_layanan ?? "Layanan",
+			date: `${data?.layanan?.length ?? 0} item`,
+			status: data?.layanan?.length ? "Aktif" : "Kosong",
+			statusClassName: data?.layanan?.length ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600",
+			gradient: "from-emerald-200 to-teal-400",
+			icon: HeartPlus,
+			iconClassName: "text-white/40",
+			previewPath: "/#layanan",
+			editPath: "/admin_layanan_crud",
+		},
+		{
+			title: data?.dokter?.[0]?.nama_dokter ?? "Dokter",
+			date: `${data?.dokter?.length ?? 0} item`,
+			status: data?.dokter?.length ? "Aktif" : "Kosong",
+			statusClassName: data?.dokter?.length ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600",
+			gradient: "from-violet-200 to-violet-400",
+			icon: Stethoscope,
+			iconClassName: "text-white/40",
+			previewPath: "/#dokter",
+			editPath: "/dokter_jadwal_admin",
+		},
+		{
+			title: data?.promo?.[0]?.url ? "Promo utama" : "Promo",
+			date: `${data?.promo?.length ?? 0} item`,
+			status: data?.promo?.length ? "Aktif" : "Kosong",
+			statusClassName: data?.promo?.length ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600",
+			gradient: "from-rose-200 to-rose-400",
+			icon: Tag,
+			iconClassName: "text-white/40",
+			previewPath: "/#promo",
+			editPath: "/admin_promo_page",
+		},
+		{
+			title: data?.galeri?.[0]?.text ?? "Galeri",
+			date: `${data?.galeri?.length ?? 0} item`,
+			status: data?.galeri?.length ? "Aktif" : "Kosong",
+			statusClassName: data?.galeri?.length ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600",
+			gradient: "from-amber-200 to-orange-400",
+			icon: ImageIcon,
+			iconClassName: "text-white/40",
+			previewPath: "/tentangkami#galeri",
+			editPath: "/galeri-artikel_admin",
+		},
+	];
+
+	const tabItems: Array<{ key: DashboardTab; label: string; description: string }> = [
+		{ key: "overview", label: "Overview", description: "ringkasan data utama" },
+		{ key: "analytics", label: "Analytics", description: "statistik dan insight" },
+		{ key: "konten", label: "Konten", description: "kelola konten website" },
+	];
+	const tabButtonClass =
+		"rounded-md px-3 py-1 text-[10px] font-medium transition-all duration-200 ease-out motion-reduce:transition-none";
+
+	function downloadCsv() {
+		if (typeof window !== "undefined" && !window.confirm("Unduh ringkasan dashboard dalam format CSV?")) {
+			return;
+		}
+
+		const rows = [
+			["kind", "label", "value", "details"],
+			["metric", "Banner aktif", String(data?.banner?.length ?? 0), data?.banner?.length ? "Sinkron" : "Kosong"],
+			["metric", "Layanan", String(data?.layanan?.length ?? 0), data?.layanan?.length ? "Aktif" : "Kosong"],
+			["metric", "Dokter", String(data?.dokter?.length ?? 0), data?.dokter?.length ? "Tersedia" : "Kosong"],
+			["metric", "Promo", String(data?.promo?.length ?? 0), data?.promo?.length ? "Tersedia" : "Kosong"],
+			["metric", "Galeri", String(data?.galeri?.length ?? 0), data?.galeri?.length ? "Tersedia" : "Kosong"],
+			["separator", "", "", ""],
+			["content", "Banner utama", data?.banner?.[0]?.url ?? "-", "Preview /#beranda"],
+			["content", "Layanan", data?.layanan?.[0]?.nama_layanan ?? "-", "Preview /#layanan"],
+			["content", "Dokter", data?.dokter?.[0]?.nama_dokter ?? "-", "Preview /#dokter"],
+			["content", "Promo", data?.promo?.[0]?.url ?? "-", "Preview /#promo"],
+			["content", "Galeri", data?.galeri?.[0]?.text ?? "-", "Preview /tentangkami#galeri"],
+		];
+
+		const csv = rows
+			.map((row) => row.map((value) => escapeCsvValue(value)).join(","))
+			.join("\n");
+
+		const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+		const url = URL.createObjectURL(blob);
+		const anchor = document.createElement("a");
+		anchor.href = url;
+		anchor.download = `webklinik-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+		document.body.appendChild(anchor);
+		anchor.click();
+		anchor.remove();
+		URL.revokeObjectURL(url);
+	}
+
 	return (
 		<main className="min-h-screen bg-slate-100 p-3 sm:p-4">
 			<h2 className="sr-only">Dashboard admin lengkap dengan analytics dan content management untuk KRI AMC</h2>
@@ -218,13 +330,17 @@ export default function DashboardAdmin() {
 						<div className="flex items-center gap-3">
 							<div className="text-[15px] font-semibold text-slate-900">Dashboard</div>
 							<div className="flex rounded-lg bg-slate-100 p-0.5">
-								{["Overview", "Analytics", "Konten"].map((item, index) => (
-									<div
-										key={item}
-										className={`rounded-md px-3 py-1 text-[10px] font-medium ${index === 0 ? "bg-white text-sky-600 shadow-sm" : "text-slate-400"}`}
+								{tabItems.map((item) => (
+									<button
+										key={item.key}
+										type="button"
+										onClick={() => setActiveTab(item.key)}
+										className={`${tabButtonClass} ${activeTab === item.key ? "bg-white text-sky-600 shadow-sm scale-[1.02]" : "text-slate-400 hover:bg-white/70 hover:text-slate-600"}`}
+										title={item.description}
+										aria-pressed={activeTab === item.key}
 									>
-										{item}
-									</div>
+										{item.label}
+									</button>
 								))}
 							</div>
 						</div>
@@ -234,157 +350,193 @@ export default function DashboardAdmin() {
 								<CalendarDays className="h-3 w-3" />
 								30 hari terakhir
 							</button>
-							<button type="button" className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1.5 text-[10px] font-medium text-sky-600">
+							<button type="button" onClick={downloadCsv} className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1.5 text-[10px] font-medium text-sky-600">
 								<Download className="h-3 w-3" />
-								Export
-							</button>
-							<button type="button" className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white">
-								<Plus className="h-3 w-3" />
-								Tambah
+								Export CSV
 							</button>
 						</div>
 					</header>
 
 					<div className="flex-1 overflow-y-auto p-4 lg:p-5">
-						<section className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-							{metrics.map((metric) => {
-								const Icon = metric.icon;
+						{activeTab === "overview" ? (
+							<>
+								<section className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
+									{metrics.map((metric) => {
+										const Icon = metric.icon;
 
-								return (
-									<article key={metric.title} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-										<div className="mb-1 flex items-center justify-between">
-											<div className={`flex h-6 w-6 items-center justify-center rounded-md ${metric.containerClassName}`}>
-												<Icon className={`h-3.5 w-3.5 ${metric.iconClassName}`} />
-											</div>
-											{metric.trend ? (
-												<span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-600">{metric.trend}</span>
-											) : null}
-										</div>
-										<div className="text-[20px] font-semibold leading-none text-slate-900">{metric.value}</div>
-										<div className="mt-1 text-[8px] text-slate-400">{metric.title}</div>
-										<MetricSpark bars={metric.bars} colorClass={metric.barClassName ?? "bg-slate-300"} />
-									</article>
-								);
-							})}
-						</section>
-
-						<section className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
-							{socialCards.map((card) => {
-								const Icon = card.icon;
-
-								return (
-									<article key={card.name} className="rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm">
-										<div className={`mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg ${card.iconWrapClassName}`}>
-											<Icon className={`h-4 w-4 ${card.iconClassName}`} />
-										</div>
-										<div className="mb-1 text-[9px] font-medium text-slate-900">{card.name}</div>
-										<div className="flex justify-center gap-2">
-											<div>
-												<div className="text-[13px] font-semibold leading-none text-slate-900">{card.followers}</div>
-												<div className="text-[7px] text-slate-400">Followers</div>
-											</div>
-											<div>
-												<div className="text-[13px] font-semibold leading-none text-emerald-600">{card.delta}</div>
-												<div className="text-[7px] text-slate-400">Baru</div>
-											</div>
-										</div>
-										<div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-medium text-sky-600">
-											<Search className="h-3 w-3" />
-											{card.clicks}
-										</div>
-									</article>
-								);
-							})}
-						</section>
-
-						<section className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-							<article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-								<SectionTitle icon={MapPin} title="Google Business Profile" subtitle="30 hari terakhir" />
-								<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-									{[
-										{ label: "Pencarian", num: "420", color: "text-sky-500", trend: "↑ 28%" },
-										{ label: "Klik rute", num: "187", color: "text-rose-500", trend: "↑ 15%" },
-										{ label: "Panggilan", num: "96", color: "text-emerald-500", trend: "↑ 22%" },
-										{ label: "Lihat profil", num: "543", color: "text-amber-500", trend: "↑ 35%" },
-									].map((item) => (
-										<div key={item.label} className="rounded-lg bg-slate-50 p-2 text-center">
-											<div className={`text-[16px] font-semibold leading-none ${item.color}`}>{item.num}</div>
-											<div className="mt-0.5 text-[8px] text-slate-400">{item.label}</div>
-											<div className="mt-0.5 text-[7px] font-medium text-emerald-600">{item.trend}</div>
-										</div>
-									))}
-								</div>
-							</article>
-
-							<article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-								<SectionTitle icon={Star} title="Review tracker" />
-								<div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-									<div className="rounded-lg bg-slate-50 p-2 text-center">
-										<div className="text-[8px] text-slate-400">Sebelum website</div>
-										<div className="text-[18px] font-semibold text-slate-400">15</div>
-										<div className="text-[8px] text-slate-400">review</div>
-									</div>
-									<div className="text-lg font-semibold text-emerald-600">→</div>
-									<div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-center">
-										<div className="text-[8px] text-slate-400">Sesudah website</div>
-										<div className="text-[18px] font-semibold text-emerald-600">23</div>
-										<div className="text-[8px] text-emerald-600">review (+53%)</div>
-									</div>
-								</div>
-							</article>
-						</section>
-
-						<section>
-							<div className="mb-3 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-								<div className="flex items-center gap-2 text-[13px] font-semibold text-slate-900">
-									<Tag className="h-4 w-4 text-amber-500" />
-									Kelola konten website
-								</div>
-								<div className="flex flex-wrap rounded-lg bg-slate-100 p-0.5">
-									{["Promo", "Artikel", "Galeri", "Dokter"].map((item, index) => (
-										<div
-											key={item}
-											className={`rounded-md px-3 py-1 text-[9px] font-medium ${index === 0 ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}
-										>
-											{item}
-										</div>
-									))}
-								</div>
-							</div>
-
-							<div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
-								{contentCards.map((card) => {
-									const Icon = card.icon;
-
-									return (
-										<article key={card.title} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-											<div className={`relative flex h-20 items-center justify-center bg-gradient-to-br ${card.gradient}`}>
-												<span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[7px] font-semibold ${card.statusClassName}`}>{card.status}</span>
-												<Icon className={`h-6 w-6 ${card.iconClassName}`} />
-											</div>
-											<div className="p-2.5">
-												<div className="truncate text-[10px] font-medium text-slate-900">{card.title}</div>
-												<div className="mt-0.5 flex items-center gap-1 text-[8px] text-slate-400">
-													<CalendarDays className="h-2.5 w-2.5" />
-													{card.date}
+										return (
+											<article key={metric.title} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+												<div className="mb-1 flex items-center justify-between">
+													<div className={`flex h-6 w-6 items-center justify-center rounded-md ${metric.containerClassName}`}>
+														<Icon className={`h-3.5 w-3.5 ${metric.iconClassName}`} />
+													</div>
+													{metric.trend ? (
+														<span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-600">{metric.trend}</span>
+													) : null}
 												</div>
-												<div className="mt-2 flex gap-1">
-													<button type="button" className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-50 text-sky-600">
-														<Workflow className="h-3 w-3" />
-													</button>
-													<button type="button" className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-50 text-slate-400">
-														<Eye className="h-3 w-3" />
-													</button>
-													<button type="button" className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-50 text-rose-500">
-														<Settings className="h-3 w-3" />
-													</button>
+												<div className="text-[20px] font-semibold leading-none text-slate-900">{metric.value}</div>
+												<div className="mt-1 text-[8px] text-slate-400">{metric.title}</div>
+												<MetricSpark bars={metric.bars} colorClass={metric.barClassName ?? "bg-slate-300"} />
+											</article>
+										);
+									})}
+								</section>
+
+								<section className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+									{socialCards.map((card) => {
+										const Icon = card.icon;
+
+										return (
+											<article key={card.name} className="rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm">
+												<div className={`mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg ${card.iconWrapClassName}`}>
+													<Icon className={`h-4 w-4 ${card.iconClassName}`} />
 												</div>
+												<div className="mb-1 text-[9px] font-medium text-slate-900">{card.name}</div>
+												<div className="flex justify-center gap-2">
+													<div>
+														<div className="text-[13px] font-semibold leading-none text-slate-900">{card.followers}</div>
+														<div className="text-[7px] text-slate-400">Followers</div>
+													</div>
+													<div>
+														<div className="text-[13px] font-semibold leading-none text-emerald-600">{card.delta}</div>
+														<div className="text-[7px] text-slate-400">Baru</div>
+													</div>
+												</div>
+												<div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-medium text-sky-600">
+													<Search className="h-3 w-3" />
+													{card.clicks}
+												</div>
+											</article>
+										);
+									})}
+								</section>
+							</>
+						) : null}
+
+						{activeTab === "analytics" ? (
+							<>
+								<section className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-2 transition-all duration-300 ease-out motion-reduce:transition-none">
+									<article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
+										<SectionTitle icon={MapPin} title="Google Business Profile" subtitle="30 hari terakhir" />
+										<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+											{[
+												{ label: "Pencarian", num: formatNumber(gbpInteractionCount), color: "text-sky-500", trend: `${gbpInteractionCount} snapshot` },
+												{ label: "Klik rute", num: formatNumber(totalVisitorPages), color: "text-rose-500", trend: "total halaman" },
+												{ label: "Panggilan", num: formatNumber(visitorSessions.length), color: "text-emerald-500", trend: `${averageSessionMinutes} menit` },
+												{ label: "Lihat profil", num: formatNumber(totalFollowers), color: "text-amber-500", trend: topPlatform },
+											].map((item) => (
+												<div key={item.label} className="rounded-lg bg-slate-50 p-2 text-center">
+													<div className={`text-[16px] font-semibold leading-none ${item.color}`}>{item.num}</div>
+													<div className="mt-0.5 text-[8px] text-slate-400">{item.label}</div>
+													<div className="mt-0.5 text-[7px] font-medium text-emerald-600">{item.trend}</div>
+												</div>
+											))}
+										</div>
+									</article>
+
+									<article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
+										<SectionTitle icon={Star} title="Review tracker" />
+										<div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+											<div className="rounded-lg bg-slate-50 p-2 text-center">
+												<div className="text-[8px] text-slate-400">Snapshot terakhir</div>
+												<div className="text-[18px] font-semibold text-slate-400">{latestReviewCount}</div>
+												<div className="text-[8px] text-slate-400">review</div>
 											</div>
-										</article>
-									);
-								})}
-							</div>
-						</section>
+											<div className="text-lg font-semibold text-emerald-600">→</div>
+											<div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-center">
+												<div className="text-[8px] text-slate-400">Rata-rata rating</div>
+												<div className="text-[18px] font-semibold text-emerald-600">{latestRating.toFixed(1)}</div>
+												<div className="text-[8px] text-emerald-600">{socialMediaStatsCount} platform</div>
+											</div>
+										</div>
+									</article>
+								</section>
+
+								<section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
+									<div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-slate-900">
+										<MousePointerClick className="h-4 w-4 text-sky-500" />
+										Insight cepat
+									</div>
+									<div className="grid gap-2 md:grid-cols-3">
+										<div className="rounded-lg bg-sky-50 p-3 text-[10px] text-slate-700">Banner aktif: {data?.banner?.length ?? 0}</div>
+										<div className="rounded-lg bg-emerald-50 p-3 text-[10px] text-slate-700">Layanan siap dikelola: {data?.layanan?.length ?? 0}</div>
+										<div className="rounded-lg bg-violet-50 p-3 text-[10px] text-slate-700">Event terdeteksi: {formatNumber(events.length)}</div>
+									</div>
+								<div className="mt-3 grid gap-2 md:grid-cols-3">
+									<div className="rounded-lg bg-slate-50 p-3 text-[10px] text-slate-700">Sesi visitor: {formatNumber(visitorSessions.length)}</div>
+									<div className="rounded-lg bg-slate-50 p-3 text-[10px] text-slate-700">Rata-rata durasi: {averageSessionMinutes} menit</div>
+									<div className="rounded-lg bg-slate-50 p-3 text-[10px] text-slate-700">Engagement rata-rata: {averageEngagementRate}%</div>
+								</div>
+								</section>
+							</>
+						) : null}
+
+						{activeTab === "konten" ? (
+							<section>
+								<div className="mb-3 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+									<div className="flex items-center gap-2 text-[13px] font-semibold text-slate-900">
+										<Tag className="h-4 w-4 text-amber-500" />
+										Kelola konten website
+									</div>
+									<div className="flex flex-wrap rounded-lg bg-slate-100 p-0.5">
+										{["Promo", "Artikel", "Galeri", "Dokter"].map((item, index) => (
+											<div
+												key={item}
+												className={`rounded-md px-3 py-1 text-[9px] font-medium ${index === 0 ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}
+											>
+												{item}
+											</div>
+										))}
+									</div>
+								</div>
+
+								<div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+									{contentCards.map((card) => {
+										const Icon = card.icon;
+
+										return (
+											<article key={card.title} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+												<div className={`relative flex h-20 items-center justify-center bg-gradient-to-br ${card.gradient}`}>
+													<span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[7px] font-semibold ${card.statusClassName}`}>{card.status}</span>
+													<Icon className={`h-6 w-6 ${card.iconClassName}`} />
+												</div>
+												<div className="p-2.5">
+													<div className="truncate text-[10px] font-medium text-slate-900">{card.title}</div>
+													<div className="mt-0.5 flex items-center gap-1 text-[8px] text-slate-400">
+														<CalendarDays className="h-2.5 w-2.5" />
+														{card.date}
+													</div>
+													<div className="mt-2 flex gap-1">
+														<button
+															type="button"
+															onClick={() => {
+																if (typeof window !== "undefined" && !window.confirm(`Buka halaman kelola untuk ${card.title}?`)) return;
+																router.push(card.editPath);
+															}}
+															className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-50 text-sky-600"
+														>
+															<Workflow className="h-3 w-3" />
+														</button>
+														<button type="button" onClick={() => {
+															if (typeof window !== "undefined" && !window.confirm(`Buka halaman preview ${card.title}?`)) return;
+															router.push(card.previewPath);
+														}} className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+															<Eye className="h-3 w-3" />
+														</button>
+														<button type="button" onClick={() => {
+															if (typeof window !== "undefined" && !window.confirm(`Buka pengaturan untuk ${card.title}?`)) return;
+															router.push(card.editPath);
+														}} className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-50 text-rose-500">
+															<Settings className="h-3 w-3" />
+														</button>
+													</div>
+												</div>
+											</article>
+										);
+									})}
+								</div>
+							</section>
+						) : null}
 
 					</div>
 				</section>

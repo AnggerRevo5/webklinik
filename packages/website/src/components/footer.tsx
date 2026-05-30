@@ -9,9 +9,6 @@ import {
   getSettingValue,
 } from "@/src/lib/utils";
 
-const CLINIC_PHONE = "0812-2556-6055";
-const WHATSAPP_URL = "https://wa.me/6281225566055";
-
 const ASSETS = {
   logo: "/assets/logo/LOGO.svg",
   icons: {
@@ -80,30 +77,20 @@ export default function Footer() {
   const clinicPhone = getSettingValue(
     data?.site_settings ?? [],
     ["phone", "whatsapp", "wa", "telepon"],
-    CLINIC_PHONE,
+    "",
   );
   const clinicAddress = getSettingValue(
     data?.site_settings ?? [],
     ["address", "alamat"],
-    fallbackAddress,
+    "",
   );
   const operationalHoursData = data?.operational_hours ?? [];
   const operationalHours =
     operationalHoursData.length > 0
       ? formatOperationalHours(operationalHoursData)
-      : [
-          { label: "UGD & Rawat inap", value: "24 Jam", badge: true },
-          { label: "Poli umum", value: "24 Jam", badge: true },
-        ];
+      : [];
   const socialLinksData = data?.social_links ?? [];
-  const socialLinks =
-    socialLinksData.length > 0
-      ? socialLinksData
-      : [
-          { label: "Instagram", url: "#" },
-          { label: "Facebook", url: "#" },
-          { label: "WhatsApp", url: WHATSAPP_URL },
-        ];
+  const socialLinks = socialLinksData;
 
   return (
     <footer className="bg-white">
@@ -152,7 +139,7 @@ export default function Footer() {
                 </span>
               </div>
               <span className="t-body-lg font-medium text-white">
-                {clinicPhone}
+                {clinicPhone || "Data kontak belum tersedia"}
               </span>
             </div>
           </div>
@@ -200,7 +187,9 @@ export default function Footer() {
                 </div>
                 <div>
                   <h3 className="t-h4 font-medium text-[#00b4d8]">Alamat</h3>
-                  <p className="mt-1 t-body text-[#808080]">{clinicAddress}</p>
+                  <p className="mt-1 t-body text-[#808080]">
+                    {clinicAddress || "Data alamat belum tersedia di database"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -211,7 +200,9 @@ export default function Footer() {
                   <h3 className="t-h4 font-medium text-[#00b4d8]">
                     Telepone / WA
                   </h3>
-                  <p className="mt-1 t-body text-[#808080]">{clinicPhone}</p>
+                  <p className="mt-1 t-body text-[#808080]">
+                    {clinicPhone || "Data telepon belum tersedia di database"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -223,16 +214,20 @@ export default function Footer() {
                     Jam operasional
                   </h3>
                   <div className="mt-1 space-y-1 t-body text-[#808080]">
-                    {operationalHours.slice(0, 2).map((item) => (
-                      <p key={item.label}>
-                        {item.label}: {item.value}
-                      </p>
-                    ))}
+                    {operationalHours.length > 0 ? (
+                      operationalHours.slice(0, 2).map((item) => (
+                        <p key={item.label}>
+                          {item.label}: {item.value}
+                        </p>
+                      ))
+                    ) : (
+                      <p>Data jam operasional belum tersedia di database</p>
+                    )}
                   </div>
                 </div>
               </div>
               <div className="flex gap-4 pt-2">
-                {socialLinks.map((item) => {
+                {socialLinks.length > 0 ? socialLinks.map((item) => {
                   const icon =
                     socialIconMap[item.label.toLowerCase()] ??
                     ASSETS.icons.whatsapp;
@@ -255,7 +250,7 @@ export default function Footer() {
                       <AssetIcon src={icon} alt={item.label} size={28} />
                     </a>
                   );
-                })}
+                }) : <p className="t-body text-[#808080]">Data sosial media belum tersedia di database</p>}
               </div>
             </div>
           </div>

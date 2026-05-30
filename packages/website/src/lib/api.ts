@@ -11,81 +11,57 @@ export type ApiEnvelope<T> = {
 	error?: string;
 };
 
-export type Doctor = {
+export type Banner = {
 	id: number;
-	kd_dokter: string;
-	nm_dokter: string;
-	jk: string;
-	tmp_lahir: string;
-	tgl_lahir?: string | null;
-	gol_drh: string;
-	agama: string;
-	almt_tgl: string;
-	no_telp: string;
-	email: string;
-	stts_nikah: string;
-	kd_sps: string;
-	alumni: string;
-	no_ijn_praktek: string;
-	foto_url: string;
-	short_desc: string;
-	show_on_website: boolean;
-	created_at: string;
-	updated_at: string;
+	url: string;
 };
 
 export type Service = {
 	id: number;
-	name: string;
-	slug: string;
-	thumbnail_url: string;
-	short_desc: string;
-	desc: string;
-	sort_order: number;
-	is_active: boolean;
-	created_at: string;
-	updated_at: string;
+	url: string;
+	nama_layanan: string;
+};
+
+export type CreateServicePayload = {
+	nama_layanan: string;
+	url: string;
 };
 
 export type Promo = {
 	id: number;
-	title: string;
-	slug: string;
-	image_url: string;
-	short_desc: string;
-	desc: string;
-	start_date?: string | null;
-	end_date?: string | null;
-	sort_order: number;
-	is_active: boolean;
-	created_at: string;
-	updated_at: string;
+	url: string;
 };
 
-export type Article = {
+export type CreatePromoPayload = {
+	url: string;
+};
+
+export type Doctor = {
 	id: number;
-	title: string;
-	slug: string;
-	thumbnail_url: string;
-	short_desc: string;
-	desc: string;
-	kategori_id?: number | null;
-	is_active: boolean;
-	published_at?: string | null;
-	created_at: string;
-	updated_at: string;
+	url: string;
+	nama_dokter: string;
+	jadwal_praktek: string;
+	kategori: string;
+};
+
+export type CreateDoctorPayload = {
+	url: string;
+	nama_dokter: string;
+	jadwal_praktek: string;
+	kategori: string;
 };
 
 export type Gallery = {
 	id: number;
-	title: string;
-	image_url: string;
-	category: string;
-	description: string;
-	sort_order: number;
-	is_active: boolean;
-	created_at: string;
-	updated_at: string;
+	kategori: string;
+	text: string;
+	url: string;
+};
+
+export type CreateGalleryPayload = {
+	kategori: string;
+	text: string;
+	url: string;
 };
 
 export type SocialLink = {
@@ -121,18 +97,28 @@ export type SiteSetting = {
 	updated_at: string;
 };
 
+export type GoogleReview = {
+	id: number;
+	review_count: number;
+	average_rating: number;
+	recorded_at: string;
+};
+
 export type HomeData = {
-	doctors: Doctor[];
-	rooms: unknown[];
-	promos: Promo[];
-	articles: Article[];
-	services: Service[];
-	gallery: Gallery[];
-	article_categories: unknown[];
-	doctor_schedules: unknown[];
-	social_links: SocialLink[];
-	operational_hours: OperationalHour[];
-	site_settings: SiteSetting[];
+	banner: Banner[];
+	layanan: Service[];
+	dokter: Doctor[];
+	promo: Promo[];
+	galeri: Gallery[];
+	event: unknown[];
+	visitor_sessions: unknown[];
+	social_media_engagement: unknown[];
+	social_media_stats: unknown[];
+	gbp_interactions: unknown[];
+	google_reviews: GoogleReview[];
+	site_settings?: SiteSetting[];
+	operational_hours?: OperationalHour[];
+	social_links?: SocialLink[];
 };
 
 export type ContactMessagePayload = {
@@ -154,16 +140,25 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 	});
 
 	const text = await response.text();
-	const payload = text ? JSON.parse(text) : null;
+	let payload: unknown = null;
+
+	if (text) {
+		try {
+			payload = JSON.parse(text);
+		} catch {
+			payload = text;
+		}
+	}
 
 	if (!response.ok) {
 		const errorMessage =
-			(payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
-				? payload.error
+			(payload && typeof payload === "object" && "error" in payload && typeof (payload as Record<string, unknown>).error === "string"
+				? (payload as Record<string, string>).error
 				: null) ??
-			(payload && typeof payload === "object" && "message" in payload && typeof payload.message === "string"
-				? payload.message
+			(payload && typeof payload === "object" && "message" in payload && typeof (payload as Record<string, unknown>).message === "string"
+				? (payload as Record<string, string>).message
 				: null) ??
+			(typeof payload === "string" && payload.trim().length > 0 ? payload : null) ??
 			`Request failed with status ${response.status}`;
 
 		throw new Error(errorMessage);
@@ -178,6 +173,126 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function fetchHomeData() {
 	return requestJson<HomeData>("/home");
+}
+
+export async function createService(payload: CreateServicePayload) {
+	return requestJson<Service>("/layanan", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(payload),
+	});
+}
+
+export async function updateService(id: number, payload: CreateServicePayload) {
+	return requestJson<Service>("/layanan", {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ id, ...payload }),
+	});
+}
+
+export async function deleteService(id: number) {
+	return requestJson<{ message: string }>("/layanan", {
+		method: "DELETE",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ id }),
+	});
+}
+
+export async function createDoctor(payload: CreateDoctorPayload) {
+	return requestJson<Doctor>("/dokter", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(payload),
+	});
+}
+
+export async function updateDoctor(id: number, payload: CreateDoctorPayload) {
+	return requestJson<Doctor>("/dokter", {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ id, ...payload }),
+	});
+}
+
+export async function deleteDoctor(id: number) {
+	return requestJson<{ message: string }>("/dokter", {
+		method: "DELETE",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ id }),
+	});
+}
+
+export async function createPromo(payload: CreatePromoPayload) {
+	return requestJson<Promo>("/promo", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(payload),
+	});
+}
+
+export async function updatePromo(id: number, payload: CreatePromoPayload) {
+	return requestJson<Promo>("/promo", {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ id, ...payload }),
+	});
+}
+
+export async function deletePromo(id: number) {
+	return requestJson<{ message: string }>("/promo", {
+		method: "DELETE",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ id }),
+	});
+}
+
+export async function createGallery(payload: CreateGalleryPayload) {
+	return requestJson<Gallery>("/galeri", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(payload),
+	});
+}
+
+export async function updateGallery(id: number, payload: CreateGalleryPayload) {
+	return requestJson<Gallery>("/galeri", {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ id, ...payload }),
+	});
+}
+
+export async function deleteGallery(id: number) {
+	return requestJson<{ message: string }>("/galeri", {
+		method: "DELETE",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ id }),
+	});
 }
 
 export async function fetchSiteSettings() {
