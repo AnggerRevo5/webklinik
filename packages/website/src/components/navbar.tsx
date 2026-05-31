@@ -19,12 +19,9 @@ const ASSETS = {
   },
 } as const;
 
-const btnPrimary =
-  "rounded-full bg-[#00b4d8] text-white hover:bg-[#00a3c5]";
-const btnAccent =
-  "rounded-full bg-[#e8861e] text-white hover:bg-[#d77a18]";
-const btnSoft =
-  "rounded-full bg-[#00b4d826] text-black hover:bg-[#00b4d833]";
+const btnPrimary = "rounded-full bg-[#00b4d8] text-white hover:bg-[#00a3c5]";
+const btnAccent = "rounded-full bg-[#e8861e] text-white hover:bg-[#d77a18]";
+const btnSoft = "rounded-full bg-[#00b4d826] text-black hover:bg-[#00b4d833]";
 
 const navItems = [
   { label: "Beranda", href: "/#beranda", isSection: true, id: "beranda" },
@@ -69,7 +66,10 @@ export default function Navbar() {
     if (hash && pathname === "/") {
       const el = document.getElementById(hash);
       if (el) {
-        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+        setTimeout(
+          () => el.scrollIntoView({ behavior: "smooth", block: "start" }),
+          50,
+        );
       }
     }
   }, [pathname]);
@@ -106,15 +106,22 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-[#f7f5f2]/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50">
       <div className="hidden border-b bg-white lg:block">
         <div className="section-container flex flex-wrap items-center justify-between gap-3 py-2">
-          <Button variant="secondary" className={cn(btnSoft, "h-9 px-4 t-body-sm")}>
+          <Button
+            variant="secondary"
+            className={cn(btnSoft, "h-9 px-4 t-body-sm")}
+          >
             <MapPin className="mr-2 h-4 w-4 shrink-0" />
             Lokasi klinik
           </Button>
           <div className="ml-auto flex flex-wrap items-center gap-3">
-            <Button variant="secondary" className={cn(btnSoft, "h-9 px-4 t-body-sm")} asChild>
+            <Button
+              variant="secondary"
+              className={cn(btnSoft, "h-9 px-4 t-body-sm")}
+              asChild
+            >
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
                 <AssetIcon
                   src={ASSETS.icons.whatsapp}
@@ -149,21 +156,21 @@ export default function Navbar() {
 
       <div
         className={cn(
-          "bg-[#1a9ec9] transition-all duration-300",
-          scrolled ? "shadow-[0_8px_24px_rgba(15,23,42,0.18)]" : "",
+          "transition-all duration-300 ease-out",
+          scrolled
+            ? "bg-transparent shadow-none backdrop-blur-md"
+            : "bg-[#1a9ec9] shadow-[0_8px_24px_rgba(15,23,42,0.18)]",
         )}
       >
         <div
           className={cn(
-            "section-container flex items-center justify-between gap-3",
-            scrolled ? "h-[64px]" : "h-[64px] lg:h-[72px]",
+            "section-container flex h-[64px] items-center justify-between gap-3 lg:h-[72px]",
           )}
         >
           <Link href="/" className="flex items-center gap-3">
             <div
               className={cn(
-                "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm",
-                scrolled ? "h-11 w-11 lg:h-12 lg:w-12" : "h-11 w-11 lg:h-14 lg:w-14",
+                "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm transition-all duration-300 lg:h-14 lg:w-14",
               )}
             >
               <Image
@@ -175,8 +182,20 @@ export default function Navbar() {
               />
             </div>
             <div>
-              <div className="t-caption text-white">Ampelgading</div>
-              <div className="t-h4 font-bold leading-tight text-white">
+              <div
+                className={cn(
+                  "t-caption transition-colors duration-300",
+                  scrolled ? "text-[#3f3f3f]" : "text-white",
+                )}
+              >
+                Ampelgading
+              </div>
+              <div
+                className={cn(
+                  "t-h4 font-bold leading-tight transition-colors duration-300",
+                  scrolled ? "text-[#3f3f3f]" : "text-white",
+                )}
+              >
                 Medical Centre
               </div>
             </div>
@@ -187,7 +206,10 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="t-body-sm font-bold text-white transition-opacity hover:opacity-80"
+                className={cn(
+                  "t-body-sm font-bold transition-all duration-300 hover:opacity-80",
+                  scrolled ? "text-[#3f3f3f]" : "text-white",
+                )}
                 onClick={(e) =>
                   item.isSection && handleSectionClick(e as any, item.id)
                 }
@@ -207,10 +229,7 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
-            <Button
-              className={cn(btnPrimary, "h-11 px-4 t-body-sm")}
-              asChild
-            >
+            <Button className={cn(btnPrimary, "h-11 px-4 t-body-sm")} asChild>
               <Link href="/pendaftaran_online_1">Daftar Online</Link>
             </Button>
             <button
@@ -275,7 +294,10 @@ export default function Navbar() {
               </Link>
             </Button>
             <Button
-              className={cn(btnSoft, "h-12 justify-start px-5 t-body text-white")}
+              className={cn(
+                btnSoft,
+                "h-12 justify-start px-5 t-body text-white",
+              )}
               asChild
             >
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">

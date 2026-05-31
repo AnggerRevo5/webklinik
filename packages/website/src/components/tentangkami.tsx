@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  MessageSquare,
-  Star,
-} from "lucide-react";
+import { ExternalLink, MessageSquare, Siren, Star } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import * as React from "react";
 import Footer from "@/src/components/footer";
 import Navbar from "@/src/components/navbar";
@@ -35,7 +30,7 @@ type TimelineItem = {
   titleClass: string;
 };
 
-type GalleryItem = { title: string; image: string };
+type GalleryItem = { title: string; image: string; description: string };
 
 type StatItem = { value: string; label: string };
 
@@ -57,15 +52,19 @@ const ASSETS = {
   aboutHero: "/assets/about/about-1.png",
   googleMaps: "/assets/about/about-3.png",
   icons: {
+    phone: "/assets/icons/phone.svg",
+    whatsapp: "/assets/icons/whatsapp.svg",
     vision: "/assets/icons/vision.svg",
     mission: "/assets/icons/mission.svg",
     history: "/assets/icons/history.svg",
     target: "/assets/icons/target.svg",
-    whatsapp: "/assets/icons/WhatsApp.svg",
     instagram: "/assets/icons/instagram.svg",
     facebook: "/assets/icons/facebook.svg",
   },
 } as const;
+
+const CLINIC_PHONE = "0812-2556-6055";
+const WHATSAPP_URL = "https://wa.me/6281225566055";
 
 const cardShadowSoft =
   "shadow-[0px_2.87px_17.25px_-0.72px_#00000033] transition-shadow duration-300 hover:shadow-[0px_4px_24px_-2px_#00000040]";
@@ -127,12 +126,41 @@ const timelineItems: TimelineItem[] = [
 ];
 
 const galeriKlinik: GalleryItem[] = [
-  { title: "Kegiatan klinik", image: "/assets/galeri/galeri1.png" },
-  { title: "Poling Desa Tirtomarto", image: "/assets/galeri/galeri2.png" },
-  { title: "Home care", image: "/assets/galeri/galeri3.png" },
-  { title: "UGD 24 Jam", image: "/assets/galeri/galeri4.png" },
-  { title: "Posyandu", image: "/assets/galeri/galeri5.png" },
-  { title: "Edukasi kesehatan", image: "/assets/galeri/galeri6.png" },
+  {
+    title: "Kegiatan klinik",
+    image: "/assets/galeri/galeri1.png",
+    description:
+      "Pelayanan harian dan aktivitas klinik untuk pasien serta keluarga.",
+  },
+  {
+    title: "Poling Desa Tirtomarto",
+    image: "/assets/galeri/galeri2.png",
+    description:
+      "Kegiatan pelayanan keliling untuk menjangkau warga di desa sekitar.",
+  },
+  {
+    title: "Home care",
+    image: "/assets/galeri/galeri3.png",
+    description:
+      "Layanan kunjungan ke rumah pasien untuk pemantauan dan perawatan.",
+  },
+  {
+    title: "UGD 24 Jam",
+    image: "/assets/galeri/galeri4.png",
+    description:
+      "Tim siaga yang siap menangani kondisi gawat darurat kapan saja.",
+  },
+  {
+    title: "Posyandu",
+    image: "/assets/galeri/galeri5.png",
+    description: "Pendampingan kesehatan ibu dan anak di kegiatan posyandu.",
+  },
+  {
+    title: "Edukasi kesehatan",
+    image: "/assets/galeri/galeri6.png",
+    description:
+      "Sesi penyuluhan untuk meningkatkan pemahaman kesehatan masyarakat.",
+  },
 ];
 
 const stats: StatItem[] = [
@@ -240,7 +268,13 @@ function ReviewAvatar({
       <div className="absolute inset-0 rounded-full bg-[#4200ff]" />
       <div className="relative ml-3 mt-1 h-[52px] w-[52px] overflow-hidden rounded-full bg-[#d9d9d9]">
         {src ? (
-          <Image src={src} alt={alt} fill className="object-cover" sizes="52px" />
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            className="object-cover"
+            sizes="52px"
+          />
         ) : (
           <span className="flex h-full w-full items-center justify-center t-body-sm font-medium text-[#3f3f3f]">
             {initials}
@@ -281,9 +315,8 @@ function AboutIntroSection() {
 
         <div className="flex flex-col">
           <h2 className="t-h2 font-bold text-[#3f3f3f]">
-            Melayani dengan{" "}
-            <span className="text-[#00b4d8]">sepenuh hati</span> untuk kesehatan
-            masyarakat Ampelgading
+            Melayani dengan <span className="text-[#00b4d8]">sepenuh hati</span>{" "}
+            untuk kesehatan masyarakat Ampelgading
           </h2>
           <p className="mt-4 t-body-lg font-medium text-[#9a9a9a]">
             KRI Ampelgading Medical Centre adalah klinik rawat inap yang
@@ -333,7 +366,9 @@ function AboutIntroSection() {
                 <AssetIcon src={item.icon} alt={item.title} size={32} />
                 <h3 className="t-h3 font-bold text-[#3f3f3f]">{item.title}</h3>
               </div>
-              <p className="t-body font-medium text-[#3f3f3f]">{item.content}</p>
+              <p className="t-body font-medium text-[#3f3f3f]">
+                {item.content}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -377,17 +412,7 @@ function AboutIntroSection() {
 /* ─── Gallery ─── */
 
 function GaleriSection() {
-  const [page, setPage] = React.useState(0);
-  const itemsPerPage = 3;
-  const totalPages = Math.max(1, Math.ceil(galeriKlinik.length / itemsPerPage));
-  const visibleItems = galeriKlinik.slice(
-    page * itemsPerPage,
-    page * itemsPerPage + itemsPerPage,
-  );
-
-  const goPrev = () => setPage((current) => Math.max(0, current - 1));
-  const goNext = () =>
-    setPage((current) => Math.min(totalPages - 1, current + 1));
+  const galleryGroups = [galeriKlinik, galeriKlinik];
 
   return (
     <Section id="galeri">
@@ -398,81 +423,56 @@ function GaleriSection() {
             <span className="t-overline text-[#00b4d8]">GALERI KLINIK</span>
           </div>
           <h2 className="t-h2 font-bold text-[#3f3f3f]">
-            Kegiatan &{" "}
-            <span className="italic text-[#00b4d8]">aktivitas</span> kami
+            Kegiatan & <span className="italic text-[#00b4d8]">aktivitas</span>{" "}
+            kami
           </h2>
         </div>
-        <div className="flex items-center gap-3 self-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={goPrev}
-            disabled={page === 0}
-            className="h-11 w-11 rounded-full border-black bg-white p-0 text-black hover:bg-white disabled:opacity-40"
-            aria-label="Galeri sebelumnya"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={goNext}
-            disabled={page >= totalPages - 1}
-            className="h-11 w-11 rounded-full border-black bg-white p-0 text-black hover:bg-white disabled:opacity-40"
-            aria-label="Galeri berikutnya"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
+      </div>
+
+      <div className="overflow-hidden">
+        <div
+          className="flex w-max animate-gallery-marquee will-change-transform"
+          style={{ ["--duration" as string]: "34s" } as React.CSSProperties}
+        >
+          {galleryGroups.map((group, groupIndex) => (
+            <div
+              key={groupIndex}
+              aria-hidden={groupIndex > 0}
+              className="flex shrink-0 gap-4 pr-4"
+            >
+              {group.map((item, index) => (
+                <Card
+                  key={`${item.image}-${groupIndex}-${index}`}
+                  className={cn(
+                    "group w-[85vw] shrink-0 overflow-hidden rounded-none border-0 bg-white sm:w-[320px] md:w-[480px] lg:w-[640px]",
+                    cardShadowMd,
+                  )}
+                >
+                  <CardContent className="p-0">
+                    <div className="group relative h-[280px] w-full overflow-hidden md:h-[300px] lg:h-[400px]">
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        fill
+                        className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100" />
+                      <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:translate-y-0 translate-y-2">
+                        <h3 className="t-h4 font-medium text-white">
+                          {item.title}
+                        </h3>
+                        <p className="mt-1 max-w-[90%] t-body-sm text-white/90">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ))}
         </div>
-      </div>
-
-      <div
-        className="flex overflow-x-auto pb-2"
-        style={{ gap: "var(--gap-cards)" }}
-      >
-        {visibleItems.map((item) => (
-          <Card
-            key={item.image}
-            className={cn(
-              "group w-[85vw] shrink-0 overflow-hidden card-radius border-0 bg-white sm:w-[320px] md:w-[480px] lg:w-[640px]",
-              cardShadowMd,
-            )}
-          >
-            <CardContent className="p-0">
-              <div className="relative h-[280px] w-full overflow-hidden md:h-[300px] lg:h-[400px]">
-                <Image
-                  src={item.image}
-                  alt={item.title}
-                  fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
-                {item.title ? (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                    <h3 className="t-h4 font-medium text-white">{item.title}</h3>
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="mt-6 flex items-center justify-center gap-3">
-        {Array.from({ length: totalPages }).map((_, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => setPage(index)}
-            aria-label={`Halaman galeri ${index + 1}`}
-            className={cn(
-              "rounded-full transition-all",
-              page === index
-                ? "h-2 w-[45px] rounded-[10px] bg-[#00b4d8]"
-                : "h-2 w-2 bg-[#d9d9d9] hover:bg-[#00b4d8]/50",
-            )}
-          />
-        ))}
       </div>
 
       <div
@@ -480,10 +480,7 @@ function GaleriSection() {
         style={{ gap: "var(--gap-cards)" }}
       >
         {stats.map((item) => (
-          <Card
-            key={item.label}
-            className="card-radius border-0 bg-[#e7e7e7]"
-          >
+          <Card key={item.label} className="card-radius border-0 bg-[#e7e7e7]">
             <CardContent className="card-base flex flex-col items-center justify-center">
               <div className="t-h2 font-bold text-[#00b4d8]">{item.value}</div>
               <div className="t-body mt-2 text-center font-bold text-[#808080]">
@@ -626,6 +623,63 @@ function RatingSection() {
   );
 }
 
+function EmergencyCta() {
+  return (
+    <section className="bg-[#1a5fa0]">
+      <div className="section-container flex flex-col gap-6 py-8 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full bg-[#2d7dd2] md:h-[104px] md:w-[104px]">
+            <Siren className="h-9 w-9 text-white md:h-12 md:w-12" />
+          </div>
+          <div>
+            <div className="t-h4 font-bold text-white">
+              Butuh bantuan segera?
+            </div>
+            <div className="t-body mt-1 text-white">UGD kami buka 24 jam</div>
+            <div className="t-body text-white">hubungi kami</div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <Button
+            className={cn(
+              "h-12 rounded-full bg-[#008000] px-6 t-body text-white hover:bg-[#067006]",
+            )}
+            asChild
+          >
+            <Link href="/pendaftaran_online_1">
+              <>
+                <AssetIcon
+                  src={ASSETS.icons.whatsapp}
+                  alt=""
+                  size={20}
+                  className="mr-2"
+                />
+                Daftar Online
+              </>
+            </Link>
+          </Button>
+          <Button
+            className={cn(
+              "h-12 rounded-full bg-[#e8861e] px-6 t-body text-white hover:bg-[#d77a18]",
+            )}
+            asChild
+          >
+            <a href={`tel:${CLINIC_PHONE.replace(/-/g, "")}`}>
+              <AssetIcon
+                src={ASSETS.icons.phone}
+                alt=""
+                size={20}
+                className="mr-2"
+              />
+              {CLINIC_PHONE}
+            </a>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Main ─── */
 
 export default function TentangKami() {
@@ -635,6 +689,7 @@ export default function TentangKami() {
       <AboutIntroSection />
       <GaleriSection />
       <RatingSection />
+      <EmergencyCta />
       <Footer />
     </main>
   );

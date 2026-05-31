@@ -385,28 +385,28 @@ func visitorSessionHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func socialMediaEngagmentHandler(db *gorm.DB) gin.HandlerFunc {
+func socialMediaEngagmentHandler(_ *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Implementasi untuk menangani data social media engagement
 		c.JSON(http.StatusOK, gin.H{"message": "Social media engagement endpoint"})
 	}
 }
 
-func socialMediaStatsHandler(db *gorm.DB) gin.HandlerFunc {
+func socialMediaStatsHandler(_ *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Implementasi untuk menangani data social media stats
 		c.JSON(http.StatusOK, gin.H{"message": "Social media stats endpoint"})
 	}
 }
 
-func GBPInteractionHandler(db *gorm.DB) gin.HandlerFunc {
+func GBPInteractionHandler(_ *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Implementasi untuk menangani data interaksi GBP
 		c.JSON(http.StatusOK, gin.H{"message": "GBP interaction endpoint"})
 	}
 }
 
-func GoogleReviewHandler(db *gorm.DB) gin.HandlerFunc {
+func GoogleReviewHandler(_ *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Implementasi untuk menangani data Google review
 		c.JSON(http.StatusOK, gin.H{"message": "Google review endpoint"})

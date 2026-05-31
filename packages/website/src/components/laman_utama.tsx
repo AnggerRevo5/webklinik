@@ -92,12 +92,9 @@ const cardShadowSoft =
   "shadow-[0px_2.87px_17.25px_-0.72px_#00000033] transition-shadow duration-300 hover:shadow-[0px_4px_24px_-2px_#00000040]";
 const cardShadowMd =
   "shadow-[0px_3.43px_20.59px_-0.86px_#00000033] transition-shadow duration-300 hover:shadow-[0px_5px_28px_-2px_#00000045]";
-const btnPrimary =
-  "rounded-full bg-[#00b4d8] text-white hover:bg-[#00a3c5]";
-const btnAccent =
-  "rounded-full bg-[#e8861e] text-white hover:bg-[#d77a18]";
-const btnSoft =
-  "rounded-full bg-[#00b4d826] text-black hover:bg-[#00b4d833]";
+const btnPrimary = "rounded-full bg-[#00b4d8] text-white hover:bg-[#00a3c5]";
+const btnAccent = "rounded-full bg-[#e8861e] text-white hover:bg-[#d77a18]";
+const btnSoft = "rounded-full bg-[#00b4d826] text-black hover:bg-[#00b4d833]";
 
 /* Re-usable button height token (48px desktop, 44px mobile) */
 const btnHeight = "h-11 lg:h-12";
@@ -255,7 +252,13 @@ function CoverImage({
 }) {
   return (
     <div className={cn("relative overflow-hidden", aspectClass, roundedClass)}>
-      <Image src={src} alt={alt} fill className="object-cover" priority={priority} />
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className="object-cover"
+        priority={priority}
+      />
     </div>
   );
 }
@@ -285,7 +288,9 @@ function AssetIcon({
 /* Kartu promo tunggal yang dipakai di grid promo. */
 function PromoCard({ promo }: { promo: PromoItem }) {
   return (
-    <Card className={cn("w-full card-radius border-0 bg-white", cardShadowSoft)}>
+    <Card
+      className={cn("w-full card-radius border-0 bg-white", cardShadowSoft)}
+    >
       <CardContent className="card-base space-y-4">
         <CoverImage
           src={promo.image}
@@ -328,8 +333,13 @@ function PromoSection({ homeData }: { homeData?: HomeData | null }) {
       ) : (
         <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
           <CardContent className="card-base text-center">
-            <h3 className="t-h3 font-semibold text-[#3f3f3f]">Belum ada promo di database</h3>
-            <p className="t-body mt-3 text-[#3f3f3f]">Tambahkan data ke tabel promo untuk menampilkan kartu promo di website.</p>
+            <h3 className="t-h3 font-semibold text-[#3f3f3f]">
+              Belum ada promo di database
+            </h3>
+            <p className="t-body mt-3 text-[#3f3f3f]">
+              Tambahkan data ke tabel promo untuk menampilkan kartu promo di
+              website.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -360,8 +370,13 @@ function ArtikelSection() {
 
       <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
         <CardContent className="card-base text-center">
-          <h3 className="t-h3 font-semibold text-[#3f3f3f]">Artikel belum tersedia di database</h3>
-          <p className="t-body mt-3 text-[#3f3f3f]">Tabel artikel belum ada di db_klinik.sql, jadi section ini tidak lagi menampilkan data dummy.</p>
+          <h3 className="t-h3 font-semibold text-[#3f3f3f]">
+            Artikel belum tersedia di database
+          </h3>
+          <p className="t-body mt-3 text-[#3f3f3f]">
+            Tabel artikel belum ada di db_klinik.sql, jadi section ini tidak
+            lagi menampilkan data dummy.
+          </p>
         </CardContent>
       </Card>
     </Section>
@@ -371,29 +386,24 @@ function ArtikelSection() {
 /* Section hubungi kami. */
 function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
   const data = homeData;
-  const clinicPhone = getSettingValue(
-    data?.site_settings ?? [],
-    ["phone", "whatsapp", "wa", "telepon"],
-    "",
-  );
-  const clinicAddress = getSettingValue(
-    data?.site_settings ?? [],
-    ["address", "alamat"],
-    "",
-  );
   const hasOperationalHours = (data?.operational_hours?.length ?? 0) > 0;
   const operationalHoursData =
     hasOperationalHours && data
       ? formatOperationalHours(data.operational_hours ?? [])
       : [];
-  const hasSocialLinks = (data?.social_links?.length ?? 0) > 0;
-  const socialLinkItems =
-    hasSocialLinks && data
-      ? (data.social_links ?? []).map((item) => ({ label: item.label, href: item.url }))
-      : [];
-
-  const whatsappNumber = normalizePhoneNumber(clinicPhone).replace(/^0/, "62");
-  const whatsappUrl = `https://wa.me/${whatsappNumber || "6281225566055"}`;
+  const clinicAddress =
+    "Dsn. Krajan RT.013 RW.005, Desa Tirtomarto, Kec. Ampelgading, Kab. Malang, Jawa Timur 65183";
+  const whatsappUrl = WHATSAPP_URL;
+  const socialLinkItems = [
+    { label: "Instagram", href: "#", icon: ASSETS.icons.instagram },
+    { label: "Facebook", href: "#", icon: ASSETS.icons.facebook },
+    { label: "Tiktok", href: "#", icon: ASSETS.icons.tiktok },
+    {
+      label: "Email",
+      href: "mailto:info@ampelgadingmedical.com",
+      icon: ASSETS.icons.email,
+    },
+  ];
 
   return (
     <Section id="hubungi">
@@ -409,11 +419,22 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
         align="center"
       />
 
-      <div className="grid gap-8 xl:grid-cols-2" style={{ gap: "var(--gap-cards)" }}>
+      <div
+        className="grid gap-8 xl:grid-cols-2"
+        style={{ gap: "var(--gap-cards)" }}
+      >
         <div className="space-y-5">
           <div className="card-radius bg-[#1f842652] p-6 shadow-[inset_0px_4px_4px_#0000001a] md:p-8">
-            <div className="flex h-[250px] items-center justify-center card-radius-sm bg-[#bfd6b6] text-center text-4xl font-medium text-black sm:text-[64px]">
-              GOOGLE MAPS
+            <div className="overflow-hidden card-radius-sm bg-[#bfd6b6]">
+              <iframe
+                title="Google Maps KRI Ampelgading Medical Centre"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3948.6548893398885!2d112.87117427568808!3d-8.237415082715378!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd6119ef38ca617%3A0x24c74a32e7d6bfb!2sKRI%20Ampelgading%20Medical%20Centre!5e0!3m2!1sid!2sid!4v1780219273500!5m2!1sid!2sid"
+                className="h-[250px] w-full border-0 sm:h-[320px]"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </div>
 
@@ -444,12 +465,16 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
             <CardContent className="card-base flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex h-[60px] w-12 items-center justify-center card-radius-sm bg-[#d9d9d9] md:w-[60px]">
-                  <AssetIcon src={ASSETS.icons.whatsapp} alt="WhatsApp" size={28} />
+                  <AssetIcon
+                    src={ASSETS.icons.whatsapp}
+                    alt="WhatsApp"
+                    size={28}
+                  />
                 </div>
                 <div>
                   <div className="t-body-sm text-[#3f3f3f]">Whatsapp</div>
                   <div className="t-h3 mt-1 font-bold text-[#3f3f3f]">
-                    {clinicPhone || "Data kontak belum tersedia"}
+                    {CLINIC_PHONE}
                   </div>
                   <div className="t-body-sm mt-1 text-[#3f3f3f]">
                     Chat langsung dengan kami
@@ -482,7 +507,7 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
                 <div>
                   <div className="t-body-sm text-[#3f3f3f]">Telepone</div>
                   <div className="t-h3 mt-1 font-bold text-[#3f3f3f]">
-                    {clinicPhone || "Data kontak belum tersedia"}
+                    {CLINIC_PHONE}
                   </div>
                   <div className="t-body-sm mt-1 text-[#3f3f3f]">
                     Tersedia 24 jam untuk keadaan darurat
@@ -495,7 +520,7 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
                 asChild
               >
                 <a
-                  href={`tel:${normalizePhoneNumber(clinicPhone)}`}
+                  href={`tel:${CLINIC_PHONE.replace(/[^\d+]/g, "")}`}
                   aria-label="Telepon klinik"
                 >
                   <ChevronRight className="h-5 w-5 text-black" />
@@ -505,46 +530,31 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
           </Card>
 
           <div className="grid-cards grid-cols-2 sm:grid-cols-4">
-            {socialLinkItems.length > 0 ? (
-              socialLinkItems.map((item) => (
-                <Card
-                  key={item.label}
-                  className={cn("card-radius border-0 bg-white", cardShadowMd)}
-                >
-                  <CardContent className="card-base flex flex-col items-center justify-center gap-3">
-                    <a
-                      href={item.href}
-                      target={item.href.startsWith("http") ? "_blank" : undefined}
-                      rel={
-                        item.href.startsWith("http")
-                          ? "noopener noreferrer"
-                          : undefined
-                      }
-                      className="transition-transform hover:scale-105"
-                      aria-label={item.label}
-                    >
-                      <AssetIcon
-                        src={
-                          socialIconMap[item.label.toLowerCase()] ??
-                          ASSETS.icons.whatsapp
-                        }
-                        alt={item.label}
-                        size={40}
-                      />
-                    </a>
-                    <div className="t-body text-center font-bold text-[#3f3f3f]">
-                      {item.label}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-                <CardContent className="card-base text-center text-[#3f3f3f]">
-                  Data sosial media belum tersedia di database
+            {socialLinkItems.map((item) => (
+              <Card
+                key={item.label}
+                className={cn("card-radius border-0 bg-white", cardShadowMd)}
+              >
+                <CardContent className="card-base flex flex-col items-center justify-center gap-3">
+                  <a
+                    href={item.href}
+                    target={item.href.startsWith("http") ? "_blank" : undefined}
+                    rel={
+                      item.href.startsWith("http")
+                        ? "noopener noreferrer"
+                        : undefined
+                    }
+                    className="transition-transform hover:scale-105"
+                    aria-label={item.label}
+                  >
+                    <AssetIcon src={item.icon} alt={item.label} size={40} />
+                  </a>
+                  <div className="t-body text-center font-bold text-[#3f3f3f]">
+                    {item.label}
+                  </div>
                 </CardContent>
               </Card>
-            )}
+            ))}
           </div>
         </div>
 
@@ -592,14 +602,18 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
                 <div className="flex h-[60px] w-[60px] shrink-0 items-center justify-center card-radius-sm border-2 border-[#00b4d8] bg-[#e8f7fb]">
                   <Clock3 className="h-7 w-7 text-[#00b4d8]" />
                 </div>
-                <h3 className="t-h3 font-bold text-[#3f3f3f]">Jam operasional</h3>
+                <h3 className="t-h3 font-bold text-[#3f3f3f]">
+                  Jam operasional
+                </h3>
               </div>
               <div>
                 {operationalHoursData.length > 0 ? (
                   operationalHoursData.map((item, index) => (
                     <div key={item.label}>
                       <div className="flex items-center justify-between gap-4 py-3">
-                        <div className="t-body text-[#3f3f3f]">{item.label}</div>
+                        <div className="t-body text-[#3f3f3f]">
+                          {item.label}
+                        </div>
                         {item.badge ? (
                           <div className="rounded-[16px] bg-[#d9d9d9] px-3 py-1 t-caption font-semibold uppercase tracking-wide text-black">
                             {item.value}
@@ -640,14 +654,19 @@ function EmergencyCta() {
             <Siren className="h-9 w-9 text-white md:h-12 md:w-12" />
           </div>
           <div>
-            <div className="t-h4 font-bold text-white">Butuh bantuan segera?</div>
+            <div className="t-h4 font-bold text-white">
+              Butuh bantuan segera?
+            </div>
             <div className="t-body mt-1 text-white">UGD kami buka 24 jam</div>
             <div className="t-body text-white">hubungi kami</div>
           </div>
         </div>
         <div className="flex flex-wrap gap-4">
           <Button
-            className={cn(btnHeight, "rounded-full bg-[#008000] px-6 t-body text-white hover:bg-[#067006]")}
+            className={cn(
+              btnHeight,
+              "rounded-full bg-[#008000] px-6 t-body text-white hover:bg-[#067006]",
+            )}
             asChild
           >
             <Link href="/pendaftaran_online_1">
@@ -684,7 +703,10 @@ function LayananSection({ homeData }: { homeData?: HomeData | null }) {
   const apiLayanan = homeData?.layanan?.length
     ? homeData.layanan.map((item, index) => ({
         title: item.nama_layanan || `Layanan ${index + 1}`,
-        image: resolveAssetPath(item.url, layananCards[index % layananCards.length].image),
+        image: resolveAssetPath(
+          item.url,
+          layananCards[index % layananCards.length].image,
+        ),
       }))
     : [];
 
@@ -715,7 +737,9 @@ function LayananSection({ homeData }: { homeData?: HomeData | null }) {
                     alt={layanan.title}
                     roundedClass="card-radius-sm"
                   />
-                  <h3 className="t-h4 px-2 font-medium text-black">{layanan.title}</h3>
+                  <h3 className="t-h4 px-2 font-medium text-black">
+                    {layanan.title}
+                  </h3>
                 </CardContent>
               </Card>
             ))}
@@ -723,8 +747,13 @@ function LayananSection({ homeData }: { homeData?: HomeData | null }) {
         ) : (
           <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
             <CardContent className="card-base text-center">
-              <h3 className="t-h3 font-semibold text-[#3f3f3f]">Belum ada layanan di database</h3>
-              <p className="t-body mt-3 text-[#3f3f3f]">Tambahkan data ke tabel layanan untuk menampilkan kartu layanan di website.</p>
+              <h3 className="t-h3 font-semibold text-[#3f3f3f]">
+                Belum ada layanan di database
+              </h3>
+              <p className="t-body mt-3 text-[#3f3f3f]">
+                Tambahkan data ke tabel layanan untuk menampilkan kartu layanan
+                di website.
+              </p>
             </CardContent>
           </Card>
         )}
@@ -751,7 +780,9 @@ function LayananSection({ homeData }: { homeData?: HomeData | null }) {
                     alt={layanan.title}
                     roundedClass="card-radius-sm"
                   />
-                  <h3 className="t-h4 px-2 font-medium text-black">{layanan.title}</h3>
+                  <h3 className="t-h4 px-2 font-medium text-black">
+                    {layanan.title}
+                  </h3>
                 </CardContent>
               </Card>
             ))}
@@ -817,60 +848,65 @@ function DokterSection({ homeData }: { homeData?: HomeData | null }) {
       {apiDoctors.length > 0 ? (
         <div className="grid-cards lg:grid-cols-2">
           {apiDoctors.map((doctor, idx) => (
-          <Card
-            key={`doctor-${idx}`}
-            className={cn(
-              "overflow-hidden card-radius border-0 bg-white",
-              cardShadowMd,
-            )}
-          >
-            <div
+            <Card
+              key={`doctor-${idx}`}
               className={cn(
-                "h-[112px] bg-gradient-to-r lg:h-[120px]",
-                doctor.gradient,
+                "overflow-hidden card-radius border-0 bg-white",
+                cardShadowMd,
               )}
-            />
-            <CardContent className="card-base flex flex-col items-center text-center">
+            >
               <div
                 className={cn(
-                  "relative -mt-16 mb-4 h-[88px] w-[88px] overflow-hidden rounded-full border-4 border-white shadow-md",
-                  doctor.avatarClassName,
+                  "h-[112px] bg-gradient-to-r lg:h-[120px]",
+                  doctor.gradient,
                 )}
-              >
-                <div className="absolute inset-0 rounded-full bg-[#84ff74]" />
-              </div>
-              <h3 className="t-h3 font-medium leading-tight text-[#3f3f3f]">
-                {doctor.name}
-              </h3>
-              <p className="t-body mt-2 font-medium text-[#3f3f3f]">
-                {doctor.role}
-              </p>
-              <div className="t-body-sm mt-3 flex items-center gap-2 text-[#3f3f3f]">
-                <CalendarDays className="h-4 w-4 shrink-0" />
-                <span className="font-medium">{doctor.schedule}</span>
-              </div>
-              <div className="t-body-sm mt-1.5 flex items-center gap-2 text-[#757575]">
-                <Clock3 className="h-4 w-4 shrink-0" />
-                <span className="font-medium">{doctor.time}</span>
-              </div>
-              <Button
-                variant="outline"
-                className={cn(
-                  btnHeight,
-                  "mt-4 rounded-full border-[#4200ff] px-6 t-body-sm font-medium text-[#4200ff] hover:bg-[#4200ff]/5",
-                )}
-              >
-                View Profile
-              </Button>
-            </CardContent>
-          </Card>
+              />
+              <CardContent className="card-base flex flex-col items-center text-center">
+                <div
+                  className={cn(
+                    "relative -mt-16 mb-4 h-[88px] w-[88px] overflow-hidden rounded-full border-4 border-white shadow-md",
+                    doctor.avatarClassName,
+                  )}
+                >
+                  <div className="absolute inset-0 rounded-full bg-[#84ff74]" />
+                </div>
+                <h3 className="t-h3 font-medium leading-tight text-[#3f3f3f]">
+                  {doctor.name}
+                </h3>
+                <p className="t-body mt-2 font-medium text-[#3f3f3f]">
+                  {doctor.role}
+                </p>
+                <div className="t-body-sm mt-3 flex items-center gap-2 text-[#3f3f3f]">
+                  <CalendarDays className="h-4 w-4 shrink-0" />
+                  <span className="font-medium">{doctor.schedule}</span>
+                </div>
+                <div className="t-body-sm mt-1.5 flex items-center gap-2 text-[#757575]">
+                  <Clock3 className="h-4 w-4 shrink-0" />
+                  <span className="font-medium">{doctor.time}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    btnHeight,
+                    "mt-4 rounded-full border-[#4200ff] px-6 t-body-sm font-medium text-[#4200ff] hover:bg-[#4200ff]/5",
+                  )}
+                >
+                  View Profile
+                </Button>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : (
         <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
           <CardContent className="card-base text-center">
-            <h3 className="t-h3 font-semibold text-[#3f3f3f]">Belum ada data dokter di database</h3>
-            <p className="t-body mt-3 text-[#3f3f3f]">Tambahkan data ke tabel dokter untuk menampilkan profil dokter di website.</p>
+            <h3 className="t-h3 font-semibold text-[#3f3f3f]">
+              Belum ada data dokter di database
+            </h3>
+            <p className="t-body mt-3 text-[#3f3f3f]">
+              Tambahkan data ke tabel dokter untuk menampilkan profil dokter di
+              website.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -881,10 +917,27 @@ function DokterSection({ homeData }: { homeData?: HomeData | null }) {
 /* Hero utama. */
 function HeroSection({ homeData }: { homeData?: HomeData | null }) {
   const heroImage = resolveAssetPath(homeData?.banner?.[0]?.url, ASSETS.hero);
+  const latestReview = homeData?.google_reviews?.[0] ?? null;
+  const latestReviewRating = Number(latestReview?.average_rating ?? 0);
+  const reviewRatingLabel = `${latestReviewRating.toFixed(1)}/5`;
   const heroStats: HeroStat[] = [
-    { icon: Clock3, title: String(homeData?.banner?.length ?? 0), subtitle: "Banner aktif" },
-    { icon: Star, title: String(homeData?.layanan?.length ?? 0), subtitle: "Layanan" },
-    { icon: Star, title: String(homeData?.dokter?.length ?? 0), subtitle: "Dokter" },
+    {
+      icon: Clock3,
+      title: "24 jam",
+      subtitle: "Buka setiap hari",
+    },
+    {
+      icon: Star,
+      title: "BPJS",
+      subtitle: "Menerima pasien BPJS",
+    },
+    {
+      icon: Star,
+      title: reviewRatingLabel,
+      subtitle: latestReview
+        ? `${latestReview.review_count} ulasan Google`
+        : "Review Google",
+    },
   ];
 
   return (
@@ -914,14 +967,19 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
               return (
                 <Card
                   key={item.title}
-                  className={cn("card-radius border-0 bg-white", cardShadowSoft)}
+                  className={cn(
+                    "card-radius border-0 bg-white",
+                    cardShadowSoft,
+                  )}
                 >
                   <CardContent className="card-base flex flex-col items-center gap-2 text-center">
                     <Icon className="h-8 w-8 text-[#00b4d8] lg:h-10 lg:w-10" />
                     <div className="t-h3 font-bold text-[#3f3f3f]">
                       {item.title}
                     </div>
-                    <div className="t-caption text-[#00b4d8]">{item.subtitle}</div>
+                    <div className="t-caption text-[#00b4d8]">
+                      {item.subtitle}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -929,7 +987,10 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3 lg:gap-4">
-            <Button className={cn(btnPrimary, btnHeight, "px-6 t-body-sm")} asChild>
+            <Button
+              className={cn(btnPrimary, btnHeight, "px-6 t-body-sm")}
+              asChild
+            >
               <Link href="/pendaftaran_online_1">
                 <>
                   <AssetIcon
@@ -944,7 +1005,11 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
             </Button>
             <Button
               variant="secondary"
-              className={cn(btnSoft, btnHeight, "px-6 t-body-sm text-[#5f6f7a]")}
+              className={cn(
+                btnSoft,
+                btnHeight,
+                "px-6 t-body-sm text-[#5f6f7a]",
+              )}
               asChild
             >
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
