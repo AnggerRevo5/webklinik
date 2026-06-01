@@ -9,6 +9,7 @@ import {
   Send,
   Siren,
   Star,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,11 +21,9 @@ import { Input } from "@/src/UiKecil/input";
 import { Section, SectionHeader } from "@/src/UiKecil/section";
 import { Separator } from "@/src/UiKecil/separator";
 import { Textarea } from "@/src/UiKecil/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/src/UiKecil/toggle-group";
 import {
   cn,
   formatOperationalHours,
-  getSettingValue,
   normalizePhoneNumber,
 } from "@/src/lib/utils";
 import Footer from "@/src/components/footer";
@@ -42,12 +41,15 @@ type LayananItem = {
 };
 
 type DoctorItem = {
+  id: number;
   name: string;
   role: string;
   schedule: string;
   time: string;
   gradient: string;
   avatarClassName: string;
+  image: string;
+  initials: string;
 };
 
 type PromoItem = {
@@ -99,6 +101,20 @@ const btnSoft = "rounded-full bg-[#00b4d826] text-black hover:bg-[#00b4d833]";
 /* Re-usable button height token (48px desktop, 44px mobile) */
 const btnHeight = "h-11 lg:h-12";
 
+const CLINIC_ADDRESS =
+  "Dsn. Krajan RT.013 RW.005, Desa Tirtomarto, Kec. Ampelgading, Kab. Malang, Jawa Timur 65183";
+
+const SOCIAL_LINK_ITEMS = [
+  { label: "Instagram", href: "#", icon: ASSETS.icons.instagram },
+  { label: "Facebook", href: "#", icon: ASSETS.icons.facebook },
+  { label: "Tiktok", href: "#", icon: ASSETS.icons.tiktok },
+  {
+    label: "Email",
+    href: "mailto:info@ampelgadingmedical.com",
+    icon: ASSETS.icons.email,
+  },
+] as const;
+
 /* ─── Section data ─── */
 
 const layananCards: LayananItem[] = [
@@ -112,36 +128,48 @@ const layananCards: LayananItem[] = [
 
 const doctorCards: DoctorItem[] = [
   {
+    id: 1,
     name: "dr. Ikhwan Rizki Rasyid Turino",
     role: "Dokter Umum",
     schedule: "Rabu - Jumat",
     time: "24 jam",
     gradient: "from-neutral-400 to-neutral-600",
     avatarClassName: "bg-[#84ff74]",
+    image: "/assets/doctors/dokter1.png",
+    initials: "IR",
   },
   {
+    id: 2,
     name: "dr. Ikhwan Rizki Rasyid Turino",
     role: "Dokter Umum",
     schedule: "Rabu - Jumat",
     time: "24 jam",
     gradient: "from-green-400 to-green-800",
     avatarClassName: "bg-[#84ff74]",
+    image: "/assets/doctors/dokter2.png",
+    initials: "IR",
   },
   {
+    id: 3,
     name: "dr. Ikhwan Rizki Rasyid Turino",
     role: "Dokter Umum",
     schedule: "Rabu - Jumat",
     time: "24 jam",
     gradient: "from-[#4200ff] to-[#280099]",
     avatarClassName: "bg-[#84ff74]",
+    image: "/assets/doctors/dokter3.png",
+    initials: "IR",
   },
   {
+    id: 4,
     name: "dr. Ikhwan Rizki Rasyid Turino",
     role: "Dokter Umum",
     schedule: "Rabu - Jumat",
     time: "24 jam",
     gradient: "from-[#315b41] to-[#69c18a]",
     avatarClassName: "bg-[#84ff74]",
+    image: "/assets/doctors/dokter4.png",
+    initials: "IR",
   },
 ];
 
@@ -233,8 +261,262 @@ const socialIconMap: Record<string, string> = {
 
 function resolveAssetPath(url: string | undefined, fallback: string) {
   if (!url) return fallback;
-  if (url.startsWith("/")) return url;
+  if (
+    url.startsWith("/") ||
+    url.startsWith("http://") ||
+    url.startsWith("https://")
+  ) {
+    return url;
+  }
   return fallback;
+}
+
+function getInitials(name: string) {
+  const words = name
+    .split(/\s+/)
+    .filter((word) => word.length > 0)
+    .slice(0, 2);
+
+  if (words.length === 0) return "DR";
+
+  return words
+    .map((word) =>
+      word
+        .replace(/[^a-zA-Z]/g, "")
+        .charAt(0)
+        .toUpperCase(),
+    )
+    .join("")
+    .slice(0, 2);
+}
+
+function DoctorProfileModal({
+  doctor,
+  open,
+  onClose,
+}: {
+  doctor: DoctorItem;
+  open: boolean;
+  onClose: () => void;
+}) {
+  React.useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  const doctorImage = doctor.image.startsWith("/")
+    ? doctor.image
+    : doctorCards[(doctor.id - 1) % doctorCards.length].image;
+  const initials = doctor.initials || getInitials(doctor.name);
+
+  return (
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6",
+        "bg-slate-950/45 backdrop-blur-md transition-all duration-300 ease-out",
+        open ? "opacity-100" : "pointer-events-none opacity-0",
+      )}
+      onClick={onClose}
+      aria-hidden={!open}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`doctor-modal-title-${doctor.id}`}
+        className={cn(
+          "relative w-full max-w-4xl overflow-hidden rounded-[28px] border border-white/60 bg-white shadow-[0_30px_90px_-36px_rgba(15,23,42,0.6)]",
+          "transform-gpu transition-all duration-300 ease-out",
+          open
+            ? "translate-y-0 scale-100 opacity-100"
+            : "translate-y-4 scale-[0.98] opacity-0",
+        )}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#00b4d8] via-[#4200ff] to-[#e8861e]" />
+        <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#00b4d8]/10 blur-3xl" />
+        <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-[#4200ff]/10 blur-3xl" />
+
+        <button
+          type="button"
+          onClick={onClose}
+          className={cn(
+            "absolute right-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full",
+            "border border-slate-200 bg-white/90 text-slate-500 shadow-sm transition-all duration-200",
+            "hover:-translate-y-0.5 hover:bg-white hover:text-slate-900",
+          )}
+          aria-label="Tutup profil dokter"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="relative min-h-[280px] overflow-hidden bg-gradient-to-br from-[#082f49] via-[#0f4c81] to-[#00b4d8] p-5 sm:p-7 lg:min-h-[520px]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.14),transparent_28%)]" />
+            <div className="relative flex h-full flex-col justify-between gap-6 text-white">
+              <div className="flex items-center justify-between gap-4">
+                <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.26em] text-white/90">
+                  Profil Dokter
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/90">
+                  <Star className="h-3.5 w-3.5" />
+                  Klinik AMC
+                </span>
+              </div>
+
+              <div className="mx-auto flex w-full max-w-[300px] flex-1 items-center justify-center py-2 sm:max-w-[340px]">
+                <div className="relative w-full overflow-hidden rounded-[30px] border border-white/20 bg-white/10 p-3 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.85)] backdrop-blur-sm">
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-[24px] bg-white/15">
+                    <Image
+                      src={doctorImage}
+                      alt={doctor.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 1024px) 100vw, 380px"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-4">
+                      <div className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
+                        {doctor.role}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-3 text-white/95">
+                    <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-3 text-center backdrop-blur-sm">
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-white/65">
+                        Inisial
+                      </div>
+                      <div className="mt-1 text-lg font-semibold">
+                        {initials}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-3 text-center backdrop-blur-sm">
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-white/65">
+                        Jadwal
+                      </div>
+                      <div className="mt-1 text-lg font-semibold">
+                        {doctor.schedule}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-3 text-center backdrop-blur-sm">
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-white/65">
+                        Jam
+                      </div>
+                      <div className="mt-1 text-lg font-semibold">
+                        {doctor.time}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="max-w-md text-sm leading-6 text-white/80">
+                Tampilan profil dibuat senada dengan kartu dokter di halaman
+                utama agar pengguna bisa melihat ringkasan identitas dokter
+                tanpa berpindah halaman.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative bg-[#fbfcfe] p-5 sm:p-7 lg:p-8">
+            <div className="mb-5 max-w-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#00b4d8]">
+                Detail Dokter
+              </p>
+              <h3
+                id={`doctor-modal-title-${doctor.id}`}
+                className="mt-2 text-2xl font-semibold leading-tight text-slate-900 sm:text-[2rem]"
+              >
+                {doctor.name}
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
+                Ringkasan profil dokter yang tampil di homepage. Informasi ini
+                mengikuti data dari database dan tetap dibuat ringan untuk
+                dibaca di desktop maupun mobile.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#00b4d8]/10 text-[#00b4d8]">
+                    <Star className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+                      Spesialisasi
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-slate-900">
+                      {doctor.role}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4200ff]/10 text-[#4200ff]">
+                    <CalendarDays className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+                      Jadwal Praktik
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-slate-900">
+                      {doctor.schedule}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] sm:col-span-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e8861e]/10 text-[#e8861e]">
+                    <Clock3 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+                      Ketersediaan
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-slate-900">
+                      {doctor.time}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    Aktif
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                className={cn(btnPrimary, btnHeight, "px-5 text-sm")}
+                onClick={onClose}
+              >
+                Tutup
+              </Button>
+              <div className="text-sm text-slate-500">
+                Klik area gelap di luar kartu untuk menutup popup.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function CoverImage({
@@ -285,6 +567,153 @@ function AssetIcon({
   );
 }
 
+function HeroStatCard({ item }: { item: HeroStat }) {
+  const Icon = item.icon;
+
+  return (
+    <Card className={cn("card-radius border-0 bg-white", cardShadowSoft)}>
+      <CardContent className="card-base flex flex-col items-center gap-2 text-center">
+        <Icon className="h-8 w-8 text-[#00b4d8] lg:h-10 lg:w-10" />
+        <div className="t-h3 font-bold text-[#3f3f3f]">{item.title}</div>
+        <div className="t-caption text-[#00b4d8]">{item.subtitle}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ServiceCard({ layanan }: { layanan: LayananItem }) {
+  return (
+    <Card
+      className={cn(
+        "overflow-hidden card-radius border-0 bg-[#f7f5f2]",
+        cardShadowSoft,
+      )}
+    >
+      <CardContent className="space-y-3 p-3 pb-4">
+        <CoverImage
+          src={layanan.image}
+          alt={layanan.title}
+          roundedClass="card-radius-sm"
+        />
+        <h3 className="t-h4 px-2 font-medium text-black">{layanan.title}</h3>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DoctorCard({
+  doctor,
+  onOpenProfile,
+}: {
+  doctor: DoctorItem;
+  onOpenProfile: (doctor: DoctorItem) => void;
+}) {
+  return (
+    <Card
+      className={cn(
+        "group overflow-hidden card-radius border-0 bg-white",
+        cardShadowMd,
+      )}
+    >
+      <div
+        className={cn(
+          "h-[112px] bg-gradient-to-r lg:h-[120px]",
+          doctor.gradient,
+        )}
+      />
+      <CardContent className="card-base flex flex-col items-center text-center">
+        <div
+          className={cn(
+            "relative -mt-16 mb-4 h-[88px] w-[88px] overflow-hidden rounded-full border-4 border-white shadow-md",
+            doctor.avatarClassName,
+          )}
+        >
+          <div className="absolute inset-0 rounded-full bg-[#84ff74]" />
+        </div>
+        <h3 className="t-h3 font-medium leading-tight text-[#3f3f3f]">
+          {doctor.name}
+        </h3>
+        <p className="t-body mt-2 font-medium text-[#3f3f3f]">{doctor.role}</p>
+        <div className="t-body-sm mt-3 flex items-center gap-2 text-[#3f3f3f]">
+          <CalendarDays className="h-4 w-4 shrink-0" />
+          <span className="font-medium">{doctor.schedule}</span>
+        </div>
+        <div className="t-body-sm mt-1.5 flex items-center gap-2 text-[#757575]">
+          <Clock3 className="h-4 w-4 shrink-0" />
+          <span className="font-medium">{doctor.time}</span>
+        </div>
+        <Button
+          variant="outline"
+          type="button"
+          onClick={() => onOpenProfile(doctor)}
+          className={cn(
+            btnHeight,
+            "mt-4 rounded-full border-[#4200ff] px-6 t-body-sm font-medium text-[#4200ff] transition-all duration-300",
+            "hover:-translate-y-0.5 hover:bg-[#4200ff]/5 hover:shadow-[0_12px_24px_-16px_rgba(66,0,255,0.45)]",
+          )}
+        >
+          View Profile
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SocialLinkCard({ item }: { item: SocialItem }) {
+  return (
+    <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
+      <CardContent className="card-base flex flex-col items-center justify-center gap-3">
+        <a
+          href={item.href}
+          target={item.href.startsWith("http") ? "_blank" : undefined}
+          rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
+          className="transition-transform hover:scale-105"
+          aria-label={item.label}
+        >
+          <AssetIcon src={item.icon} alt={item.label} size={40} />
+        </a>
+        <div className="t-body text-center font-bold text-[#3f3f3f]">
+          {item.label}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ContactCard({
+  title,
+  value,
+  description,
+  icon,
+  action,
+}: {
+  title: string;
+  value: React.ReactNode;
+  description?: string;
+  icon: React.ReactNode;
+  action: React.ReactNode;
+}) {
+  return (
+    <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
+      <CardContent className="card-base flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-[60px] w-12 items-center justify-center card-radius-sm bg-[#d9d9d9] md:w-[60px]">
+            {icon}
+          </div>
+          <div>
+            <div className="t-body-sm text-[#3f3f3f]">{title}</div>
+            <div className="t-body mt-1 font-bold text-[#3f3f3f]">{value}</div>
+            {description ? (
+              <div className="t-body-sm mt-1 text-[#3f3f3f]">{description}</div>
+            ) : null}
+          </div>
+        </div>
+        {action}
+      </CardContent>
+    </Card>
+  );
+}
+
 /* Kartu promo tunggal yang dipakai di grid promo. */
 function PromoCard({ promo }: { promo: PromoItem }) {
   return (
@@ -311,14 +740,18 @@ function PromoCard({ promo }: { promo: PromoItem }) {
 
 /* Section promo. */
 function PromoSection({ homeData }: { homeData?: HomeData | null }) {
-  const apiPromos = homeData?.promo?.length
-    ? homeData.promo.map((promo, index) => ({
-        title: `Promo ${index + 1}`,
-        image: resolveAssetPath(promo.url, "/assets/promo/promo1.png"),
-        date: "Promo aktif di database",
-        description: "Buka dashboard admin untuk mengubah detail promo.",
-      }))
-    : [];
+  const apiPromos = React.useMemo(
+    () =>
+      homeData?.promo?.length
+        ? homeData.promo.map((promo, index) => ({
+            title: `Promo ${index + 1}`,
+            image: resolveAssetPath(promo.url, "/assets/promo/promo1.png"),
+            date: "Promo aktif di database",
+            description: "Buka dashboard admin untuk mengubah detail promo.",
+          }))
+        : [],
+    [homeData?.promo],
+  );
 
   return (
     <Section id="promo">
@@ -386,24 +819,20 @@ function ArtikelSection() {
 /* Section hubungi kami. */
 function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
   const data = homeData;
-  const hasOperationalHours = (data?.operational_hours?.length ?? 0) > 0;
-  const operationalHoursData =
-    hasOperationalHours && data
-      ? formatOperationalHours(data.operational_hours ?? [])
-      : [];
-  const clinicAddress =
-    "Dsn. Krajan RT.013 RW.005, Desa Tirtomarto, Kec. Ampelgading, Kab. Malang, Jawa Timur 65183";
+  const operationalHoursData = React.useMemo(
+    () => formatOperationalHours(data?.operational_hours ?? []),
+    [data?.operational_hours],
+  );
   const whatsappUrl = WHATSAPP_URL;
-  const socialLinkItems = [
-    { label: "Instagram", href: "#", icon: ASSETS.icons.instagram },
-    { label: "Facebook", href: "#", icon: ASSETS.icons.facebook },
-    { label: "Tiktok", href: "#", icon: ASSETS.icons.tiktok },
-    {
-      label: "Email",
-      href: "mailto:info@ampelgadingmedical.com",
-      icon: ASSETS.icons.email,
-    },
-  ];
+  const handleCopyAddress = React.useCallback(async () => {
+    if (!navigator.clipboard?.writeText) return;
+
+    try {
+      await navigator.clipboard.writeText(CLINIC_ADDRESS);
+    } catch {
+      // ignore clipboard failures
+    }
+  }, []);
 
   return (
     <Section id="hubungi">
@@ -438,49 +867,31 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
             </div>
           </div>
 
-          <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-            <CardContent className="card-base flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-[60px] w-12 items-center justify-center card-radius-sm bg-[#d9d9d9] md:w-[60px]">
-                  <MapPin className="h-7 w-7 text-[#3f3f3f]" />
-                </div>
-                <div>
-                  <div className="t-body-sm text-[#3f3f3f]">Alamat</div>
-                  <div className="t-body mt-1 font-bold text-[#3f3f3f]">
-                    {clinicAddress || "Data alamat belum tersedia di database"}
-                  </div>
-                </div>
-              </div>
+          <ContactCard
+            title="Alamat"
+            value={CLINIC_ADDRESS}
+            icon={<MapPin className="h-7 w-7 text-[#3f3f3f]" />}
+            action={
               <Button
+                type="button"
                 variant="ghost"
                 className="h-auto rounded-full bg-[#d9d9d9] p-3 hover:bg-[#d0d0d0]"
                 aria-label="Salin alamat"
+                onClick={handleCopyAddress}
               >
                 <Copy className="h-4 w-4 text-black" />
               </Button>
-            </CardContent>
-          </Card>
+            }
+          />
 
-          <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-            <CardContent className="card-base flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-[60px] w-12 items-center justify-center card-radius-sm bg-[#d9d9d9] md:w-[60px]">
-                  <AssetIcon
-                    src={ASSETS.icons.whatsapp}
-                    alt="WhatsApp"
-                    size={28}
-                  />
-                </div>
-                <div>
-                  <div className="t-body-sm text-[#3f3f3f]">Whatsapp</div>
-                  <div className="t-h3 mt-1 font-bold text-[#3f3f3f]">
-                    {CLINIC_PHONE}
-                  </div>
-                  <div className="t-body-sm mt-1 text-[#3f3f3f]">
-                    Chat langsung dengan kami
-                  </div>
-                </div>
-              </div>
+          <ContactCard
+            title="Whatsapp"
+            value={CLINIC_PHONE}
+            description="Chat langsung dengan kami"
+            icon={
+              <AssetIcon src={ASSETS.icons.whatsapp} alt="WhatsApp" size={28} />
+            }
+            action={
               <Button
                 variant="ghost"
                 className="h-auto rounded-full bg-[#d9d9d9] p-3 hover:bg-[#d0d0d0]"
@@ -495,65 +906,35 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
                   <ChevronRight className="h-5 w-5 text-black" />
                 </a>
               </Button>
-            </CardContent>
-          </Card>
+            }
+          />
 
-          <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-            <CardContent className="card-base flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-[60px] w-12 items-center justify-center card-radius-sm bg-[#d9d9d9] md:w-[60px]">
-                  <AssetIcon src={ASSETS.icons.phone} alt="Telepon" size={28} />
-                </div>
-                <div>
-                  <div className="t-body-sm text-[#3f3f3f]">Telepone</div>
-                  <div className="t-h3 mt-1 font-bold text-[#3f3f3f]">
-                    {CLINIC_PHONE}
-                  </div>
-                  <div className="t-body-sm mt-1 text-[#3f3f3f]">
-                    Tersedia 24 jam untuk keadaan darurat
-                  </div>
-                </div>
-              </div>
+          <ContactCard
+            title="Telepone"
+            value={CLINIC_PHONE}
+            description="Tersedia 24 jam untuk keadaan darurat"
+            icon={
+              <AssetIcon src={ASSETS.icons.phone} alt="Telepon" size={28} />
+            }
+            action={
               <Button
                 variant="ghost"
                 className="h-auto rounded-full bg-[#d9d9d9] p-3 hover:bg-[#d0d0d0]"
                 asChild
               >
                 <a
-                  href={`tel:${CLINIC_PHONE.replace(/[^\d+]/g, "")}`}
+                  href={`tel:${normalizePhoneNumber(CLINIC_PHONE)}`}
                   aria-label="Telepon klinik"
                 >
                   <ChevronRight className="h-5 w-5 text-black" />
                 </a>
               </Button>
-            </CardContent>
-          </Card>
+            }
+          />
 
           <div className="grid-cards grid-cols-2 sm:grid-cols-4">
-            {socialLinkItems.map((item) => (
-              <Card
-                key={item.label}
-                className={cn("card-radius border-0 bg-white", cardShadowMd)}
-              >
-                <CardContent className="card-base flex flex-col items-center justify-center gap-3">
-                  <a
-                    href={item.href}
-                    target={item.href.startsWith("http") ? "_blank" : undefined}
-                    rel={
-                      item.href.startsWith("http")
-                        ? "noopener noreferrer"
-                        : undefined
-                    }
-                    className="transition-transform hover:scale-105"
-                    aria-label={item.label}
-                  >
-                    <AssetIcon src={item.icon} alt={item.label} size={40} />
-                  </a>
-                  <div className="t-body text-center font-bold text-[#3f3f3f]">
-                    {item.label}
-                  </div>
-                </CardContent>
-              </Card>
+            {SOCIAL_LINK_ITEMS.map((item) => (
+              <SocialLinkCard key={item.label} item={item} />
             ))}
           </div>
         </div>
@@ -700,15 +1081,19 @@ function EmergencyCta() {
 
 /* Section layanan utama klinik. */
 function LayananSection({ homeData }: { homeData?: HomeData | null }) {
-  const apiLayanan = homeData?.layanan?.length
-    ? homeData.layanan.map((item, index) => ({
-        title: item.nama_layanan || `Layanan ${index + 1}`,
-        image: resolveAssetPath(
-          item.url,
-          layananCards[index % layananCards.length].image,
-        ),
-      }))
-    : [];
+  const apiLayanan = React.useMemo(
+    () =>
+      homeData?.layanan?.length
+        ? homeData.layanan.map((item, index) => ({
+            title: item.nama_layanan || `Layanan ${index + 1}`,
+            image: resolveAssetPath(
+              item.url,
+              layananCards[index % layananCards.length].image,
+            ),
+          }))
+        : [],
+    [homeData?.layanan],
+  );
 
   return (
     <Section id="layanan" bg="bg-[#d9d9d9]">
@@ -724,24 +1109,7 @@ function LayananSection({ homeData }: { homeData?: HomeData | null }) {
         {apiLayanan.length > 0 ? (
           <div className="grid-cards md:grid-cols-3">
             {apiLayanan.slice(0, 3).map((layanan) => (
-              <Card
-                key={layanan.title}
-                className={cn(
-                  "overflow-hidden card-radius border-0 bg-[#f7f5f2]",
-                  cardShadowSoft,
-                )}
-              >
-                <CardContent className="space-y-3 p-3 pb-4">
-                  <CoverImage
-                    src={layanan.image}
-                    alt={layanan.title}
-                    roundedClass="card-radius-sm"
-                  />
-                  <h3 className="t-h4 px-2 font-medium text-black">
-                    {layanan.title}
-                  </h3>
-                </CardContent>
-              </Card>
+              <ServiceCard key={layanan.title} layanan={layanan} />
             ))}
           </div>
         ) : (
@@ -767,24 +1135,7 @@ function LayananSection({ homeData }: { homeData?: HomeData | null }) {
         {apiLayanan.length > 3 ? (
           <div className="grid-cards md:grid-cols-3">
             {apiLayanan.slice(3).map((layanan) => (
-              <Card
-                key={layanan.title}
-                className={cn(
-                  "overflow-hidden card-radius border-0 bg-[#f7f5f2]",
-                  cardShadowSoft,
-                )}
-              >
-                <CardContent className="space-y-3 p-3 pb-4">
-                  <CoverImage
-                    src={layanan.image}
-                    alt={layanan.title}
-                    roundedClass="card-radius-sm"
-                  />
-                  <h3 className="t-h4 px-2 font-medium text-black">
-                    {layanan.title}
-                  </h3>
-                </CardContent>
-              </Card>
+              <ServiceCard key={layanan.title} layanan={layanan} />
             ))}
           </div>
         ) : null}
@@ -826,20 +1177,74 @@ function WhatsappBanner() {
 
 /* Section profil dokter. */
 function DokterSection({ homeData }: { homeData?: HomeData | null }) {
-  const apiDoctors = homeData?.dokter?.length
-    ? homeData.dokter.map((doctor, index) => {
-        const fallback = doctorCards[index % doctorCards.length];
+  const closeTimerRef = React.useRef<number | null>(null);
+  const apiDoctors = React.useMemo(
+    () =>
+      homeData?.dokter?.length
+        ? homeData.dokter.map((doctor, index) => {
+            const fallback = doctorCards[index % doctorCards.length];
 
-        return {
-          name: doctor.nama_dokter || fallback.name,
-          role: doctor.kategori || fallback.role,
-          schedule: doctor.jadwal_praktek || fallback.schedule,
-          time: fallback.time,
-          gradient: fallback.gradient,
-          avatarClassName: fallback.avatarClassName,
-        };
-      })
-    : [];
+            return {
+              id: doctor.id ?? fallback.id,
+              name: doctor.nama_dokter || fallback.name,
+              role: doctor.kategori || fallback.role,
+              schedule: doctor.jadwal_praktek || fallback.schedule,
+              time: fallback.time,
+              gradient: fallback.gradient,
+              avatarClassName: fallback.avatarClassName,
+              image: resolveAssetPath(doctor.url, fallback.image),
+              initials: getInitials(doctor.nama_dokter || fallback.name),
+            };
+          })
+        : [],
+    [homeData?.dokter],
+  );
+
+  const [selectedDoctor, setSelectedDoctor] = React.useState<DoctorItem | null>(
+    null,
+  );
+  const [isDoctorModalOpen, setIsDoctorModalOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (isDoctorModalOpen || !selectedDoctor) return;
+
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+
+    closeTimerRef.current = window.setTimeout(() => {
+      setSelectedDoctor(null);
+      closeTimerRef.current = null;
+    }, 240);
+
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, [isDoctorModalOpen, selectedDoctor]);
+
+  const openDoctorModal = (doctor: DoctorItem) => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    setSelectedDoctor(doctor);
+    setIsDoctorModalOpen(true);
+  };
+
+  const closeDoctorModal = () => {
+    setIsDoctorModalOpen(false);
+  };
 
   return (
     <Section id="dokter">
@@ -847,54 +1252,12 @@ function DokterSection({ homeData }: { homeData?: HomeData | null }) {
 
       {apiDoctors.length > 0 ? (
         <div className="grid-cards lg:grid-cols-2">
-          {apiDoctors.map((doctor, idx) => (
-            <Card
-              key={`doctor-${idx}`}
-              className={cn(
-                "overflow-hidden card-radius border-0 bg-white",
-                cardShadowMd,
-              )}
-            >
-              <div
-                className={cn(
-                  "h-[112px] bg-gradient-to-r lg:h-[120px]",
-                  doctor.gradient,
-                )}
-              />
-              <CardContent className="card-base flex flex-col items-center text-center">
-                <div
-                  className={cn(
-                    "relative -mt-16 mb-4 h-[88px] w-[88px] overflow-hidden rounded-full border-4 border-white shadow-md",
-                    doctor.avatarClassName,
-                  )}
-                >
-                  <div className="absolute inset-0 rounded-full bg-[#84ff74]" />
-                </div>
-                <h3 className="t-h3 font-medium leading-tight text-[#3f3f3f]">
-                  {doctor.name}
-                </h3>
-                <p className="t-body mt-2 font-medium text-[#3f3f3f]">
-                  {doctor.role}
-                </p>
-                <div className="t-body-sm mt-3 flex items-center gap-2 text-[#3f3f3f]">
-                  <CalendarDays className="h-4 w-4 shrink-0" />
-                  <span className="font-medium">{doctor.schedule}</span>
-                </div>
-                <div className="t-body-sm mt-1.5 flex items-center gap-2 text-[#757575]">
-                  <Clock3 className="h-4 w-4 shrink-0" />
-                  <span className="font-medium">{doctor.time}</span>
-                </div>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    btnHeight,
-                    "mt-4 rounded-full border-[#4200ff] px-6 t-body-sm font-medium text-[#4200ff] hover:bg-[#4200ff]/5",
-                  )}
-                >
-                  View Profile
-                </Button>
-              </CardContent>
-            </Card>
+          {apiDoctors.map((doctor) => (
+            <DoctorCard
+              key={doctor.id}
+              doctor={doctor}
+              onOpenProfile={openDoctorModal}
+            />
           ))}
         </div>
       ) : (
@@ -910,6 +1273,14 @@ function DokterSection({ homeData }: { homeData?: HomeData | null }) {
           </CardContent>
         </Card>
       )}
+
+      {selectedDoctor ? (
+        <DoctorProfileModal
+          doctor={selectedDoctor}
+          open={isDoctorModalOpen}
+          onClose={closeDoctorModal}
+        />
+      ) : null}
     </Section>
   );
 }
@@ -920,25 +1291,28 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
   const latestReview = homeData?.google_reviews?.[0] ?? null;
   const latestReviewRating = Number(latestReview?.average_rating ?? 0);
   const reviewRatingLabel = `${latestReviewRating.toFixed(1)}/5`;
-  const heroStats: HeroStat[] = [
-    {
-      icon: Clock3,
-      title: "24 jam",
-      subtitle: "Buka setiap hari",
-    },
-    {
-      icon: Star,
-      title: "BPJS",
-      subtitle: "Menerima pasien BPJS",
-    },
-    {
-      icon: Star,
-      title: reviewRatingLabel,
-      subtitle: latestReview
-        ? `${latestReview.review_count} ulasan Google`
-        : "Review Google",
-    },
-  ];
+  const heroStats: HeroStat[] = React.useMemo(
+    () => [
+      {
+        icon: Clock3,
+        title: "24 jam",
+        subtitle: "Buka setiap hari",
+      },
+      {
+        icon: Star,
+        title: "BPJS",
+        subtitle: "Menerima pasien BPJS",
+      },
+      {
+        icon: Star,
+        title: reviewRatingLabel,
+        subtitle: latestReview
+          ? `${latestReview.review_count} ulasan Google`
+          : "Review Google",
+      },
+    ],
+    [latestReview, reviewRatingLabel],
+  );
 
   return (
     <Section id="beranda">
@@ -962,28 +1336,9 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
             className="mt-8 grid max-w-[760px] grid-cols-3"
             style={{ gap: "var(--gap-cards)" }}
           >
-            {heroStats.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Card
-                  key={item.title}
-                  className={cn(
-                    "card-radius border-0 bg-white",
-                    cardShadowSoft,
-                  )}
-                >
-                  <CardContent className="card-base flex flex-col items-center gap-2 text-center">
-                    <Icon className="h-8 w-8 text-[#00b4d8] lg:h-10 lg:w-10" />
-                    <div className="t-h3 font-bold text-[#3f3f3f]">
-                      {item.title}
-                    </div>
-                    <div className="t-caption text-[#00b4d8]">
-                      {item.subtitle}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {heroStats.map((item) => (
+              <HeroStatCard key={item.title} item={item} />
+            ))}
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3 lg:gap-4">
