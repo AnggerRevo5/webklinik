@@ -71,13 +71,13 @@ type VisitorSession struct {
 func (VisitorSession) TableName() string { return "visitor_sessions" }
 
 type SocialMediaEngagement struct {
-	ID           uint64    `gorm:"column:id" json:"id"`
-	Platform     string    `gorm:"column:platform" json:"platform"`
-	LikesCount   uint64    `gorm:"column:likes_count" json:"likes_count"`
-	CommentsCount uint64   `gorm:"column:comments_count" json:"comments_count"`
-	SharesCount  uint64    `gorm:"column:shares_count" json:"shares_count"`
-	SavesCount   uint64    `gorm:"column:saves_count" json:"saves_count"`
-	RecordedAt   time.Time `gorm:"column:recorded_at" json:"recorded_at"`
+	ID            uint64    `gorm:"column:id" json:"id"`
+	Platform      string    `gorm:"column:platform" json:"platform"`
+	LikesCount    uint64    `gorm:"column:likes_count" json:"likes_count"`
+	CommentsCount uint64    `gorm:"column:comments_count" json:"comments_count"`
+	SharesCount   uint64    `gorm:"column:shares_count" json:"shares_count"`
+	SavesCount    uint64    `gorm:"column:saves_count" json:"saves_count"`
+	RecordedAt    time.Time `gorm:"column:recorded_at" json:"recorded_at"`
 }
 
 func (SocialMediaEngagement) TableName() string { return "social_media_engagement" }
@@ -85,9 +85,9 @@ func (SocialMediaEngagement) TableName() string { return "social_media_engagemen
 type SocialMediaStats struct {
 	ID             uint64    `gorm:"column:id" json:"id"`
 	Platform       string    `gorm:"column:platform" json:"platform"`
-	FollowerCount   uint64    `gorm:"column:follower_count" json:"follower_count"`
-	EngagementRate  float64   `gorm:"column:engagement_rate" json:"engagement_rate"`
-	RecordedAt      time.Time `gorm:"column:recorded_at" json:"recorded_at"`
+	FollowerCount  uint64    `gorm:"column:follower_count" json:"follower_count"`
+	EngagementRate float64   `gorm:"column:engagement_rate" json:"engagement_rate"`
+	RecordedAt     time.Time `gorm:"column:recorded_at" json:"recorded_at"`
 }
 
 func (SocialMediaStats) TableName() string { return "social_media_stats" }
@@ -109,4 +109,3 @@ type GoogleReview struct {
 }
 
 func (GoogleReview) TableName() string { return "google_reviews" }
-
