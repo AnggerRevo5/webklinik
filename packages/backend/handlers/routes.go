@@ -412,3 +412,14 @@ func GoogleReviewHandler(_ *gorm.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"message": "Google review endpoint"})
 	}
 }
+
+func PasienHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		pasien, err := services.Pasien(db)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, pasien)
+	}
+}

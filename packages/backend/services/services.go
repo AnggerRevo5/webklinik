@@ -254,3 +254,10 @@ func Home(db *gorm.DB) (HomeData, error) {
 	return data, nil
 }
 
+func Pasien(db *gorm.DB) ([]models.Pasien, error) {
+	var pasien []models.Pasien
+	if err := db.Find(&pasien).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil data pasien: %w", err)
+	}
+	return pasien, nil
+}
