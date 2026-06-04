@@ -443,7 +443,7 @@ export default function DashboardAdmin() {
         KRI AMC
       </h2>
 
-      <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-[#F0F4FA] shadow-[0_10px_30px_rgba(15,23,42,0.08)] lg:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="grid min-h-dvh w-full grid-cols-1 gap-4 overflow-hidden bg-[#F0F4FA] shadow-[0_10px_30px_rgba(15,23,42,0.08)] lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6">
         <SidebarAdmin activeKey="dashboard" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
@@ -543,20 +543,17 @@ export default function DashboardAdmin() {
                       })}
                 </section>
 
-                <section className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+                <section className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4 pt-12 px-2 pb-6">
                   {isLoading
                     ? Array.from({ length: 4 }).map((_, index) => (
                         <article
                           key={index}
-                          className="animate-pulse rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm"
+                          className="animate-pulse rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                         >
-                          <div className="mx-auto mb-2 h-7 w-7 rounded-lg bg-slate-100" />
-                          <div className="mx-auto h-3 w-16 rounded bg-slate-100" />
-                          <div className="mt-2 flex justify-center gap-2">
-                            <div className="h-4 w-10 rounded bg-slate-100" />
-                            <div className="h-4 w-10 rounded bg-slate-100" />
-                          </div>
-                          <div className="mx-auto mt-2 h-3 w-20 rounded bg-slate-100" />
+                          <div className="mb-4 h-8 w-8 rounded-2xl bg-slate-100" />
+                          <div className="h-4 w-24 rounded bg-slate-100" />
+                          <div className="mt-4 h-6 w-full rounded bg-slate-100" />
+                          <div className="mt-3 h-3 w-16 rounded bg-slate-100" />
                         </article>
                       ))
                     : socialCards.map((card) => {
@@ -565,39 +562,29 @@ export default function DashboardAdmin() {
                         return (
                           <article
                             key={card.name}
-                            className="rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm"
+                            className="flex h-full flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-sky-200"
                           >
-                            <div
-                              className={`mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg ${card.iconWrapClassName}`}
-                            >
-                              <Icon
-                                className={`h-4 w-4 ${card.iconClassName}`}
-                              />
-                            </div>
-                            <div className="mb-1 text-[9px] font-medium text-slate-900">
-                              {card.name}
-                            </div>
-                            <div className="flex justify-center gap-2">
-                              <div>
-                                <div className="text-[13px] font-semibold leading-none text-slate-900">
-                                  {card.followers}
+                            <div>
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                                    {card.name}
+                                  </div>
                                 </div>
-                                <div className="text-[7px] text-slate-400">
-                                  Followers
+                                <div className={`flex h-9 w-9 items-center justify-center rounded-2xl ${card.iconWrapClassName}`}>
+                                  <Icon className={`h-4 w-4 ${card.iconClassName}`} />
                                 </div>
                               </div>
-                              <div>
-                                <div className="text-[13px] font-semibold leading-none text-emerald-600">
-                                  {card.delta}
-                                </div>
-                                <div className="text-[7px] text-slate-400">
-                                  Baru
-                                </div>
+                              <div className="mt-4 text-2xl font-semibold text-slate-900">
+                                {card.followers}
+                              </div>
+                              <div className="mt-1 text-sm text-slate-500">
+                                {card.delta}
                               </div>
                             </div>
-                            <div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-medium text-sky-600">
+                            <div className="mt-4 flex items-center gap-2 text-[11px] font-medium text-sky-600">
                               <Search className="h-3 w-3" />
-                              {card.clicks}
+                              <span>{card.clicks}</span>
                             </div>
                           </article>
                         );

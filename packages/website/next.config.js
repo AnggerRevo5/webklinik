@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  turbopack: {
-    root: __dirname,
+  experimental: {
+    optimizePackageImports: ["@radix-ui/react-*"],
   },
   onDemandEntries: {
     maxInactiveAge: 60 * 1000,
