@@ -109,27 +109,24 @@ type GoogleReview struct {
 }
 
 func (GoogleReview) TableName() string { return "google_reviews" }
-<<<<<<< HEAD
-=======
 
 type Pasien struct {
-	ID 	 uint64 `gorm:"column:id" json:"id"`
-	Nama string `gorm:"column:nama" json:"nama"`
-	NamaOrtu string `gorm:"column:nama_ortu" json:"nama_ortu"`
-	PenanggungJawab string `gorm:"column:penanggung_jawab" json:"penanggung_jawab"`
-	NoTelp string `gorm:"column:no_telp" json:"no_telp"`
-	Alamat string `gorm:"column:alamat" json:"alamat"`
-	TanggalLahir time.Time `gorm:"column:tanggal_lahir" json:"tanggal_lahir"`
-	NIK string `gorm:"column:nik" json:"nik"`
-	JenisKelamin string `gorm:"column:jenis_kelamin" json:"jenis_kelamin"`
-	JenisPasien string `gorm:"column:jenis_pasien" json:"jenis_pasien"`
+	ID               uint64    `gorm:"column:id" json:"id"`
+	Nama             string    `gorm:"column:nama" json:"nama"`
+	NamaOrtu         string    `gorm:"column:nama_ortu" json:"nama_ortu"`
+	PenanggungJawab  string    `gorm:"column:penanggung_jawab" json:"penanggung_jawab"`
+	NoTelp           string    `gorm:"column:no_telp" json:"no_telp"`
+	Alamat           string    `gorm:"column:alamat" json:"alamat"`
+	TanggalLahir     time.Time `gorm:"column:tanggal_lahir" json:"tanggal_lahir"`
+	NIK              string    `gorm:"column:nik" json:"nik"`
+	JenisKelamin     string    `gorm:"column:jenis_kelamin" json:"jenis_kelamin"`
+	JenisPasien      string    `gorm:"column:jenis_pasien" json:"jenis_pasien"`
 	TanggalKunjungan time.Time `gorm:"column:tanggal_kunjungan" json:"tanggal_kunjungan"`
-	WaktuKunjungan time.Time `gorm:"column:waktu_kunjungan" json:"waktu_kunjungan"`
-	Keluhan string `gorm:"column:keluhan" json:"keluhan"`
-	Layanan string `gorm:"column:layanan" json:"layanan"`
-	Dokter string `gorm:"column:dokter" json:"dokter"`
-	CreatedAt time.Time `gorm:"column:created_at" json:"created_at"`
+	WaktuKunjungan   time.Time `gorm:"column:waktu_kunjungan" json:"waktu_kunjungan"`
+	Keluhan          string    `gorm:"column:keluhan" json:"keluhan"`
+	Layanan          string    `gorm:"column:layanan" json:"layanan"`
+	Dokter           string    `gorm:"column:dokter" json:"dokter"`
+	CreatedAt        time.Time `gorm:"column:created_at" json:"created_at"`
 }
 
 func (Pasien) TableName() string { return "pasien" }
->>>>>>> b39cabe8c5d7841050a8538e68291a3be470270a
