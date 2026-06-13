@@ -103,6 +103,60 @@ function MetricSpark({
   );
 }
 
+type ChartPoint = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+function VerticalBarChart({
+  data,
+  label,
+}: {
+  data: ChartPoint[];
+  label: string;
+}) {
+  if (data.length === 0) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-500">
+        Data chart tidak tersedia untuk saat ini.
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...data.map((point) => point.value), 1);
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-slate-900">
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-100 text-sky-600">
+          {label.slice(0, 1)}
+        </span>
+        {label}
+      </div>
+      <div className="flex h-40 items-end gap-3 px-1">
+        {data.map((point) => {
+          const height = Math.max((point.value / maxValue) * 100, 10);
+          return (
+            <div key={point.label} className="flex-1 text-center">
+              <div className="relative mx-auto flex h-full w-full flex-col justify-end rounded-2xl bg-white p-1 shadow-sm">
+                <div
+                  className={`mx-auto w-full rounded-2xl ${point.color}`}
+                  style={{ height: `${height}%` }}
+                />
+              </div>
+              <div className="mt-2 truncate text-[10px] font-medium text-slate-600">
+                {point.label}
+              </div>
+              <div className="text-[9px] text-slate-400">{formatNumber(point.value)}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function escapeCsvValue(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
 }
@@ -176,6 +230,31 @@ export default function DashboardAdmin() {
           ) / googleReviewCount
         ).toFixed(2)
       : "0.00";
+
+  const socialPlatformData = socialMediaStats
+    .filter((item) => typeof item.platform === "string")
+    .map((item) => ({
+      label: String(item.platform),
+      value: Number(item.follower_count ?? 0),
+      color: "bg-sky-500",
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  const sessionChartData = visitorSessions
+    .slice(-5)
+    .map((session, index) => ({
+      label: `Sesi ${index + 1}`,
+      value: Number(session.pages_visited ?? 0),
+      color: "bg-emerald-500",
+    }));
+
+  const chartData =
+    socialPlatformData.length > 0 ? socialPlatformData : sessionChartData;
+  const chartTitle =
+    socialPlatformData.length > 0
+      ? "Platform sosial teratas"
+      : "Kunjungan sesi terakhir";
 
   const metrics = [
     {
@@ -677,6 +756,10 @@ export default function DashboardAdmin() {
                       </div>
                     </div>
                   </article>
+                </section>
+
+                <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
+                  <VerticalBarChart data={chartData} label={chartTitle} />
                 </section>
 
                 <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">

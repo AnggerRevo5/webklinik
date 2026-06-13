@@ -1,258 +1,181 @@
 "use client";
 
-import { Clock3, MapPin, Siren } from "lucide-react";
+import { MapPin, Phone, Siren } from "lucide-react";
 import Image from "next/image";
 import { useHomeData } from "@/src/lib/api";
-import {
-  cn,
-  formatOperationalHours,
-  getSettingValue,
-} from "@/src/lib/utils";
+import { cn } from "@/src/lib/utils";
 
 const ASSETS = {
   logo: "/assets/logo/LOGO.svg",
   icons: {
     whatsapp: "/assets/icons/whatsapp.svg",
-    phone: "/assets/icons/phone.svg",
     instagram: "/assets/icons/instagram.svg",
     facebook: "/assets/icons/facebook.svg",
+    tiktok: "/assets/icons/tiktok.svg",
   },
 } as const;
 
-const footerNav = [
-  "Beranda",
-  "Tentang kami",
-  "Layanan",
-  "Dokter",
-  "Galeri",
-  "Artikel",
-  "Hubungi kami",
-];
-
-const footerServices = [
-  "UGD 24 Jam",
-  "Rawat inap",
-  "Poli umum",
-  "Poli gigi",
-  "Persalinan",
-  "Laboratorium",
-  "SIAP DOK",
-  "HomeVisit",
-];
-
-const fallbackAddress =
-  "Dsn. Krajan RT.013 RW.005, Desa Tirtomarto, Kec. Ampelgading, Kab. Malang, Jawa Timur 65183";
-
 const socialIconMap: Record<string, string> = {
   instagram: ASSETS.icons.instagram,
-  facebook: ASSETS.icons.facebook,
-  whatsapp: ASSETS.icons.whatsapp,
+  facebook:  ASSETS.icons.facebook,
+  tiktok:    ASSETS.icons.tiktok,
+  whatsapp:  ASSETS.icons.whatsapp,
 };
 
-function AssetIcon({
-  src,
-  alt,
-  size = 24,
-  className,
-}: {
-  src: string;
-  alt: string;
-  size?: number;
-  className?: string;
-}) {
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      width={size}
-      height={size}
-      className={cn("shrink-0 object-contain", className)}
-    />
-  );
-}
+const FALLBACK_SOCIALS = [
+  { key: "instagram", icon: ASSETS.icons.instagram, label: "Instagram" },
+  { key: "facebook",  icon: ASSETS.icons.facebook,  label: "Facebook"  },
+  { key: "tiktok",    icon: ASSETS.icons.tiktok,    label: "TikTok"    },
+  { key: "whatsapp",  icon: ASSETS.icons.whatsapp,  label: "WhatsApp"  },
+];
 
 export default function Footer() {
   const { data } = useHomeData();
+  const socialLinks = data?.social_links ?? [];
 
-  const clinicPhone = getSettingValue(
-    data?.site_settings ?? [],
-    ["phone", "whatsapp", "wa", "telepon"],
-    "",
-  );
-  const clinicAddress = getSettingValue(
-    data?.site_settings ?? [],
-    ["address", "alamat"],
-    "",
-  );
-  const operationalHoursData = data?.operational_hours ?? [];
-  const operationalHours =
-    operationalHoursData.length > 0
-      ? formatOperationalHours(operationalHoursData)
-      : [];
-  const socialLinksData = data?.social_links ?? [];
-  const socialLinks = socialLinksData;
+  const socials = socialLinks.length > 0
+    ? socialLinks.map((item) => ({
+        key: item.label.toLowerCase(),
+        icon: socialIconMap[item.label.toLowerCase()] ?? ASSETS.icons.whatsapp,
+        label: item.label,
+        url: item.url,
+      }))
+    : FALLBACK_SOCIALS.map((s) => ({ ...s, url: "#" }));
 
   return (
-    <footer className="bg-white">
-      <div className="section-wrap">
-        <div
-          className="grid md:grid-cols-2 xl:grid-cols-[1.2fr_0.6fr_0.6fr_0.8fr]"
-          style={{ gap: "var(--gap-cards)" }}
-        >
+    <footer className="relative overflow-hidden bg-[#eef8fb]">
+      {/* Dot-grid pattern — ties to brand teal, sangat subtle */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: "radial-gradient(circle, #00b4d8 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+          opacity: 0.07,
+        }}
+      />
+      {/* Vignette fade di tepi agar dot tidak terlalu ramai */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, #eef8fb 100%)",
+        }}
+      />
+
+      {/* Main content */}
+      <div className="relative section-wrap pb-6 pt-10">
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+
+          {/* ── Kiri: Brand ── */}
           <div>
-            <div className="mb-4 flex items-center gap-4">
-              <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#f2f2f2] md:h-[110px] md:w-[110px]">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#00b4d8]/20 bg-white shadow-sm">
                 <Image
                   src={ASSETS.logo}
-                  alt="Logo klinik"
-                  width={64}
-                  height={64}
-                  className="object-contain"
+                  alt="Logo AMC"
+                  width={44}
+                  height={44}
+                  className="-translate-y-1 object-contain"
                 />
               </div>
-              <div className="max-w-[300px] t-body-lg leading-snug">
-                <span className="text-[#808080]">Klinik Rawat Inap </span>
-                <span className="text-[#e8861e]">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-widest text-[#00b4d8]/70">
+                  Klinik Rawat Inap
+                </p>
+                <p className="text-xl font-bold leading-tight text-[#e8861e]">
                   Ampelgading Medical Centre
-                </span>
+                </p>
               </div>
             </div>
-            <p className="max-w-[347px] t-body text-[#808080]">
-              Klinik rawat inap yang melayani dengan sepnuh hati untuk masyarakt
-              Ampelgading dan sekitarnya sejak 2011
-            </p>
-            <p className="mt-4 t-body text-[#808080]">
-              PT. Banar Medika Mandiri
-            </p>
-            <p className="t-body-sm text-[#808080]/70">
-              NIB: 0220106452414
-              <br />
-              Izin: 503/IOK.35.07.122/2021
-            </p>
-            <div className="mt-6 flex max-w-[406px] flex-wrap items-center justify-between gap-3 card-radius-sm bg-[#00b4d8] px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
-                  <Siren className="h-5 w-5 text-[#e03c31]" />
-                </div>
-                <span className="t-body-lg font-medium text-[#e03c31]">
-                  UGD 24 JAM
-                </span>
-              </div>
-              <span className="t-body-lg font-medium text-white">
-                {clinicPhone || "Data kontak belum tersedia"}
-              </span>
-            </div>
-          </div>
 
-          <div>
-            <h2 className="mb-4 t-h4 font-bold text-[#e8861e]">Navigasi</h2>
-            <ul className="space-y-2">
-              {footerNav.map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#808080]" />
-                  <button
-                    type="button"
-                    className="t-body text-left font-medium text-[#808080] transition-colors hover:text-[#00b4d8]"
-                  >
-                    {item}
-                  </button>
-                </li>
+            <p className="max-w-xs text-sm leading-relaxed text-[#4a6a78]">
+              Melayani dengan sepenuh hati sejak 2011. Kesehatan Anda adalah prioritas kami.
+            </p>
+
+            <div className="mt-3 space-y-0.5">
+              <p className="text-xs text-[#7a9aa8]">PT. Banar Medika Mandiri</p>
+              <p className="text-xs text-[#9ab4be]">NIB: 0220106452414</p>
+            </div>
+
+            {/* Social icons */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              {socials.map((s) => (
+                <a
+                  key={s.key}
+                  href={s.url}
+                  target={s.url.startsWith("http") ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  className="group flex h-9 w-9 items-center justify-center rounded-full border border-[#00b4d8]/20 bg-white shadow-sm transition-all duration-200 hover:scale-110 hover:border-[#00b4d8]/50 hover:bg-[#00b4d8]/10"
+                >
+                  <Image
+                    src={s.icon}
+                    alt={s.label}
+                    width={18}
+                    height={18}
+                    className="object-contain opacity-70 transition-opacity group-hover:opacity-100"
+                  />
+                </a>
               ))}
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="mb-4 t-h4 font-bold text-[#e8861e]">Layanan</h2>
-            <ul className="space-y-2">
-              {footerServices.map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#808080]" />
-                  <button
-                    type="button"
-                    className="t-body text-left font-medium text-[#808080] transition-colors hover:text-[#00b4d8]"
-                  >
-                    {item}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="mb-4 t-h4 font-bold text-[#e8861e]">Kontak</h2>
-            <div className="space-y-6">
-              <div className="flex items-start gap-3">
-                <div className="rounded-[10px] bg-white p-2 shadow-sm ring-1 ring-black/5">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="t-h4 font-medium text-[#00b4d8]">Alamat</h3>
-                  <p className="mt-1 t-body text-[#808080]">
-                    {clinicAddress || "Data alamat belum tersedia di database"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="rounded-[10px] bg-white p-2 shadow-sm ring-1 ring-black/5">
-                  <AssetIcon src={ASSETS.icons.phone} alt="Telepon" size={20} />
-                </div>
-                <div>
-                  <h3 className="t-h4 font-medium text-[#00b4d8]">
-                    Telepone / WA
-                  </h3>
-                  <p className="mt-1 t-body text-[#808080]">
-                    {clinicPhone || "Data telepon belum tersedia di database"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="rounded-[10px] bg-white p-2 shadow-sm ring-1 ring-black/5">
-                  <Clock3 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="t-h4 font-medium text-[#00b4d8]">
-                    Jam operasional
-                  </h3>
-                  <div className="mt-1 space-y-1 t-body text-[#808080]">
-                    {operationalHours.length > 0 ? (
-                      operationalHours.slice(0, 2).map((item) => (
-                        <p key={item.label}>
-                          {item.label}: {item.value}
-                        </p>
-                      ))
-                    ) : (
-                      <p>Data jam operasional belum tersedia di database</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-4 pt-2">
-                {socialLinks.length > 0 ? socialLinks.map((item) => {
-                  const icon =
-                    socialIconMap[item.label.toLowerCase()] ??
-                    ASSETS.icons.whatsapp;
-
-                  return (
-                    <a
-                      key={item.label}
-                      href={item.url}
-                      target={
-                        item.url.startsWith("http") ? "_blank" : undefined
-                      }
-                      rel={
-                        item.url.startsWith("http")
-                          ? "noopener noreferrer"
-                          : undefined
-                      }
-                      aria-label={item.label}
-                      className="transition-opacity hover:opacity-80"
-                    >
-                      <AssetIcon src={icon} alt={item.label} size={28} />
-                    </a>
-                  );
-                }) : <p className="t-body text-[#808080]">Data sosial media belum tersedia di database</p>}
-              </div>
             </div>
+          </div>
+
+          {/* ── Kanan: Kontak ── */}
+          <div className={cn("lg:border-l lg:border-[#00b4d8]/15 lg:pl-12")}>
+            <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-[#00b4d8]/70">
+              Hubungi Kami
+            </p>
+
+            <div className="mb-5 flex items-start gap-3">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#00b4d8]" />
+              <p className="text-sm leading-relaxed text-[#4a6a78]">
+                Dsn. Krajan RT.013 RW.005, Desa Tirtomarto,<br />
+                Kec. Ampelgading, Kab. Malang 65183
+              </p>
+            </div>
+
+            <a
+              href="tel:081225566055"
+              className="mb-3 flex items-center gap-3 text-sm text-[#4a6a78] transition-colors hover:text-[#1a1a1a]"
+            >
+              <Phone className="h-4 w-4 shrink-0 text-[#00b4d8]" />
+              0812-2556-6055
+            </a>
+
+            <a
+              href="https://wa.me/6281225566055"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-6 flex items-center gap-3 text-sm text-[#4a6a78] transition-colors hover:text-[#16a34a]"
+            >
+              <Image
+                src={ASSETS.icons.whatsapp}
+                alt="WhatsApp"
+                width={16}
+                height={16}
+                className="shrink-0 object-contain"
+              />
+              Chat via WhatsApp
+            </a>
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-50 px-4 py-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              <span className="text-xs font-bold text-emerald-600">Buka 24 JAM</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bottom bar ── */}
+        <div className={cn(
+          "mt-8 flex flex-col gap-2 border-t border-[#00b4d8]/15 pt-5",
+          "sm:flex-row sm:items-center sm:justify-between",
+        )}>
+          <p className="text-xs text-[#8aacb8]">
+            © 2025 Ampelgading Medical Centre. Hak cipta dilindungi.
+          </p>
+          <div className="flex items-center gap-1.5">
+            <Siren className="h-3.5 w-3.5 text-red-400" />
+            <span className="text-xs text-[#8aacb8]">UGD 24 JAM — Siap melayani kapan saja</span>
           </div>
         </div>
       </div>

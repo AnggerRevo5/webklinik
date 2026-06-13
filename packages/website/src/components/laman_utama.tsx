@@ -2,6 +2,7 @@
 
 import {
   CalendarDays,
+  ChevronLeft,
   ChevronRight,
   Clock3,
   Copy,
@@ -567,6 +568,90 @@ function AssetIcon({
   );
 }
 
+function CardSlider({ children }: { children: React.ReactNode }) {
+  const trackRef = React.useRef<HTMLDivElement>(null);
+  const [canPrev, setCanPrev] = React.useState(false);
+  const [canNext, setCanNext] = React.useState(false);
+  const touchStartX = React.useRef<number | null>(null);
+
+  const updateArrows = React.useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    setCanPrev(el.scrollLeft > 4);
+    setCanNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  React.useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const t = setTimeout(updateArrows, 80);
+    el.addEventListener("scroll", updateArrows, { passive: true });
+    const ro = new ResizeObserver(updateArrows);
+    ro.observe(el);
+    return () => {
+      clearTimeout(t);
+      el.removeEventListener("scroll", updateArrows);
+      ro.disconnect();
+    };
+  }, [updateArrows]);
+
+  const scroll = (dir: 1 | -1) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * (el.clientWidth * 0.78), behavior: "smooth" });
+  };
+
+  return (
+    <div>
+      <div className="mb-3 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => scroll(-1)}
+          disabled={!canPrev}
+          aria-label="Sebelumnya"
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200",
+            canPrev
+              ? "border-[#00b4d8] bg-white text-[#00b4d8] shadow-sm hover:bg-[#00b4d8] hover:text-white"
+              : "cursor-not-allowed border-black/10 bg-white/50 text-black/20",
+          )}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => scroll(1)}
+          disabled={!canNext}
+          aria-label="Selanjutnya"
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200",
+            canNext
+              ? "border-[#00b4d8] bg-[#00b4d8] text-white shadow-sm hover:bg-[#00a3c5]"
+              : "cursor-not-allowed border-black/10 bg-white/50 text-black/20",
+          )}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+      <div
+        ref={trackRef}
+        className="slider-track flex gap-[var(--gap-cards)] overflow-x-auto scroll-smooth pb-2"
+        onTouchStart={(e) => {
+          touchStartX.current = e.touches[0].clientX;
+        }}
+        onTouchEnd={(e) => {
+          if (touchStartX.current === null) return;
+          const diff = touchStartX.current - e.changedTouches[0].clientX;
+          if (Math.abs(diff) > 40) scroll(diff > 0 ? 1 : -1);
+          touchStartX.current = null;
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function HeroStatCard({ item }: { item: HeroStat }) {
   const Icon = item.icon;
 
@@ -609,53 +694,63 @@ function DoctorCard({
   onOpenProfile: (doctor: DoctorItem) => void;
 }) {
   return (
-    <Card
+    <div
       className={cn(
-        "group overflow-hidden card-radius border-0 bg-white",
-        cardShadowMd,
+        "group relative flex h-[184px] overflow-hidden rounded-2xl bg-white",
+        "transition-all duration-300 hover:-translate-y-1",
+        "shadow-[0px_3.43px_20.59px_-0.86px_#00000033] hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.18)]",
       )}
     >
-      <div
-        className={cn(
-          "h-[112px] bg-gradient-to-r lg:h-[120px]",
-          doctor.gradient,
-        )}
-      />
-      <CardContent className="card-base flex flex-col items-center text-center">
-        <div
-          className={cn(
-            "relative -mt-16 mb-4 h-[88px] w-[88px] overflow-hidden rounded-full border-4 border-white shadow-md",
-            doctor.avatarClassName,
-          )}
-        >
-          <div className="absolute inset-0 rounded-full bg-[#84ff74]" />
+      {/* Teal accent line — slides in from bottom on hover */}
+      <div className="absolute bottom-0 left-0 top-0 z-10 w-[3px] origin-bottom scale-y-0 bg-[#00b4d8] transition-transform duration-300 group-hover:origin-top group-hover:scale-y-100" />
+
+      {/* Photo panel */}
+      <div className="relative w-[130px] shrink-0 overflow-hidden">
+        <Image
+          src={doctor.image}
+          alt={doctor.name}
+          fill
+          className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
+          sizes="130px"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/10" />
+      </div>
+
+      {/* Info panel */}
+      <div className="flex flex-1 flex-col justify-between px-4 py-4">
+        {/* Top: specialty + name */}
+        <div>
+          <span className="inline-flex items-center rounded-full bg-[#00b4d8]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#00b4d8]">
+            {doctor.role}
+          </span>
+          <h3 className="mt-2 text-[14px] font-semibold leading-snug text-[#1a1a1a]">
+            {doctor.name}
+          </h3>
         </div>
-        <h3 className="t-h3 font-medium leading-tight text-[#3f3f3f]">
-          {doctor.name}
-        </h3>
-        <p className="t-body mt-2 font-medium text-[#3f3f3f]">{doctor.role}</p>
-        <div className="t-body-sm mt-3 flex items-center gap-2 text-[#3f3f3f]">
-          <CalendarDays className="h-4 w-4 shrink-0" />
-          <span className="font-medium">{doctor.schedule}</span>
+
+        {/* Middle: schedule */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-[12px] text-[#555]">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[#00b4d8]" />
+            <span>{doctor.schedule}</span>
+          </div>
+          <div className="flex items-center gap-2 text-[12px] text-[#555]">
+            <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#00b4d8]" />
+            <span>{doctor.time}</span>
+          </div>
         </div>
-        <div className="t-body-sm mt-1.5 flex items-center gap-2 text-[#757575]">
-          <Clock3 className="h-4 w-4 shrink-0" />
-          <span className="font-medium">{doctor.time}</span>
-        </div>
-        <Button
-          variant="outline"
+
+        {/* Bottom: CTA link */}
+        <button
           type="button"
           onClick={() => onOpenProfile(doctor)}
-          className={cn(
-            btnHeight,
-            "mt-4 rounded-full border-[#4200ff] px-6 t-body-sm font-medium text-[#4200ff] transition-all duration-300",
-            "hover:-translate-y-0.5 hover:bg-[#4200ff]/5 hover:shadow-[0_12px_24px_-16px_rgba(66,0,255,0.45)]",
-          )}
+          className="flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
         >
-          View Profile
-        </Button>
-      </CardContent>
-    </Card>
+          Lihat Profil
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -714,27 +809,56 @@ function ContactCard({
   );
 }
 
-/* Kartu promo tunggal yang dipakai di grid promo. */
+/* Kartu promo — desain voucher/kupon. */
 function PromoCard({ promo }: { promo: PromoItem }) {
   return (
-    <Card
-      className={cn("w-full card-radius border-0 bg-white", cardShadowSoft)}
+    <div
+      className={cn(
+        "group relative rounded-2xl bg-white",
+        "border-2 border-dashed border-[#e5d0b0]",
+        "shadow-[0_2px_16px_-4px_rgba(0,0,0,0.10)]",
+        "transition-all duration-300 hover:-translate-y-1",
+        "hover:shadow-[0_10px_32px_-8px_rgba(232,134,30,0.25)]",
+        "hover:border-[#e8861e]/60",
+      )}
     >
-      <CardContent className="card-base space-y-4">
-        <CoverImage
+      {/* Image — rounded top only, overflow-hidden agar foto tidak meluber */}
+      <div className="relative h-[152px] overflow-hidden rounded-t-[14px]">
+        <Image
           src={promo.image}
           alt={promo.title}
-          roundedClass="card-radius-sm"
-          priority
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+          sizes="360px"
         />
-        <h3 className="t-h3 font-bold text-[#3f3f3f]">{promo.title}</h3>
-        <div className="inline-flex items-center gap-2 rounded-md bg-[#cce9ec] px-3 py-1">
-          <CalendarDays className="h-4 w-4 shrink-0" />
-          <span className="t-caption font-medium">{promo.date}</span>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+        <span className="absolute right-3 top-3 rounded-full bg-[#e8861e] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white shadow">
+          PROMO
+        </span>
+      </div>
+
+      {/* Tear line + punch holes */}
+      <div className="relative">
+        <div className="mx-3 border-t-2 border-dashed border-[#e5d0b0]" />
+        {/* Punch holes — warna sama dengan background section (#fdf8f2) */}
+        <div className="absolute -left-[13px] top-1/2 h-[26px] w-[26px] -translate-y-1/2 rounded-full bg-[#fdf8f2]" />
+        <div className="absolute -right-[13px] top-1/2 h-[26px] w-[26px] -translate-y-1/2 rounded-full bg-[#fdf8f2]" />
+      </div>
+
+      {/* Info — tinggi tetap konsisten dengan line-clamp */}
+      <div className="px-4 pb-4 pt-3">
+        <h3 className="text-[14px] font-bold leading-snug text-[#1a1a1a]">
+          {promo.title}
+        </h3>
+        <div className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[#999]">
+          <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[#e8861e]" />
+          <span>{promo.date}</span>
         </div>
-        <p className="t-body text-[#3f3f3f]">{promo.description}</p>
-      </CardContent>
-    </Card>
+        <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-[#666]">
+          {promo.description}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -754,43 +878,171 @@ function PromoSection({ homeData }: { homeData?: HomeData | null }) {
   );
 
   return (
-    <Section id="promo">
+    <Section id="promo" bg="bg-[#fdf8f2]" innerClassName="pt-8">
       <SectionHeader label="PROMO" title="Penawaran khusus untuk Anda" />
 
-      {apiPromos.length > 0 ? (
-        <div className="grid-cards md:grid-cols-2 xl:grid-cols-4">
-          {apiPromos.map((promo, idx) => (
-            <PromoCard key={`promo-${idx}`} promo={promo} />
-          ))}
-        </div>
-      ) : (
-        <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-          <CardContent className="card-base text-center">
-            <h3 className="t-h3 font-semibold text-[#3f3f3f]">
-              Belum ada promo di database
-            </h3>
-            <p className="t-body mt-3 text-[#3f3f3f]">
-              Tambahkan data ke tabel promo untuk menampilkan kartu promo di
-              website.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="mt-8 flex justify-center gap-2">
-        <div className="h-2 w-8 rounded-full bg-[#00b4d8]" />
-        <div className="h-2 w-2 rounded-full bg-[#d9d9d9]" />
-        <div className="h-2 w-2 rounded-full bg-[#d9d9d9]" />
-        <div className="h-2 w-2 rounded-full bg-[#d9d9d9]" />
+      {/* py-3 -my-3: memberi ruang vertikal untuk shadow & hover lift tanpa menambah whitespace */}
+      <div className="py-3 -my-3 overflow-hidden">
+        {(() => {
+          const displayPromos = apiPromos.length > 0 ? apiPromos : promoCards;
+          return (
+            <CardSlider>
+              {displayPromos.map((promo, idx) => (
+                <div
+                  key={`promo-${idx}`}
+                  className="w-[80vw] shrink-0 sm:w-[46vw] lg:w-[28vw]"
+                  style={{ maxWidth: 360 }}
+                >
+                  <PromoCard promo={promo} />
+                </div>
+              ))}
+            </CardSlider>
+          );
+        })()}
       </div>
     </Section>
   );
 }
 
-/* Section artikel. */
+/* ── Bento artikel: 3 varian kartu berbeda bentuk ── */
+
+/* Kartu besar kiri — foto + deskripsi lengkap */
+function ArticleFeaturedCard({ article }: { article: ArticleItem }) {
+  return (
+    <div
+      className={cn(
+        "group flex h-full min-h-[340px] flex-col overflow-hidden rounded-2xl bg-white lg:min-h-[420px]",
+        "shadow-[0_4px_24px_-6px_rgba(0,0,0,0.12)] transition-all duration-300",
+        "hover:-translate-y-1 hover:shadow-[0_14px_40px_-8px_rgba(0,0,0,0.18)]",
+      )}
+    >
+      {/* Foto — ~55% tinggi */}
+      <div className="relative h-[200px] shrink-0 overflow-hidden lg:h-[240px]">
+        <Image
+          src={article.image}
+          alt={article.title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          sizes="(max-width: 1024px) 100vw, 55vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+        <span className="absolute left-4 top-4 rounded-full bg-[#00b4d8] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow">
+          Tips Kesehatan
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="flex flex-1 flex-col justify-between p-5">
+        <div>
+          <div className="flex items-center gap-1.5 text-[12px] text-[#aaa]">
+            <Clock3 className="h-3 w-3" />
+            <span>5 menit baca</span>
+          </div>
+          <h3 className="mt-2 text-[17px] font-bold leading-snug text-[#1a1a1a]">
+            {article.title}
+          </h3>
+          <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[#666]">
+            {article.description}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="mt-3 flex w-fit items-center gap-1 text-[13px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
+        >
+          Baca selengkapnya <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* Kartu horizontal kanan atas — foto kiri, teks kanan */
+function ArticleCompactCard({ article }: { article: ArticleItem }) {
+  return (
+    <div
+      className={cn(
+        "group relative flex h-[180px] overflow-hidden rounded-2xl bg-white",
+        "shadow-[0_2px_16px_-4px_rgba(0,0,0,0.10)] transition-all duration-300",
+        "hover:-translate-y-0.5 hover:shadow-[0_8px_28px_-6px_rgba(0,0,0,0.16)]",
+      )}
+    >
+      {/* Accent line hover */}
+      <div className="absolute bottom-0 left-0 top-0 z-10 w-[3px] origin-bottom scale-y-0 bg-[#00b4d8] transition-transform duration-300 group-hover:origin-top group-hover:scale-y-100" />
+
+      {/* Foto */}
+      <div className="relative w-[150px] shrink-0 overflow-hidden">
+        <Image
+          src={article.image}
+          alt={article.title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+          sizes="150px"
+        />
+      </div>
+
+      {/* Info */}
+      <div className="flex flex-1 flex-col justify-between p-4">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#00b4d8]">
+            Edukasi
+          </span>
+          <h3 className="mt-1.5 line-clamp-3 text-[14px] font-semibold leading-snug text-[#1a1a1a]">
+            {article.title}
+          </h3>
+        </div>
+        <button
+          type="button"
+          className="flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
+        >
+          Baca <ChevronRight className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* Kartu dark navy kanan bawah — tanpa foto, warna solid */
+function ArticleTextCard({ article }: { article: ArticleItem }) {
+  return (
+    <div
+      className={cn(
+        "group relative flex flex-1 flex-col justify-between overflow-hidden rounded-2xl",
+        "bg-gradient-to-br from-[#071e38] to-[#0c3a68] p-5",
+        "shadow-[0_2px_16px_-4px_rgba(0,0,0,0.22)] transition-all duration-300",
+        "hover:-translate-y-0.5 hover:shadow-[0_10px_32px_-6px_rgba(0,100,200,0.28)]",
+        "min-h-[160px]",
+      )}
+    >
+      {/* Dekorasi lingkaran abstrak */}
+      <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#00b4d8]/10" />
+      <div className="pointer-events-none absolute -bottom-4 -left-4 h-24 w-24 rounded-full bg-[#e8861e]/8" />
+
+      <div className="relative">
+        <span className="inline-flex rounded-full bg-white/10 px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-white/60">
+          Berita Klinik
+        </span>
+        <h3 className="mt-3 text-[15px] font-bold leading-snug text-white">
+          {article.title}
+        </h3>
+        <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-white/55">
+          {article.description}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        className="relative mt-4 flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
+      >
+        Baca selengkapnya <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+/* Section artikel — bento grid. */
 function ArtikelSection() {
   return (
-    <Section id="artikel">
+    <Section id="artikel" innerClassName="pt-8">
       <SectionHeader
         label="ARTIKEL"
         title={
@@ -799,19 +1051,22 @@ function ArtikelSection() {
             <span className="italic text-[#00b4d8]">terkini</span>
           </>
         }
+        subtitle="Tips dan edukasi kesehatan dari tim medis kami"
       />
 
-      <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-        <CardContent className="card-base text-center">
-          <h3 className="t-h3 font-semibold text-[#3f3f3f]">
-            Artikel belum tersedia di database
-          </h3>
-          <p className="t-body mt-3 text-[#3f3f3f]">
-            Tabel artikel belum ada di db_klinik.sql, jadi section ini tidak
-            lagi menampilkan data dummy.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Bento: featured kiri, 2 kartu kanan */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+        {/* Kiri — featured besar */}
+        <div className="lg:w-[55%] lg:shrink-0">
+          <ArticleFeaturedCard article={articleCards[0]} />
+        </div>
+
+        {/* Kanan — compact + dark card */}
+        <div className="flex flex-col gap-4 lg:flex-1">
+          <ArticleCompactCard article={articleCards[1]} />
+          <ArticleTextCard article={articleCards[2]} />
+        </div>
+      </div>
     </Section>
   );
 }
@@ -823,19 +1078,20 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
     () => formatOperationalHours(data?.operational_hours ?? []),
     [data?.operational_hours],
   );
-  const whatsappUrl = WHATSAPP_URL;
+  const [copied, setCopied] = React.useState(false);
   const handleCopyAddress = React.useCallback(async () => {
     if (!navigator.clipboard?.writeText) return;
-
     try {
       await navigator.clipboard.writeText(CLINIC_ADDRESS);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      // ignore clipboard failures
+      // ignore
     }
   }, []);
 
   return (
-    <Section id="hubungi">
+    <Section id="hubungi" innerClassName="pt-8">
       <SectionHeader
         label="HUBUNGI KAMI"
         title={
@@ -845,179 +1101,171 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
           </>
         }
         subtitle="Kami siap melayani Anda 24 jam setiap hari"
-        align="center"
       />
 
-      <div
-        className="grid gap-8 xl:grid-cols-2"
-        style={{ gap: "var(--gap-cards)" }}
-      >
-        <div className="space-y-5">
-          <div className="card-radius bg-[#1f842652] p-6 shadow-[inset_0px_4px_4px_#0000001a] md:p-8">
-            <div className="overflow-hidden card-radius-sm bg-[#bfd6b6]">
-              <iframe
-                title="Google Maps KRI Ampelgading Medical Centre"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3948.6548893398885!2d112.87117427568808!3d-8.237415082715378!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd6119ef38ca617%3A0x24c74a32e7d6bfb!2sKRI%20Ampelgading%20Medical%20Centre!5e0!3m2!1sid!2sid!4v1780219273500!5m2!1sid!2sid"
-                className="h-[250px] w-full border-0 sm:h-[320px]"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        {/* ── Kolom kiri: peta + satu panel kontak ── */}
+        <div className="flex flex-col gap-4">
+          {/* Peta */}
+          <div className="overflow-hidden rounded-2xl shadow-[0_2px_16px_-4px_rgba(0,0,0,0.12)]">
+            <iframe
+              title="Google Maps KRI Ampelgading Medical Centre"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3948.6548893398885!2d112.87117427568808!3d-8.237415082715378!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd6119ef38ca617%3A0x24c74a32e7d6bfb!2sKRI%20Ampelgading%20Medical%20Centre!5e0!3m2!1sid!2sid!4v1780219273500!5m2!1sid!2sid"
+              className="h-[220px] w-full border-0 sm:h-[260px]"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
 
-          <ContactCard
-            title="Alamat"
-            value={CLINIC_ADDRESS}
-            icon={<MapPin className="h-7 w-7 text-[#3f3f3f]" />}
-            action={
-              <Button
+          {/* Panel kontak terpadu — alamat + telepon + WA + sosial dalam 1 kartu */}
+          <div className={cn("rounded-2xl bg-white p-5", cardShadowMd)}>
+            {/* Alamat */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#00b4d8]" />
+                <p className="text-[13px] leading-relaxed text-[#444]">
+                  {CLINIC_ADDRESS}
+                </p>
+              </div>
+              <button
                 type="button"
-                variant="ghost"
-                className="h-auto rounded-full bg-[#d9d9d9] p-3 hover:bg-[#d0d0d0]"
                 aria-label="Salin alamat"
                 onClick={handleCopyAddress}
+                className="shrink-0 rounded-full bg-[#f1f1f1] p-2 transition-colors hover:bg-[#e4f6fb]"
               >
-                <Copy className="h-4 w-4 text-black" />
-              </Button>
-            }
-          />
+                <Copy className="h-3.5 w-3.5 text-[#555]" />
+              </button>
+            </div>
+            {copied && (
+              <p className="mt-1 pl-7 text-[11px] font-medium text-[#00b4d8]">
+                Alamat disalin ✓
+              </p>
+            )}
 
-          <ContactCard
-            title="Whatsapp"
-            value={CLINIC_PHONE}
-            description="Chat langsung dengan kami"
-            icon={
-              <AssetIcon src={ASSETS.icons.whatsapp} alt="WhatsApp" size={28} />
-            }
-            action={
-              <Button
-                variant="ghost"
-                className="h-auto rounded-full bg-[#d9d9d9] p-3 hover:bg-[#d0d0d0]"
-                asChild
+            <Separator className="my-4 bg-[#f0f0f0]" />
+
+            {/* Telepon & WhatsApp */}
+            <div className="space-y-3">
+              <a
+                href={`tel:${normalizePhoneNumber(CLINIC_PHONE)}`}
+                className="flex items-center justify-between gap-3 rounded-xl bg-[#f8f8f8] px-4 py-3 transition-colors hover:bg-[#f0f0f0]"
               >
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Buka WhatsApp"
-                >
-                  <ChevronRight className="h-5 w-5 text-black" />
-                </a>
-              </Button>
-            }
-          />
+                <div className="flex items-center gap-3">
+                  <AssetIcon src={ASSETS.icons.phone} alt="Telepon" size={16} />
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#999]">Telepon</p>
+                    <p className="text-[13px] font-bold text-[#1a1a1a]">{CLINIC_PHONE}</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-[#bbb]" />
+              </a>
 
-          <ContactCard
-            title="Telepone"
-            value={CLINIC_PHONE}
-            description="Tersedia 24 jam untuk keadaan darurat"
-            icon={
-              <AssetIcon src={ASSETS.icons.phone} alt="Telepon" size={28} />
-            }
-            action={
-              <Button
-                variant="ghost"
-                className="h-auto rounded-full bg-[#d9d9d9] p-3 hover:bg-[#d0d0d0]"
-                asChild
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-3 rounded-xl bg-[#f0fdf4] px-4 py-3 transition-colors hover:bg-[#dcfce7]"
               >
-                <a
-                  href={`tel:${normalizePhoneNumber(CLINIC_PHONE)}`}
-                  aria-label="Telepon klinik"
-                >
-                  <ChevronRight className="h-5 w-5 text-black" />
-                </a>
-              </Button>
-            }
-          />
+                <div className="flex items-center gap-3">
+                  <AssetIcon src={ASSETS.icons.whatsapp} alt="WhatsApp" size={16} />
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#16a34a]">WhatsApp</p>
+                    <p className="text-[13px] font-bold text-[#1a1a1a]">Chat langsung dengan kami</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-[#86efac]" />
+              </a>
+            </div>
 
-          <div className="grid-cards grid-cols-2 sm:grid-cols-4">
-            {SOCIAL_LINK_ITEMS.map((item) => (
-              <SocialLinkCard key={item.label} item={item} />
-            ))}
+            <Separator className="my-4 bg-[#f0f0f0]" />
+
+            {/* Ikon sosial kecil */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#bbb]">Ikuti kami</span>
+              <div className="flex gap-1.5 ml-1">
+                {SOCIAL_LINK_ITEMS.map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    target={item.href.startsWith("http") ? "_blank" : undefined}
+                    rel="noopener noreferrer"
+                    aria-label={item.label}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4f4f4] transition-all hover:bg-[#e4f6fb] hover:scale-110"
+                  >
+                    <AssetIcon src={item.icon} alt={item.label} size={16} />
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-5">
-          <div className="card-radius bg-[#e7e7e752] p-6 shadow-[inset_0px_4px_4px_#0000001a]">
-            <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-              <div className="grid gap-4 sm:grid-cols-[190px_1fr]">
+        {/* ── Kolom kanan: form + jam operasional ── */}
+        <div className="flex flex-col gap-4">
+          {/* Form pesan — disederhanakan */}
+          <div className="rounded-2xl bg-[#f8f9fb] p-5 shadow-[inset_0px_2px_8px_rgba(0,0,0,0.06)]">
+            <h3 className="mb-4 text-[15px] font-bold text-[#1a1a1a]">Kirim Pesan</h3>
+            <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Input
                   placeholder="Nama lengkap"
-                  className="h-12 rounded-full border-black bg-[#f7f5f2] px-5 t-body placeholder:text-[#b3b3b3]"
+                  className="h-11 rounded-full border-[#e0e0e0] bg-white px-5 text-[13px] placeholder:text-[#bbb]"
                 />
                 <Input
-                  placeholder="Contoh: 08123456789"
-                  className="h-12 rounded-full border-black bg-[#f7f5f2] px-5 t-body placeholder:text-[#b3b3b3]"
+                  placeholder="Nomor WhatsApp"
+                  className="h-11 rounded-full border-[#e0e0e0] bg-white px-5 text-[13px] placeholder:text-[#bbb]"
                 />
               </div>
-              <Input
-                placeholder="Alamat email (opsional)"
-                className="h-12 rounded-full border-black bg-[#f7f5f2] px-5 t-body placeholder:text-[#b3b3b3]"
-              />
-              <Input
-                placeholder="Nama Sesuai KTP"
-                className="h-12 rounded-full border-black bg-[#f7f5f2] px-5 t-body placeholder:text-[#b3b3b3]"
-              />
               <Textarea
-                placeholder="Alamat Lengkap"
-                className="min-h-[160px] rounded-[24px] border-black bg-[#f7f5f2] px-5 py-4 t-body placeholder:text-[#b3b3b3]"
+                placeholder="Tulis pesan atau pertanyaan Anda..."
+                className="min-h-[110px] rounded-2xl border-[#e0e0e0] bg-white px-5 py-3 text-[13px] placeholder:text-[#bbb]"
               />
               <Button
                 type="submit"
-                className={cn(
-                  btnPrimary,
-                  "h-12 w-full t-body font-medium shadow-[0px_4px_33px_6px_#4a445d29]",
-                )}
+                className={cn(btnPrimary, "h-11 w-full text-[13px] font-semibold")}
               >
-                <Send className="mr-2 h-5 w-5" />
+                <Send className="mr-2 h-4 w-4" />
                 Kirim Pesan
               </Button>
             </form>
           </div>
 
-          <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-            <CardContent className="card-base">
-              <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-[60px] w-[60px] shrink-0 items-center justify-center card-radius-sm border-2 border-[#00b4d8] bg-[#e8f7fb]">
-                  <Clock3 className="h-7 w-7 text-[#00b4d8]" />
-                </div>
-                <h3 className="t-h3 font-bold text-[#3f3f3f]">
-                  Jam operasional
-                </h3>
+          {/* Jam operasional */}
+          <div className={cn("rounded-2xl bg-white p-5", cardShadowMd)}>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f7fb]">
+                <Clock3 className="h-4.5 w-4.5 text-[#00b4d8]" />
               </div>
+              <h3 className="text-[15px] font-bold text-[#1a1a1a]">Jam Operasional</h3>
+            </div>
+            {operationalHoursData.length > 0 ? (
               <div>
-                {operationalHoursData.length > 0 ? (
-                  operationalHoursData.map((item, index) => (
-                    <div key={item.label}>
-                      <div className="flex items-center justify-between gap-4 py-3">
-                        <div className="t-body text-[#3f3f3f]">
-                          {item.label}
-                        </div>
-                        {item.badge ? (
-                          <div className="rounded-[16px] bg-[#d9d9d9] px-3 py-1 t-caption font-semibold uppercase tracking-wide text-black">
-                            {item.value}
-                          </div>
-                        ) : (
-                          <div className="t-body font-medium text-[#3f3f3f]">
-                            {item.value}
-                          </div>
-                        )}
-                      </div>
-                      {index < operationalHoursData.length - 1 ? (
-                        <Separator className="bg-[#e8e8e8]" />
-                      ) : null}
+                {operationalHoursData.map((item, index) => (
+                  <div key={item.label}>
+                    <div className="flex items-center justify-between gap-4 py-2.5">
+                      <span className="text-[13px] text-[#555]">{item.label}</span>
+                      {item.badge ? (
+                        <span className="rounded-full bg-[#e8f7fb] px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#00b4d8]">
+                          {item.value}
+                        </span>
+                      ) : (
+                        <span className="text-[13px] font-semibold text-[#1a1a1a]">{item.value}</span>
+                      )}
                     </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl bg-white p-4 text-center t-body text-[#3f3f3f]">
-                    Data jam operasional belum tersedia di database
+                    {index < operationalHoursData.length - 1 && (
+                      <Separator className="bg-[#f4f4f4]" />
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <p className="text-[13px] text-[#999]">
+                Data jam operasional belum tersedia.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </Section>
@@ -1095,51 +1343,29 @@ function LayananSection({ homeData }: { homeData?: HomeData | null }) {
     [homeData?.layanan],
   );
 
+  const displayLayanan = apiLayanan.length > 0 ? apiLayanan : layananCards;
+
   return (
-    <Section id="layanan" bg="bg-[#d9d9d9]">
-      <div className="grid gap-8 lg:grid-cols-[355px_1fr] lg:items-start">
-        <div>
-          <SectionHeader
-            label="LAYANAN KAMI"
-            title="Layanan Kami"
-            subtitle="Kami berkomitmen memberikan layanan dan fasilitas kesehatan dengan sepenuh hati"
-          />
-        </div>
-
-        {apiLayanan.length > 0 ? (
-          <div className="grid-cards md:grid-cols-3">
-            {apiLayanan.slice(0, 3).map((layanan) => (
-              <ServiceCard key={layanan.title} layanan={layanan} />
-            ))}
-          </div>
-        ) : (
-          <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-            <CardContent className="card-base text-center">
-              <h3 className="t-h3 font-semibold text-[#3f3f3f]">
-                Belum ada layanan di database
-              </h3>
-              <p className="t-body mt-3 text-[#3f3f3f]">
-                Tambahkan data ke tabel layanan untuk menampilkan kartu layanan
-                di website.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+    <Section id="layanan" className="scroll-mt-[96px]" bg="bg-[#d9d9d9]" innerClassName="pt-4 pb-8">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <SectionHeader
+          label="LAYANAN KAMI"
+          title="Layanan Kami"
+          subtitle="Kami berkomitmen memberikan layanan dan fasilitas kesehatan dengan sepenuh hati"
+          className="mb-0"
+        />
       </div>
-
-      <div
-        className="mt-6 grid lg:grid-cols-[355px_1fr]"
-        style={{ gap: "var(--gap-cards)" }}
-      >
-        <div />
-        {apiLayanan.length > 3 ? (
-          <div className="grid-cards md:grid-cols-3">
-            {apiLayanan.slice(3).map((layanan) => (
-              <ServiceCard key={layanan.title} layanan={layanan} />
-            ))}
+      <CardSlider>
+        {displayLayanan.map((layanan, i) => (
+          <div
+            key={`layanan-${i}`}
+            className="w-[82vw] shrink-0 sm:w-[48vw] md:w-[38vw] lg:w-[27vw]"
+            style={{ maxWidth: 340 }}
+          >
+            <ServiceCard layanan={layanan} />
           </div>
-        ) : null}
-      </div>
+        ))}
+      </CardSlider>
     </Section>
   );
 }
@@ -1247,32 +1473,25 @@ function DokterSection({ homeData }: { homeData?: HomeData | null }) {
   };
 
   return (
-    <Section id="dokter">
+    <Section id="dokter" className="scroll-mt-[96px]" innerClassName="pt-4 pb-8">
       <SectionHeader label="DOKTER KAMI" title="Dokter Kami" />
 
-      {apiDoctors.length > 0 ? (
-        <div className="grid-cards lg:grid-cols-2">
-          {apiDoctors.map((doctor) => (
-            <DoctorCard
-              key={doctor.id}
-              doctor={doctor}
-              onOpenProfile={openDoctorModal}
-            />
-          ))}
-        </div>
-      ) : (
-        <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-          <CardContent className="card-base text-center">
-            <h3 className="t-h3 font-semibold text-[#3f3f3f]">
-              Belum ada data dokter di database
-            </h3>
-            <p className="t-body mt-3 text-[#3f3f3f]">
-              Tambahkan data ke tabel dokter untuk menampilkan profil dokter di
-              website.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {(() => {
+        const displayDoctors = apiDoctors.length > 0 ? apiDoctors : doctorCards;
+        return (
+          <CardSlider>
+            {displayDoctors.map((doctor) => (
+              <div
+                key={doctor.id}
+                className="w-[88vw] shrink-0 sm:w-[54vw] lg:w-[36vw]"
+                style={{ maxWidth: 460 }}
+              >
+                <DoctorCard doctor={doctor} onOpenProfile={openDoctorModal} />
+              </div>
+            ))}
+          </CardSlider>
+        );
+      })()}
 
       {selectedDoctor ? (
         <DoctorProfileModal
@@ -1315,7 +1534,7 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
   );
 
   return (
-    <Section id="beranda">
+    <Section id="beranda" className="scroll-mt-[96px]" innerClassName="pt-4 lg:pt-6">
       <div className="grid gap-8 lg:grid-cols-[52%_48%] lg:items-center lg:gap-10">
         <div className="order-2 animate-fade-up lg:order-1">
           <h1 className="max-w-[980px] t-h1 font-bold">
@@ -1389,7 +1608,7 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
                 fill
                 className="object-cover"
                 priority
-                sizes="(max-width: 1024px) 100vw, 736px"
+                sizes="(max-width: 1024px) 100vw, 820px"
               />
             </div>
           </div>

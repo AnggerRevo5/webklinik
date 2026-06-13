@@ -1,13 +1,15 @@
 "use client";
 
-import { MapPin, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
+import { useHomeData } from "@/src/lib/api";
 import { Button } from "@/src/UiKecil/button";
 import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";
+
 
 const WHATSAPP_URL = "https://wa.me/6281225566055";
 
@@ -16,8 +18,16 @@ const ASSETS = {
   icons: {
     whatsapp: "/assets/icons/whatsapp.svg",
     instagram: "/assets/icons/instagram.svg",
+    facebook: "/assets/icons/facebook.svg",
+    tiktok: "/assets/icons/tiktok.svg",
   },
 } as const;
+
+const SOCIAL_DEFS = [
+  { key: "instagram", label: "Instagram", icon: ASSETS.icons.instagram },
+  { key: "facebook",  label: "Facebook",  icon: ASSETS.icons.facebook  },
+  { key: "tiktok",    label: "TikTok",    icon: ASSETS.icons.tiktok    },
+] as const;
 
 const btnPrimary = "rounded-full bg-[#00b4d8] text-white hover:bg-[#00a3c5]";
 const btnAccent = "rounded-full bg-[#e8861e] text-white hover:bg-[#d77a18]";
@@ -29,7 +39,7 @@ const navItems = [
   { label: "Dokter", href: "/#dokter", isSection: true, id: "dokter" },
   { label: "Promo", href: "/#promo", isSection: true, id: "promo" },
   { label: "Artikel", href: "/#artikel", isSection: true, id: "artikel" },
-  { label: "Tentang Kami", href: "/tentangkami", isSection: false },
+  { label: "Tentang Kami", href: "/tentangkami", isSection:  true},
 ];
 
 function AssetIcon({
@@ -59,6 +69,10 @@ export default function Navbar() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const { data } = useHomeData();
+
+  const getSocialUrl = (key: string) =>
+    data?.social_links?.find((s) => s.label.toLowerCase() === key)?.url ?? "#";
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -108,48 +122,53 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50">
       <div className="hidden border-b bg-white lg:block">
-        <div className="section-container flex flex-wrap items-center justify-between gap-3 py-2">
-          <Button
-            variant="secondary"
-            className={cn(btnSoft, "h-9 px-4 t-body-sm")}
-          >
-            <MapPin className="mr-2 h-4 w-4 shrink-0" />
-            Lokasi klinik
-          </Button>
-          <div className="ml-auto flex flex-wrap items-center gap-3">
-            <Button
-              variant="secondary"
-              className={cn(btnSoft, "h-9 px-4 t-body-sm")}
-              asChild
-            >
-              <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-                <AssetIcon
-                  src={ASSETS.icons.whatsapp}
-                  alt="WhatsApp"
-                  size={16}
-                  className="mr-2"
-                />
-                Whatsapp
-              </a>
-            </Button>
-            <span className="hidden t-body-sm text-black sm:inline">
-              Ikuti kami di:
-            </span>
-            <Separator
-              orientation="vertical"
-              className="hidden h-8 bg-black/20 sm:block"
-            />
+        <div className="section-container flex items-center justify-between gap-8 py-2">
+          <div className="flex items-center gap-3 whitespace-nowrap">
+            <div className="flex items-center gap-2">
+              <p className="t-body-sm text-[#e03c31] font-semibold">UGD 24 JAM</p>
+              <span className="text-[#1a1a1a]/30">|</span>
+              <p className="t-body-sm text-[#1a1a1a] font-semibold">0812-2556-6055</p>
+            </div>
+          </div>
+
+          <div className="ml-auto flex items-center gap-3 whitespace-nowrap">
             <a
-              href="#"
-              aria-label="Instagram"
-              className="transition-opacity hover:opacity-80"
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-[10px] bg-white shadow-sm ring-1 ring-black/5 t-body-sm text-[#1a1a1a] hover:bg-[#f9f9f9] transition-colors"
             >
               <AssetIcon
-                src={ASSETS.icons.instagram}
-                alt="Instagram"
-                size={24}
+                src={ASSETS.icons.whatsapp}
+                alt="WhatsApp"
+                size={16}
               />
+              Chat WhatsApp
             </a>
+            <Separator
+              orientation="vertical"
+              className="hidden h-6 bg-black/10 sm:block"
+            />
+            <div className="flex items-center gap-1">
+              {SOCIAL_DEFS.map(({ key, label, icon }) => (
+                <a
+                  key={key}
+                  href={getSocialUrl(key)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="group flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 hover:bg-[#00b4d8]/10"
+                >
+                  <Image
+                    src={icon}
+                    alt={label}
+                    width={18}
+                    height={18}
+                    className="shrink-0 object-contain transition-transform duration-200 group-hover:scale-110"
+                  />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -158,7 +177,7 @@ export default function Navbar() {
         className={cn(
           "transition-all duration-300 ease-out",
           scrolled
-            ? "bg-transparent shadow-none backdrop-blur-md"
+            ? "bg-white/85 shadow-sm backdrop-blur-md"
             : "bg-[#1a9ec9] shadow-[0_8px_24px_rgba(15,23,42,0.18)]",
         )}
       >
@@ -178,22 +197,22 @@ export default function Navbar() {
                 alt="Logo Ampelgading Medical Centre"
                 width={48}
                 height={48}
-                className="object-contain"
+                className="object-contain -translate-y-1"
               />
             </div>
             <div>
               <div
                 className={cn(
-                  "t-caption transition-colors duration-300",
-                  scrolled ? "text-[#3f3f3f]" : "text-white",
+                  "t-body-sm transition-colors duration-300 [text-shadow:_0_1px_2px_rgba(0,0,0,0.1)]",
+                  scrolled ? "text-[#1a1a1a]" : "text-white",
                 )}
               >
                 Ampelgading
               </div>
               <div
                 className={cn(
-                  "t-h4 font-bold leading-tight transition-colors duration-300",
-                  scrolled ? "text-[#3f3f3f]" : "text-white",
+                  "t-h4 leading-tight transition-colors duration-300",
+                  scrolled ? "text-[#1a1a1a]" : "text-white",
                 )}
               >
                 Medical Centre
@@ -207,8 +226,8 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "t-body-sm font-bold transition-all duration-300 hover:opacity-80",
-                  scrolled ? "text-[#3f3f3f]" : "text-white",
+                  "t-body-sm transition-all duration-300 hover:opacity-80",
+                  scrolled ? "text-[#1a1a1a]" : "text-white",
                 )}
                 onClick={(e) =>
                   item.isSection && handleSectionClick(e as any, item.id)
@@ -236,7 +255,10 @@ export default function Navbar() {
               type="button"
               aria-label="Buka menu"
               onClick={() => setMenuOpen(true)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-white/15 text-white"
+              className={cn(
+                "inline-flex h-11 w-11 items-center justify-center rounded-lg transition-colors duration-300",
+                scrolled ? "bg-[#1a1a1a]/10 text-[#1a1a1a]" : "bg-white/15 text-white"
+              )}
             >
               <Menu className="h-5 w-5" />
             </button>

@@ -242,6 +242,34 @@
   }
 }
 
+@keyframes gradient-pan {
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+
+@keyframes float-orb {
+  0%,100% { transform: translateY(0px)   scale(1);    opacity: .10; }
+  50%      { transform: translateY(-28px) scale(1.06); opacity: .22; }
+}
+
+.animate-gradient-pan {
+  background-size: 300% 300%;
+  animation: gradient-pan 12s ease infinite;
+}
+
+.animate-float-orb {
+  animation: float-orb var(--orb-dur, 6s) var(--orb-delay, 0s) ease-in-out infinite;
+}
+
+/* Hide scrollbar on slider tracks */
+.slider-track {
+  scrollbar-width: none;
+}
+.slider-track::-webkit-scrollbar {
+  display: none;
+}
+
 @layer base {
   html {
     font-size: 16px;
@@ -383,4 +411,23 @@
     display: grid;
     gap: var(--gap-cards);
   }
+}
+
+/* ===== SCROLLBAR STYLING ===== */
+/* Hide scrollbar but keep scroll functionality */
+html {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+::-webkit-scrollbar-track {
+  display: none;
+}
+
+::-webkit-scrollbar-thumb {
+  display: none;
 }
