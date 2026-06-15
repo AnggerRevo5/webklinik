@@ -5,6 +5,8 @@ import type { ComponentType, SVGProps } from "react";
 import {
   CalendarDays,
   ClipboardList,
+  FileImage,
+  FileText,
   Home,
   Image as ImageIcon,
   Menu,
@@ -21,7 +23,9 @@ export type SidebarKey =
   | "layanan"
   | "promo"
   | "galeri"
-  | "review";
+  | "media"
+  | "review"
+  | "artikel";
 
 type SidebarItem = {
   label: string;
@@ -68,11 +72,25 @@ const sidebarItems: SidebarItem[] = [
     icon: ImageIcon,
   },
   {
+    label: "Media",
+    description: "Library gambar",
+    href: "/admin_media",
+    key: "media",
+    icon: FileImage,
+  },
+  {
     label: "Review",
     description: "Rating Google",
     href: "/admin_review_pesan",
     key: "review",
     icon: MessageCircle,
+  },
+  {
+    label: "Artikel",
+    description: "Kelola artikel",
+    href: "/artikel_admin",
+    key: "artikel",
+    icon: FileText,
   },
 ];
 

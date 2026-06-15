@@ -26,6 +26,7 @@ import {
   useHomeData,
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+import ImagePicker from "@/src/UiKecil/image_picker";
 
 type GalleryItem = {
   id: number;
@@ -289,16 +290,11 @@ export default function GaleriArtikelAdmin() {
                   className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none"
                   placeholder="Judul / deskripsi"
                 />
-                <input
+                <ImagePicker
                   value={form.url}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      url: event.target.value,
-                    }))
-                  }
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none"
-                  placeholder="URL gambar"
+                  onChange={(url) => setForm((current) => ({ ...current, url }))}
+                  folder="galeri"
+                  label="URL Gambar"
                 />
               </div>
               {submitError ? (

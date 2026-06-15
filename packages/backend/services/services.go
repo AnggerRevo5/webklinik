@@ -19,6 +19,7 @@ type HomeData struct {
 	SocialMediaStats      []models.SocialMediaStats     `json:"social_media_stats"`
 	GBPInteractions       []models.GBPInteraction       `json:"gbp_interactions"`
 	GoogleReviews         []models.GoogleReview         `json:"google_reviews"`
+	KlinikInfo            *models.KlinikInfo            `json:"klinik_info,omitempty"`
 }
 
 func Banner(db *gorm.DB) ([]models.Banner, error) {
@@ -251,13 +252,11 @@ func Home(db *gorm.DB) (HomeData, error) {
 		return data, fmt.Errorf("gagal mengambil data Google review: %w", err)
 	}
 
+	var klinikInfo models.KlinikInfo
+	if err := db.First(&klinikInfo).Error; err == nil {
+		data.KlinikInfo = &klinikInfo
+	}
+
 	return data, nil
 }
 
-func Pasien(db *gorm.DB) ([]models.Pasien, error) {
-	var pasien []models.Pasien
-	if err := db.Find(&pasien).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data pasien: %w", err)
-	}
-	return pasien, nil
-}

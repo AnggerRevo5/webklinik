@@ -11,9 +11,59 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRouter(db *gorm.DB) *gin.Engine {
+func SetupRouter(db *gorm.DB, dbKhanza *gorm.DB, cldSvc *services.CloudinaryService) *gin.Engine {
 	r := gin.Default()
+	r.MaxMultipartMemory = 10 << 20 // 10MB max multipart
 	r.Use(cors.Default())
+
+	// Pendaftaran online (Khanza SIK)
+	pendaftaran := r.Group("/api/pendaftaran")
+	{
+		pendaftaran.GET("/cek-pasien", CekPasienByNIKHandler(dbKhanza))
+		pendaftaran.GET("/poli", GetPoliAktifHandler(dbKhanza))
+		pendaftaran.GET("/dokter", GetDokterByPoliHariHandler(dbKhanza))
+		pendaftaran.GET("/kuota", CekKuotaHandler(dbKhanza))
+		pendaftaran.GET("/penjamin", GetPenjaminHandler(dbKhanza))
+		pendaftaran.POST("", SubmitPendaftaranHandler(dbKhanza))
+	}
+
+	r.GET("/api/dokter-publik", GetDokterPublikHandler(db, dbKhanza))
+	r.PUT("/api/dokter-foto/:kd_dokter", UpdateDokterFotoHandler(db))
+
+	// Admin dokter (dari Khanza + toggle tampil di db_klinik)
+	r.GET("/api/admin/dokter", AdminGetDokterHandler(db, dbKhanza))
+	r.PATCH("/api/admin/dokter/:kd_dokter/toggle-tampil", AdminToggleTampilDokterHandler(db))
+
+	// Artikel publik
+	r.GET("/api/artikel", GetArtikelPublicHandler(db))
+	r.GET("/api/artikel/:slug", GetArtikelBySlugHandler(db))
+
+	// Artikel admin (static routes sebelum :id)
+	r.GET("/api/admin/artikel", AdminGetArtikelHandler(db))
+	r.POST("/api/admin/artikel", AdminCreateArtikelHandler(db))
+	r.GET("/api/admin/artikel/:id", AdminGetArtikelDetailHandler(db))
+	r.PUT("/api/admin/artikel/:id", AdminUpdateArtikelHandler(db))
+	r.PATCH("/api/admin/artikel/:id/publish", AdminPublishArtikelHandler(db))
+	r.PATCH("/api/admin/artikel/:id/draft", AdminDraftArtikelHandler(db))
+	r.DELETE("/api/admin/artikel/:id", AdminDeleteArtikelHandler(db))
+
+	// Review publik
+	r.GET("/api/review", GetReviewPublicHandler(db))
+
+	// Review admin (static routes sebelum :id)
+	r.GET("/api/admin/review/summary", AdminGetReviewSummaryHandler(db))
+	r.PUT("/api/admin/review/summary", AdminUpdateReviewSummaryHandler(db))
+	r.GET("/api/admin/review", AdminGetReviewHandler(db))
+	r.POST("/api/admin/review", AdminCreateReviewHandler(db))
+	r.PUT("/api/admin/review/:id", AdminUpdateReviewHandler(db))
+	r.PATCH("/api/admin/review/:id/toggle-tampil", AdminToggleTampilHandler(db))
+	r.PATCH("/api/admin/review/:id/toggle-featured", AdminToggleFeaturedHandler(db))
+	r.DELETE("/api/admin/review/:id", AdminDeleteReviewHandler(db))
+
+	// Media Library (Cloudinary)
+	r.GET("/api/media", GetMediaHandler(db))
+	r.POST("/api/media/upload", UploadMediaHandler(db, cldSvc))
+	r.DELETE("/api/media/:id", DeleteMediaHandler(db, cldSvc))
 
 	r.GET("/api/home", homeHandler(db))
 	r.GET("/api/banner", bannerHandler(db))
@@ -413,13 +463,3 @@ func GoogleReviewHandler(_ *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func PasienHandler(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		pasien, err := services.Pasien(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, pasien)
-	}
-}

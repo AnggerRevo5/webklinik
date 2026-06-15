@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme inline {
   --color-background: hsl(var(--background));
@@ -68,17 +69,17 @@
   --radius: 0.5rem;
 
   /* ===== DESIGN TOKENS — TYPOGRAPHY ===== */
-  /* Heading scale */
-  --fs-h1: clamp(2.25rem, 4.5vw, 4rem); /* 36 – 64 px */
-  --fs-h2: clamp(1.75rem, 3vw, 2.75rem); /* 28 – 44 px */
-  --fs-h3: clamp(1.25rem, 1.6vw, 1.5rem); /* 20 – 24 px */
-  --fs-h4: clamp(1rem, 1.2vw, 1.125rem); /* 16 – 18 px */
+  /* Heading scale — scaled from Figma 1728px → web 1440px (×0.833) */
+  --fs-h1: clamp(2.25rem, 5vw, 4.5rem);     /* 36 – 72 px  (Figma ~86px) */
+  --fs-h2: clamp(1.75rem, 3.5vw, 3.25rem);  /* 28 – 52 px  (Figma ~62px) */
+  --fs-h3: clamp(1.125rem, 1.5vw, 1.375rem);/* 18 – 22 px  (Figma ~28px) */
+  --fs-h4: clamp(0.9375rem, 1.1vw, 1.0625rem); /* 15 – 17 px */
 
   /* Body scale */
-  --fs-body-lg: clamp(1rem, 1.2vw, 1.125rem); /* 16 – 18 px */
-  --fs-body: clamp(0.875rem, 1vw, 1rem); /* 14 – 16 px */
+  --fs-body-lg: clamp(0.9375rem, 1.1vw, 1.0625rem); /* 15 – 17 px */
+  --fs-body: clamp(0.875rem, 1vw, 1rem);     /* 14 – 16 px */
   --fs-body-sm: clamp(0.8125rem, 0.9vw, 0.875rem); /* 13 – 14 px */
-  --fs-caption: clamp(0.6875rem, 0.8vw, 0.75rem); /* 11 – 12 px */
+  --fs-caption: clamp(0.6875rem, 0.8vw, 0.75rem);  /* 11 – 12 px */
   --fs-overline: clamp(0.6875rem, 0.8vw, 0.75rem); /* 11 – 12 px */
 
   /* Line heights */
@@ -89,11 +90,11 @@
 
   /* ===== DESIGN TOKENS — SPACING ===== */
   --section-py: clamp(3.75rem, 7vw, 6.25rem); /* 60 – 100 px */
-  --section-px: clamp(1.25rem, 5vw, 5rem); /* 20 – 80 px */
+  --section-px: clamp(1.25rem, 5vw, 5rem);    /* 20 – 80 px */
   --section-max-w: 1440px;
-  --gap-header: clamp(2rem, 3vw, 3rem); /* 32 – 48 px */
-  --gap-cards: clamp(1rem, 1.5vw, 1.5rem); /* 16 – 24 px */
-  --card-padding: clamp(1.25rem, 2vw, 2rem); /* 20 – 32 px */
+  --gap-header: clamp(2rem, 3vw, 3rem);        /* 32 – 48 px */
+  --gap-cards: clamp(1rem, 1.5vw, 1.5rem);     /* 16 – 24 px */
+  --card-padding: clamp(1.25rem, 2vw, 2rem);   /* 20 – 32 px */
   --card-radius: 16px;
   --card-radius-sm: 12px;
   --btn-height: 48px;
@@ -271,8 +272,16 @@
 }
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   html {
     font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -282,6 +291,10 @@
       "calt" 1;
     font-size: var(--fs-body);
     line-height: var(--lh-normal);
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    width: 100%;
   }
 
   h1 {

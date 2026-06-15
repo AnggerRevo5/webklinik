@@ -15,7 +15,14 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
-import { type HomeData, useHomeData } from "@/src/lib/api";
+import {
+  type HomeData,
+  type DokterPublik,
+  type Artikel,
+  useHomeData,
+  getDokterPublik,
+  getArtikel,
+} from "@/src/lib/api";
 import { Button } from "@/src/UiKecil/button";
 import { Card, CardContent } from "@/src/UiKecil/card";
 import { Input } from "@/src/UiKecil/input";
@@ -51,6 +58,12 @@ type DoctorItem = {
   avatarClassName: string;
   image: string;
   initials: string;
+  jadwalDetail?: {
+    hari: string;
+    jamMulai: string;
+    jamSelesai: string;
+    poli: string;
+  }[];
 };
 
 type PromoItem = {
@@ -64,6 +77,7 @@ type ArticleItem = {
   title: string;
   image: string;
   description: string;
+  slug?: string;
 };
 
 type SocialItem = {
@@ -118,127 +132,12 @@ const SOCIAL_LINK_ITEMS = [
 
 /* ─── Section data ─── */
 
-const layananCards: LayananItem[] = [
-  { title: "HOME VISIT", image: "/assets/services/service1.png" },
-  { title: "Pos KRS", image: "/assets/services/service2.png" },
-  { title: "Home Care", image: "/assets/services/service3.png" },
-  { title: "Siaga Ambulan 24/7", image: "/assets/services/service4.png" },
-  { title: "Rawat inap", image: "/assets/services/service5.png" },
-  { title: "Konsultasi Dokter", image: "/assets/services/service6.png" },
-];
-
-const doctorCards: DoctorItem[] = [
-  {
-    id: 1,
-    name: "dr. Ikhwan Rizki Rasyid Turino",
-    role: "Dokter Umum",
-    schedule: "Rabu - Jumat",
-    time: "24 jam",
-    gradient: "from-neutral-400 to-neutral-600",
-    avatarClassName: "bg-[#84ff74]",
-    image: "/assets/doctors/dokter1.png",
-    initials: "IR",
-  },
-  {
-    id: 2,
-    name: "dr. Ikhwan Rizki Rasyid Turino",
-    role: "Dokter Umum",
-    schedule: "Rabu - Jumat",
-    time: "24 jam",
-    gradient: "from-green-400 to-green-800",
-    avatarClassName: "bg-[#84ff74]",
-    image: "/assets/doctors/dokter2.png",
-    initials: "IR",
-  },
-  {
-    id: 3,
-    name: "dr. Ikhwan Rizki Rasyid Turino",
-    role: "Dokter Umum",
-    schedule: "Rabu - Jumat",
-    time: "24 jam",
-    gradient: "from-[#4200ff] to-[#280099]",
-    avatarClassName: "bg-[#84ff74]",
-    image: "/assets/doctors/dokter3.png",
-    initials: "IR",
-  },
-  {
-    id: 4,
-    name: "dr. Ikhwan Rizki Rasyid Turino",
-    role: "Dokter Umum",
-    schedule: "Rabu - Jumat",
-    time: "24 jam",
-    gradient: "from-[#315b41] to-[#69c18a]",
-    avatarClassName: "bg-[#84ff74]",
-    image: "/assets/doctors/dokter4.png",
-    initials: "IR",
-  },
-];
-
-const promoCards: PromoItem[] = [
-  {
-    title: "Promo Kemerdekaan 17-an",
-    image: "/assets/promo/promo1.png",
-    date: "1 - 31 Agustus",
-    description:
-      "Pemeriksaan kesehatan, konsultasi dokter serta berbagai layanan pilihan dengan harga terjangkau",
-  },
-  {
-    title: "Promo Hari Raya",
-    image: "/assets/promo/promo2.png",
-    date: "1 - 31 Agustus",
-    description:
-      "Nikmati layanan pemeriksaan kesehatan agar kondisi prima saat hari kemenangan",
-  },
-  {
-    title: "Promo Akhir Tahun",
-    image: "/assets/promo/promo3.png",
-    date: "1 - 31 Desember",
-    description:
-      "Promo bagi pasien setia kami dengan potongan harga untuk pemeriksaan kesehatan dan konsultasi dokter.",
-  },
-  {
-    title: "Promo Hari Raya",
-    image: "/assets/promo/promo2.png",
-    date: "1 - 31 Agustus",
-    description:
-      "Nikmati layanan pemeriksaan kesehatan agar kondisi prima saat hari kemenangan",
-  },
-];
-
 const articleTabs = [
   "Semua",
   "Tips kesehatan",
   "Edukasi",
   "Berita klinik",
   "Ibu & anak",
-];
-
-const featuredArticle: ArticleItem = {
-  title: "Card title",
-  image: "/assets/articles/article-featured.png",
-  description:
-    "Card desription. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sit rhoncus imperdiet nisi.",
-};
-
-const articleCards: ArticleItem[] = [
-  {
-    title: "Card title",
-    image: "/assets/articles/article1.png",
-    description:
-      "Card desription. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sit rhoncus imperdiet nisi.",
-  },
-  {
-    title: "Card title",
-    image: "/assets/articles/article2.png",
-    description:
-      "Card desription. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sit rhoncus imperdiet nisi.",
-  },
-  {
-    title: "Card title",
-    image: "/assets/articles/article3.png",
-    description:
-      "Card desription. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sit rhoncus imperdiet nisi.",
-  },
 ];
 
 const socialCards: SocialItem[] = [
@@ -291,6 +190,70 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
+const DOCTOR_GRADIENTS = [
+  "from-neutral-400 to-neutral-600",
+  "from-green-400 to-green-800",
+  "from-[#4200ff] to-[#280099]",
+  "from-[#315b41] to-[#69c18a]",
+];
+const DOCTOR_AVATAR_BG = [
+  "bg-[#84ff74]",
+  "bg-[#74c8ff]",
+  "bg-[#ff8474]",
+  "bg-[#f8ff74]",
+];
+const HARI_INDO: Record<string, string> = {
+  SENIN: "Senin",
+  SELASA: "Selasa",
+  RABU: "Rabu",
+  KAMIS: "Kamis",
+  JUMAT: "Jumat",
+  SABTU: "Sabtu",
+  AKHAD: "Minggu",
+};
+const HARI_ORDER = [
+  "SENIN",
+  "SELASA",
+  "RABU",
+  "KAMIS",
+  "JUMAT",
+  "SABTU",
+  "AKHAD",
+];
+
+function mapKhanzaDokterToDoctorItems(
+  dokterList: DokterPublik[],
+): DoctorItem[] {
+  return dokterList.map((d, i) => {
+    const uniqueHari = [...new Set(d.jadwal.map((j) => j.hari_kerja))];
+    uniqueHari.sort((a, b) => HARI_ORDER.indexOf(a) - HARI_ORDER.indexOf(b));
+    const schedule =
+      uniqueHari.length > 0
+        ? uniqueHari.map((h) => HARI_INDO[h] ?? h).join(", ")
+        : "Hubungi klinik";
+    const first = d.jadwal[0];
+    const time = first ? `${first.jam_mulai} – ${first.jam_selesai}` : "-";
+
+    return {
+      id: i + 1,
+      name: d.nm_dokter,
+      role: d.spesialis || "Dokter",
+      schedule,
+      time,
+      gradient: DOCTOR_GRADIENTS[i % DOCTOR_GRADIENTS.length],
+      avatarClassName: DOCTOR_AVATAR_BG[i % DOCTOR_AVATAR_BG.length],
+      image: d.foto_url || "",
+      initials: getInitials(d.nm_dokter),
+      jadwalDetail: d.jadwal.map((j) => ({
+        hari: HARI_INDO[j.hari_kerja] ?? j.hari_kerja,
+        jamMulai: j.jam_mulai,
+        jamSelesai: j.jam_selesai,
+        poli: j.nm_poli,
+      })),
+    };
+  });
+}
+
 function DoctorProfileModal({
   doctor,
   open,
@@ -317,9 +280,11 @@ function DoctorProfileModal({
     };
   }, [open, onClose]);
 
-  const doctorImage = doctor.image.startsWith("/")
-    ? doctor.image
-    : doctorCards[(doctor.id - 1) % doctorCards.length].image;
+  const doctorImage =
+    doctor.image &&
+    (doctor.image.startsWith("/") || doctor.image.startsWith("http"))
+      ? doctor.image
+      : null;
   const initials = doctor.initials || getInitials(doctor.name);
 
   return (
@@ -379,14 +344,24 @@ function DoctorProfileModal({
               <div className="mx-auto flex w-full max-w-[300px] flex-1 items-center justify-center py-2 sm:max-w-[340px]">
                 <div className="relative w-full overflow-hidden rounded-[30px] border border-white/20 bg-white/10 p-3 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.85)] backdrop-blur-sm">
                   <div className="relative aspect-[4/5] overflow-hidden rounded-[24px] bg-white/15">
-                    <Image
-                      src={doctorImage}
-                      alt={doctor.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 1024px) 100vw, 380px"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+                    {doctorImage ? (
+                      <>
+                        <Image
+                          src={doctorImage}
+                          alt={doctor.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 1024px) 100vw, 380px"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+                      </>
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <span className="text-6xl font-bold text-white/60">
+                          {initials}
+                        </span>
+                      </div>
+                    )}
                     <div className="absolute inset-x-0 bottom-0 p-4">
                       <div className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
                         {doctor.role}
@@ -423,9 +398,8 @@ function DoctorProfileModal({
               </div>
 
               <p className="max-w-md text-sm leading-6 text-white/80">
-                Tampilan profil dibuat senada dengan kartu dokter di halaman
-                utama agar pengguna bisa melihat ringkasan identitas dokter
-                tanpa berpindah halaman.
+                Informasi jadwal berdasarkan data dari sistem informasi klinik
+                (SIK). Hubungi kami untuk konfirmasi ketersediaan dokter.
               </p>
             </div>
           </div>
@@ -441,11 +415,32 @@ function DoctorProfileModal({
               >
                 {doctor.name}
               </h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Ringkasan profil dokter yang tampil di homepage. Informasi ini
-                mengikuti data dari database dan tetap dibuat ringan untuk
-                dibaca di desktop maupun mobile.
-              </p>
+              {doctor.jadwalDetail && doctor.jadwalDetail.length > 0 ? (
+                <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    Jadwal Lengkap
+                  </p>
+                  <div className="space-y-1.5">
+                    {doctor.jadwalDetail.map((j, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <span className="font-medium text-slate-700">
+                          {j.hari}
+                        </span>
+                        <span className="text-slate-500">
+                          {j.jamMulai} – {j.jamSelesai}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-slate-500">
+                  Hubungi klinik untuk informasi jadwal lengkap.
+                </p>
+              )}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -706,14 +701,27 @@ function DoctorCard({
 
       {/* Photo panel */}
       <div className="relative w-[130px] shrink-0 overflow-hidden">
-        <Image
-          src={doctor.image}
-          alt={doctor.name}
-          fill
-          className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
-          sizes="130px"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/10" />
+        {doctor.image ? (
+          <>
+            <Image
+              src={doctor.image}
+              alt={doctor.name}
+              fill
+              className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
+              sizes="130px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/10" />
+          </>
+        ) : (
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center justify-center text-3xl font-bold text-white",
+              `bg-gradient-to-br ${doctor.gradient}`,
+            )}
+          >
+            {doctor.initials}
+          </div>
+        )}
       </div>
 
       {/* Info panel */}
@@ -863,15 +871,21 @@ function PromoCard({ promo }: { promo: PromoItem }) {
 }
 
 /* Section promo. */
-function PromoSection({ homeData }: { homeData?: HomeData | null }) {
-  const apiPromos = React.useMemo(
+function PromoSection({
+  homeData,
+  loading,
+}: {
+  homeData?: HomeData | null;
+  loading?: boolean;
+}) {
+  const promoList = React.useMemo(
     () =>
       homeData?.promo?.length
         ? homeData.promo.map((promo, index) => ({
             title: `Promo ${index + 1}`,
-            image: resolveAssetPath(promo.url, "/assets/promo/promo1.png"),
-            date: "Promo aktif di database",
-            description: "Buka dashboard admin untuk mengubah detail promo.",
+            image: resolveAssetPath(promo.url, ""),
+            date: "Promo aktif",
+            description: "",
           }))
         : [],
     [homeData?.promo],
@@ -882,23 +896,34 @@ function PromoSection({ homeData }: { homeData?: HomeData | null }) {
       <SectionHeader label="PROMO" title="Penawaran khusus untuk Anda" />
 
       {/* py-3 -my-3: memberi ruang vertikal untuk shadow & hover lift tanpa menambah whitespace */}
-      <div className="py-3 -my-3 overflow-hidden">
-        {(() => {
-          const displayPromos = apiPromos.length > 0 ? apiPromos : promoCards;
-          return (
-            <CardSlider>
-              {displayPromos.map((promo, idx) => (
-                <div
-                  key={`promo-${idx}`}
-                  className="w-[80vw] shrink-0 sm:w-[46vw] lg:w-[28vw]"
-                  style={{ maxWidth: 360 }}
-                >
-                  <PromoCard promo={promo} />
-                </div>
-              ))}
-            </CardSlider>
-          );
-        })()}
+      <div className="-my-3 overflow-hidden py-3">
+        {loading ? (
+          <div className="flex gap-4 overflow-hidden">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="w-[80vw] shrink-0 animate-pulse rounded-2xl bg-[#e8e0d4] sm:w-[46vw] lg:w-[28vw]"
+                style={{ maxWidth: 360, height: 260 }}
+              />
+            ))}
+          </div>
+        ) : promoList.length === 0 ? (
+          <p className="py-4 text-center text-sm text-[#888]">
+            Belum ada promo aktif.
+          </p>
+        ) : (
+          <CardSlider>
+            {promoList.map((promo, idx) => (
+              <div
+                key={`promo-${idx}`}
+                className="w-[80vw] shrink-0 sm:w-[46vw] lg:w-[28vw]"
+                style={{ maxWidth: 360 }}
+              >
+                <PromoCard promo={promo} />
+              </div>
+            ))}
+          </CardSlider>
+        )}
       </div>
     </Section>
   );
@@ -945,12 +970,18 @@ function ArticleFeaturedCard({ article }: { article: ArticleItem }) {
             {article.description}
           </p>
         </div>
-        <button
-          type="button"
-          className="mt-3 flex w-fit items-center gap-1 text-[13px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
-        >
-          Baca selengkapnya <ChevronRight className="h-3.5 w-3.5" />
-        </button>
+        {article.slug ? (
+          <Link
+            href={`/artikel/${article.slug}`}
+            className="mt-3 flex w-fit items-center gap-1 text-[13px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
+          >
+            Baca selengkapnya <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        ) : (
+          <span className="mt-3 flex w-fit items-center gap-1 text-[13px] font-semibold text-[#00b4d8]">
+            Baca selengkapnya <ChevronRight className="h-3.5 w-3.5" />
+          </span>
+        )}
       </div>
     </div>
   );
@@ -990,12 +1021,18 @@ function ArticleCompactCard({ article }: { article: ArticleItem }) {
             {article.title}
           </h3>
         </div>
-        <button
-          type="button"
-          className="flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
-        >
-          Baca <ChevronRight className="h-3 w-3" />
-        </button>
+        {article.slug ? (
+          <Link
+            href={`/artikel/${article.slug}`}
+            className="flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
+          >
+            Baca <ChevronRight className="h-3 w-3" />
+          </Link>
+        ) : (
+          <span className="flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8]">
+            Baca <ChevronRight className="h-3 w-3" />
+          </span>
+        )}
       </div>
     </div>
   );
@@ -1029,18 +1066,41 @@ function ArticleTextCard({ article }: { article: ArticleItem }) {
         </p>
       </div>
 
-      <button
-        type="button"
-        className="relative mt-4 flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
-      >
-        Baca selengkapnya <ChevronRight className="h-3.5 w-3.5" />
-      </button>
+      {article.slug ? (
+        <Link
+          href={`/artikel/${article.slug}`}
+          className="relative mt-4 flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8] transition-all duration-200 hover:gap-2"
+        >
+          Baca selengkapnya <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      ) : (
+        <span className="relative mt-4 flex w-fit items-center gap-1 text-[12px] font-semibold text-[#00b4d8]">
+          Baca selengkapnya <ChevronRight className="h-3.5 w-3.5" />
+        </span>
+      )}
     </div>
   );
 }
 
 /* Section artikel — bento grid. */
 function ArtikelSection() {
+  const [artikelList, setArtikelList] = React.useState<Artikel[]>([]);
+  const [artikelLoading, setArtikelLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    getArtikel(3).then((list) => {
+      setArtikelList(list);
+      setArtikelLoading(false);
+    });
+  }, []);
+
+  const toItem = (a: Artikel): ArticleItem => ({
+    title: a.judul,
+    image: a.foto_url || "/assets/articles/article-featured.png",
+    description: a.ringkasan || "",
+    slug: a.slug,
+  });
+
   return (
     <Section id="artikel" innerClassName="pt-8">
       <SectionHeader
@@ -1054,19 +1114,53 @@ function ArtikelSection() {
         subtitle="Tips dan edukasi kesehatan dari tim medis kami"
       />
 
-      {/* Bento: featured kiri, 2 kartu kanan */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-        {/* Kiri — featured besar */}
-        <div className="lg:w-[55%] lg:shrink-0">
-          <ArticleFeaturedCard article={articleCards[0]} />
+      {artikelLoading ? (
+        /* Skeleton bento */
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+          <div className="lg:w-[55%] lg:shrink-0">
+            <div
+              className="animate-pulse rounded-2xl bg-slate-200 lg:min-h-[420px]"
+              style={{ minHeight: 340 }}
+            />
+          </div>
+          <div className="flex flex-col gap-4 lg:flex-1">
+            <div
+              className="animate-pulse rounded-2xl bg-slate-200"
+              style={{ height: 180 }}
+            />
+            <div
+              className="animate-pulse flex-1 rounded-2xl bg-slate-200"
+              style={{ minHeight: 160 }}
+            />
+          </div>
         </div>
+      ) : artikelList.length === 0 ? (
+        <p className="py-8 text-center text-sm text-[#888]">
+          Belum ada artikel yang dipublikasikan.
+        </p>
+      ) : (
+        /* Bento: featured kiri, 2 kartu kanan */
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+          {/* Kiri — featured besar */}
+          <div
+            className={
+              artikelList.length === 1 ? "w-full" : "lg:w-[55%] lg:shrink-0"
+            }
+          >
+            <ArticleFeaturedCard article={toItem(artikelList[0])} />
+          </div>
 
-        {/* Kanan — compact + dark card */}
-        <div className="flex flex-col gap-4 lg:flex-1">
-          <ArticleCompactCard article={articleCards[1]} />
-          <ArticleTextCard article={articleCards[2]} />
+          {/* Kanan — compact + dark card (hanya jika ada artikel ke-2 atau ke-3) */}
+          {artikelList.length >= 2 && (
+            <div className="flex flex-col gap-4 lg:flex-1">
+              <ArticleCompactCard article={toItem(artikelList[1])} />
+              {artikelList.length >= 3 && (
+                <ArticleTextCard article={toItem(artikelList[2])} />
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </Section>
   );
 }
@@ -1155,8 +1249,12 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
                 <div className="flex items-center gap-3">
                   <AssetIcon src={ASSETS.icons.phone} alt="Telepon" size={16} />
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#999]">Telepon</p>
-                    <p className="text-[13px] font-bold text-[#1a1a1a]">{CLINIC_PHONE}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#999]">
+                      Telepon
+                    </p>
+                    <p className="text-[13px] font-bold text-[#1a1a1a]">
+                      {CLINIC_PHONE}
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className="h-4 w-4 text-[#bbb]" />
@@ -1169,10 +1267,18 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
                 className="flex items-center justify-between gap-3 rounded-xl bg-[#f0fdf4] px-4 py-3 transition-colors hover:bg-[#dcfce7]"
               >
                 <div className="flex items-center gap-3">
-                  <AssetIcon src={ASSETS.icons.whatsapp} alt="WhatsApp" size={16} />
+                  <AssetIcon
+                    src={ASSETS.icons.whatsapp}
+                    alt="WhatsApp"
+                    size={16}
+                  />
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#16a34a]">WhatsApp</p>
-                    <p className="text-[13px] font-bold text-[#1a1a1a]">Chat langsung dengan kami</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#16a34a]">
+                      WhatsApp
+                    </p>
+                    <p className="text-[13px] font-bold text-[#1a1a1a]">
+                      Chat langsung dengan kami
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className="h-4 w-4 text-[#86efac]" />
@@ -1183,7 +1289,9 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
 
             {/* Ikon sosial kecil */}
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#bbb]">Ikuti kami</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#bbb]">
+                Ikuti kami
+              </span>
               <div className="flex gap-1.5 ml-1">
                 {SOCIAL_LINK_ITEMS.map((item) => (
                   <a
@@ -1206,7 +1314,9 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
         <div className="flex flex-col gap-4">
           {/* Form pesan — disederhanakan */}
           <div className="rounded-2xl bg-[#f8f9fb] p-5 shadow-[inset_0px_2px_8px_rgba(0,0,0,0.06)]">
-            <h3 className="mb-4 text-[15px] font-bold text-[#1a1a1a]">Kirim Pesan</h3>
+            <h3 className="mb-4 text-[15px] font-bold text-[#1a1a1a]">
+              Kirim Pesan
+            </h3>
             <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Input
@@ -1224,7 +1334,10 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
               />
               <Button
                 type="submit"
-                className={cn(btnPrimary, "h-11 w-full text-[13px] font-semibold")}
+                className={cn(
+                  btnPrimary,
+                  "h-11 w-full text-[13px] font-semibold",
+                )}
               >
                 <Send className="mr-2 h-4 w-4" />
                 Kirim Pesan
@@ -1238,20 +1351,26 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f7fb]">
                 <Clock3 className="h-4.5 w-4.5 text-[#00b4d8]" />
               </div>
-              <h3 className="text-[15px] font-bold text-[#1a1a1a]">Jam Operasional</h3>
+              <h3 className="text-[15px] font-bold text-[#1a1a1a]">
+                Jam Operasional
+              </h3>
             </div>
             {operationalHoursData.length > 0 ? (
               <div>
                 {operationalHoursData.map((item, index) => (
                   <div key={item.label}>
                     <div className="flex items-center justify-between gap-4 py-2.5">
-                      <span className="text-[13px] text-[#555]">{item.label}</span>
+                      <span className="text-[13px] text-[#555]">
+                        {item.label}
+                      </span>
                       {item.badge ? (
                         <span className="rounded-full bg-[#e8f7fb] px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#00b4d8]">
                           {item.value}
                         </span>
                       ) : (
-                        <span className="text-[13px] font-semibold text-[#1a1a1a]">{item.value}</span>
+                        <span className="text-[13px] font-semibold text-[#1a1a1a]">
+                          {item.value}
+                        </span>
                       )}
                     </div>
                     {index < operationalHoursData.length - 1 && (
@@ -1328,25 +1447,31 @@ function EmergencyCta() {
 }
 
 /* Section layanan utama klinik. */
-function LayananSection({ homeData }: { homeData?: HomeData | null }) {
-  const apiLayanan = React.useMemo(
+function LayananSection({
+  homeData,
+  loading,
+}: {
+  homeData?: HomeData | null;
+  loading?: boolean;
+}) {
+  const layananList = React.useMemo(
     () =>
       homeData?.layanan?.length
         ? homeData.layanan.map((item, index) => ({
             title: item.nama_layanan || `Layanan ${index + 1}`,
-            image: resolveAssetPath(
-              item.url,
-              layananCards[index % layananCards.length].image,
-            ),
+            image: resolveAssetPath(item.url, ""),
           }))
         : [],
     [homeData?.layanan],
   );
 
-  const displayLayanan = apiLayanan.length > 0 ? apiLayanan : layananCards;
-
   return (
-    <Section id="layanan" className="scroll-mt-[96px]" bg="bg-[#d9d9d9]" innerClassName="pt-4 pb-8">
+    <Section
+      id="layanan"
+      className="scroll-mt-[96px]"
+      bg="bg-[#d9d9d9]"
+      innerClassName="pt-4 pb-8"
+    >
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <SectionHeader
           label="LAYANAN KAMI"
@@ -1355,17 +1480,33 @@ function LayananSection({ homeData }: { homeData?: HomeData | null }) {
           className="mb-0"
         />
       </div>
-      <CardSlider>
-        {displayLayanan.map((layanan, i) => (
-          <div
-            key={`layanan-${i}`}
-            className="w-[82vw] shrink-0 sm:w-[48vw] md:w-[38vw] lg:w-[27vw]"
-            style={{ maxWidth: 340 }}
-          >
-            <ServiceCard layanan={layanan} />
-          </div>
-        ))}
-      </CardSlider>
+      {loading ? (
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="w-[82vw] shrink-0 animate-pulse rounded-2xl bg-[#c8c8c8] sm:w-[48vw] md:w-[38vw] lg:w-[27vw]"
+              style={{ maxWidth: 340, height: 200 }}
+            />
+          ))}
+        </div>
+      ) : layananList.length === 0 ? (
+        <p className="py-4 text-center text-sm text-[#888]">
+          Data layanan belum tersedia.
+        </p>
+      ) : (
+        <CardSlider>
+          {layananList.map((layanan, i) => (
+            <div
+              key={`layanan-${i}`}
+              className="w-[82vw] shrink-0 sm:w-[48vw] md:w-[38vw] lg:w-[27vw]"
+              style={{ maxWidth: 340 }}
+            >
+              <ServiceCard layanan={layanan} />
+            </div>
+          ))}
+        </CardSlider>
+      )}
     </Section>
   );
 }
@@ -1402,29 +1543,19 @@ function WhatsappBanner() {
 }
 
 /* Section profil dokter. */
-function DokterSection({ homeData }: { homeData?: HomeData | null }) {
+function DokterSection() {
   const closeTimerRef = React.useRef<number | null>(null);
-  const apiDoctors = React.useMemo(
-    () =>
-      homeData?.dokter?.length
-        ? homeData.dokter.map((doctor, index) => {
-            const fallback = doctorCards[index % doctorCards.length];
+  const [khanzaDokter, setKhanzaDokter] = React.useState<DoctorItem[]>([]);
+  const [dokterLoading, setDokterLoading] = React.useState(true);
 
-            return {
-              id: doctor.id ?? fallback.id,
-              name: doctor.nama_dokter || fallback.name,
-              role: doctor.kategori || fallback.role,
-              schedule: doctor.jadwal_praktek || fallback.schedule,
-              time: fallback.time,
-              gradient: fallback.gradient,
-              avatarClassName: fallback.avatarClassName,
-              image: resolveAssetPath(doctor.url, fallback.image),
-              initials: getInitials(doctor.nama_dokter || fallback.name),
-            };
-          })
-        : [],
-    [homeData?.dokter],
-  );
+  React.useEffect(() => {
+    getDokterPublik().then((list) => {
+      if (list.length > 0) {
+        setKhanzaDokter(mapKhanzaDokterToDoctorItems(list));
+      }
+      setDokterLoading(false);
+    });
+  }, []);
 
   const [selectedDoctor, setSelectedDoctor] = React.useState<DoctorItem | null>(
     null,
@@ -1463,7 +1594,6 @@ function DokterSection({ homeData }: { homeData?: HomeData | null }) {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
-
     setSelectedDoctor(doctor);
     setIsDoctorModalOpen(true);
   };
@@ -1473,25 +1603,40 @@ function DokterSection({ homeData }: { homeData?: HomeData | null }) {
   };
 
   return (
-    <Section id="dokter" className="scroll-mt-[96px]" innerClassName="pt-4 pb-8">
+    <Section
+      id="dokter"
+      className="scroll-mt-[96px]"
+      innerClassName="pt-4 pb-8"
+    >
       <SectionHeader label="DOKTER KAMI" title="Dokter Kami" />
 
-      {(() => {
-        const displayDoctors = apiDoctors.length > 0 ? apiDoctors : doctorCards;
-        return (
-          <CardSlider>
-            {displayDoctors.map((doctor) => (
-              <div
-                key={doctor.id}
-                className="w-[88vw] shrink-0 sm:w-[54vw] lg:w-[36vw]"
-                style={{ maxWidth: 460 }}
-              >
-                <DoctorCard doctor={doctor} onOpenProfile={openDoctorModal} />
-              </div>
-            ))}
-          </CardSlider>
-        );
-      })()}
+      {dokterLoading ? (
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="w-[88vw] shrink-0 animate-pulse rounded-2xl bg-slate-200 sm:w-[54vw] lg:w-[36vw]"
+              style={{ maxWidth: 460, height: 184 }}
+            />
+          ))}
+        </div>
+      ) : khanzaDokter.length === 0 ? (
+        <p className="py-4 text-center text-sm text-[#888]">
+          Data dokter belum tersedia.
+        </p>
+      ) : (
+        <CardSlider>
+          {khanzaDokter.map((doctor) => (
+            <div
+              key={doctor.id}
+              className="w-[88vw] shrink-0 sm:w-[54vw] lg:w-[36vw]"
+              style={{ maxWidth: 460 }}
+            >
+              <DoctorCard doctor={doctor} onOpenProfile={openDoctorModal} />
+            </div>
+          ))}
+        </CardSlider>
+      )}
 
       {selectedDoctor ? (
         <DoctorProfileModal
@@ -1507,9 +1652,14 @@ function DokterSection({ homeData }: { homeData?: HomeData | null }) {
 /* Hero utama. */
 function HeroSection({ homeData }: { homeData?: HomeData | null }) {
   const heroImage = resolveAssetPath(homeData?.banner?.[0]?.url, ASSETS.hero);
-  const latestReview = homeData?.google_reviews?.[0] ?? null;
-  const latestReviewRating = Number(latestReview?.average_rating ?? 0);
-  const reviewRatingLabel = `${latestReviewRating.toFixed(1)}/5`;
+  const klinikInfo = homeData?.klinik_info ?? null;
+  const legacyReview = homeData?.google_reviews?.[0] ?? null;
+  const reviewRating =
+    klinikInfo?.rating_google ?? Number(legacyReview?.average_rating ?? 0);
+  const reviewRatingLabel =
+    reviewRating > 0 ? `${reviewRating.toFixed(1)}/5` : "—/5";
+  const totalUlasan =
+    klinikInfo?.total_ulasan ?? Number(legacyReview?.review_count ?? 0);
   const heroStats: HeroStat[] = React.useMemo(
     () => [
       {
@@ -1525,16 +1675,19 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
       {
         icon: Star,
         title: reviewRatingLabel,
-        subtitle: latestReview
-          ? `${latestReview.review_count} ulasan Google`
-          : "Review Google",
+        subtitle:
+          totalUlasan > 0 ? `${totalUlasan} ulasan Google` : "Review Google",
       },
     ],
-    [latestReview, reviewRatingLabel],
+    [reviewRatingLabel, totalUlasan],
   );
 
   return (
-    <Section id="beranda" className="scroll-mt-[96px]" innerClassName="pt-4 lg:pt-6">
+    <Section
+      id="beranda"
+      className="scroll-mt-[96px]"
+      innerClassName="pt-4 lg:pt-6"
+    >
       <div className="grid gap-8 lg:grid-cols-[52%_48%] lg:items-center lg:gap-10">
         <div className="order-2 animate-fade-up lg:order-1">
           <h1 className="max-w-[980px] t-h1 font-bold">
@@ -1620,16 +1773,16 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
 
 /* Komponen utama. */
 export default function LamanUtama() {
-  const { data } = useHomeData();
+  const { data, loading } = useHomeData();
 
   return (
     <main className="min-h-screen bg-[#f7f5f2] text-[#3f3f3f]">
       <Navbar />
       <HeroSection homeData={data} />
-      <LayananSection homeData={data} />
+      <LayananSection homeData={data} loading={loading} />
       <WhatsappBanner />
-      <DokterSection homeData={data} />
-      <PromoSection homeData={data} />
+      <DokterSection />
+      <PromoSection homeData={data} loading={loading} />
       <ArtikelSection />
       <HubungiKamiSection homeData={data} />
       <EmergencyCta />

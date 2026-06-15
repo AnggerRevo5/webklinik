@@ -6,6 +6,8 @@ import (
 
 	database "backend/Database"
 	"backend/handlers"
+	"backend/models"
+	"backend/services"
 
 	"github.com/joho/godotenv"
 )
@@ -17,8 +19,28 @@ func main() {
 	if err != nil {
 		log.Fatal("gagal konek nih ke database awowkwkwk:", err)
 	}
+	db.AutoMigrate(&models.DokterFoto{})
+	db.AutoMigrate(&models.MediaLibrary{})
+	db.AutoMigrate(&models.Review{})
+	db.AutoMigrate(&models.KlinikInfo{})
+	db.AutoMigrate(&models.Artikel{})
 
-	r := handlers.SetupRouter(db)
+	dbKhanza := database.ConnectKhanza()
+	if dbKhanza == nil {
+		log.Println("Khanza DB tidak terhubung, fitur pendaftaran online Khanza dinonaktifkan")
+	}
+
+	cldSvc, cldErr := services.NewCloudinaryService(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if cldErr != nil {
+		log.Printf("WARNING: Cloudinary tidak aktif: %v", cldErr)
+		cldSvc = nil
+	}
+
+	r := handlers.SetupRouter(db, dbKhanza, cldSvc)
 
 	port := os.Getenv("PORT")
 	if port == "" {

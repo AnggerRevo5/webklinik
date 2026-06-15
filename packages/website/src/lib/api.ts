@@ -104,6 +104,13 @@ export type GoogleReview = {
   recorded_at: string;
 };
 
+export type KlinikInfo = {
+  id: number;
+  rating_google: number;
+  total_ulasan: number;
+  link_gmaps: string;
+};
+
 export type HomeData = {
   banner: Banner[];
   layanan: Service[];
@@ -119,6 +126,7 @@ export type HomeData = {
   site_settings?: SiteSetting[];
   operational_hours?: OperationalHour[];
   social_links?: SocialLink[];
+  klinik_info?: KlinikInfo;
 };
 
 export type ContactMessagePayload = {
@@ -128,6 +136,614 @@ export type ContactMessagePayload = {
   message: string;
   status?: string;
 };
+
+// ─── Media Library (Cloudinary via backend) ──────────────────────────────────
+
+export type MediaFolder =
+  | "dokter"
+  | "layanan"
+  | "promo"
+  | "galeri"
+  | "artikel"
+  | "logo";
+
+export type MediaItem = {
+  id: number;
+  url: string;
+  public_id: string;
+  nama_file: string;
+  folder: MediaFolder;
+  format: string;
+  ukuran: number;
+  lebar: number;
+  tinggi: number;
+  uploaded_at: string;
+};
+
+export type MediaPagination = {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+};
+
+export async function getMedia(
+  folder?: MediaFolder,
+  page = 1,
+  perPage = 24,
+): Promise<{ data: MediaItem[]; pagination: MediaPagination }> {
+  const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+  if (folder) params.set("folder", folder);
+  const res = await fetch(`${API_BASE_URL}/media?${params}`, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+  const json = await res.json();
+  return {
+    data: json.data ?? [],
+    pagination: json.pagination ?? { page: 1, per_page: 24, total: 0, total_pages: 0 },
+  };
+}
+
+export async function uploadMedia(
+  file: File,
+  folder: MediaFolder,
+): Promise<{ success: boolean; data?: MediaItem; error?: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", folder);
+  // JANGAN set Content-Type — browser set multipart/form-data dengan boundary
+  const res = await fetch(`${API_BASE_URL}/media/upload`, {
+    method: "POST",
+    body: formData,
+  });
+  return res.json();
+}
+
+export async function deleteMedia(
+  id: number,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/media/${id}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  return res.json();
+}
+
+export function formatFileSize(bytes: number): string {
+  if (!bytes) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function validateImageFile(file: File): string | null {
+  const validTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!validTypes.includes(file.type)) return "Format tidak didukung. Gunakan JPG, PNG, WebP, atau GIF";
+  if (file.size > 5 * 1024 * 1024) return "Ukuran file maksimal 5MB";
+  return null;
+}
+
+// ─── Review (Google Review manual) ──────────────────────────────────────────
+
+export type Review = {
+  id: number;
+  nama: string;
+  rating: number;
+  komentar: string;
+  tanggal: string;
+  tag: string;
+  featured: boolean;
+  tampil: boolean;
+  urutan: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReviewSummary = {
+  rating_google: number;
+  total_ulasan: number;
+  link_gmaps: string;
+};
+
+export type ReviewAdminData = {
+  reviews: Review[];
+  summary: ReviewSummary;
+};
+
+export async function getReview(): Promise<ReviewAdminData> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/review`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? { reviews: [], summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
+  } catch {
+    return { reviews: [], summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
+  }
+}
+
+export async function adminGetReview(): Promise<ReviewAdminData> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/review`, { cache: "no-store" });
+    const json = await res.json();
+    return { reviews: json.reviews ?? [], summary: json.summary ?? { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
+  } catch {
+    return { reviews: [], summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
+  }
+}
+
+export async function adminCreateReview(
+  data: Omit<Review, "id" | "created_at" | "updated_at">,
+): Promise<{ success: boolean; data?: Review; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminUpdateReview(
+  id: number,
+  data: Omit<Review, "id" | "created_at" | "updated_at">,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/review/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminToggleTampil(
+  id: number,
+): Promise<{ success: boolean; tampil: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/admin/review/${id}/toggle-tampil`, {
+    method: "PATCH",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminToggleFeatured(
+  id: number,
+): Promise<{ success: boolean; featured: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/admin/review/${id}/toggle-featured`, {
+    method: "PATCH",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminDeleteReview(
+  id: number,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/review/${id}`, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminUpdateReviewSummary(
+  data: ReviewSummary,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/review/summary`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+// ─── Artikel ─────────────────────────────────────────────────────────────────
+
+export const KATEGORI_ARTIKEL = [
+  "Tips Kesehatan",
+  "Edukasi",
+  "Berita Klinik",
+  "Ibu & Anak",
+  "Pengumuman",
+] as const;
+
+export type Artikel = {
+  id: number;
+  judul: string;
+  slug: string;
+  ringkasan: string;
+  konten?: string;
+  kategori: string;
+  foto_url: string;
+  penulis: string;
+  status: "draft" | "published";
+  published_at: string | null;
+  urutan: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ArtikelPayload = {
+  judul?: string;
+  konten?: string;
+  ringkasan?: string;
+  kategori?: string;
+  foto_url?: string;
+  penulis?: string;
+  status?: "draft" | "published";
+};
+
+// Public — list (tanpa konten)
+export async function getArtikel(limit?: number, kategori?: string): Promise<Artikel[]> {
+  try {
+    const params = new URLSearchParams();
+    if (limit) params.set("limit", String(limit));
+    if (kategori && kategori !== "Semua") params.set("kategori", kategori);
+    const qs = params.toString();
+    return await requestJson<Artikel[]>(`/artikel${qs ? `?${qs}` : ""}`);
+  } catch {
+    return [];
+  }
+}
+
+// Public — detail (termasuk konten)
+export async function getArtikelBySlug(slug: string): Promise<Artikel | null> {
+  try {
+    return await requestJson<Artikel>(`/artikel/${encodeURIComponent(slug)}`);
+  } catch {
+    return null;
+  }
+}
+
+// Admin — list
+export async function adminGetArtikel(
+  page = 1,
+  status?: "draft" | "published" | "all",
+): Promise<{ data: Artikel[]; pagination: { page: number; per_page: number; total: number; total_pages: number } }> {
+  try {
+    const params = new URLSearchParams({ page: String(page) });
+    if (status && status !== "all") params.set("status", status);
+    const res = await fetch(`${API_BASE_URL}/admin/artikel?${params}`, { cache: "no-store" });
+    return res.json();
+  } catch {
+    return { data: [], pagination: { page: 1, per_page: 20, total: 0, total_pages: 0 } };
+  }
+}
+
+// Admin — detail (termasuk konten penuh)
+export async function adminGetArtikelDetail(id: number): Promise<{ success: boolean; data?: Artikel }> {
+  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}`, { cache: "no-store" });
+  return res.json();
+}
+
+// Admin — create
+export async function adminCreateArtikel(
+  data: ArtikelPayload,
+): Promise<{ success: boolean; data?: Artikel; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/artikel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+// Admin — update
+export async function adminUpdateArtikel(
+  id: number,
+  data: ArtikelPayload,
+): Promise<{ success: boolean; data?: Artikel; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+// Admin — publish
+export async function adminPublishArtikel(id: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}/publish`, {
+    method: "PATCH",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+// Admin — tarik ke draft
+export async function adminDraftArtikel(id: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}/draft`, {
+    method: "PATCH",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+// Admin — hapus
+export async function adminDeleteArtikel(id: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}`, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+// ─── Khanza SIK — Dokter Publik ─────────────────────────────────────────────
+
+export type JadwalPublik = {
+  hari_kerja: string;
+  jam_mulai: string;
+  jam_selesai: string;
+  nm_poli: string;
+};
+
+export type DokterPublik = {
+  kd_dokter: string;
+  nm_dokter: string;
+  jk: string;
+  spesialis: string;
+  no_telp: string;
+  foto_url: string;
+  jadwal: JadwalPublik[];
+};
+
+export type DokterAdmin = {
+  kd_dokter: string;
+  nm_dokter: string;
+  jk: string;
+  spesialis: string;
+  no_telp: string;
+  status: string;
+  foto_url: string;
+  tampil_website: boolean;
+  jadwal: JadwalPublik[];
+};
+
+export async function getDokterPublik(): Promise<DokterPublik[]> {
+  try {
+    return await requestJson<DokterPublik[]>("/dokter-publik");
+  } catch {
+    return [];
+  }
+}
+
+export async function adminGetDokter(): Promise<DokterAdmin[]> {
+  try {
+    return await requestJson<DokterAdmin[]>("/admin/dokter");
+  } catch {
+    return [];
+  }
+}
+
+export async function adminToggleTampilDokter(
+  kdDokter: string,
+): Promise<{ success: boolean; tampil_website: boolean }> {
+  const res = await fetch(
+    `${API_BASE_URL}/admin/dokter/${encodeURIComponent(kdDokter)}/toggle-tampil`,
+    { method: "PATCH", cache: "no-store", headers: { Accept: "application/json" } },
+  );
+  return res.json();
+}
+
+export async function updateDokterFoto(
+  kdDokter: string,
+  fotoUrl: string,
+): Promise<{ success: boolean; data?: { kd_dokter: string; foto_url: string }; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/dokter-foto/${encodeURIComponent(kdDokter)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ foto_url: fotoUrl }),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+// ─── Khanza SIK — Pendaftaran Online ────────────────────────────────────────
+
+export type PasienKhanza = {
+  no_rkm_medis: string;
+  nm_pasien: string;
+  no_ktp: string;
+  jk: "L" | "P";
+  tgl_lahir: string;
+  no_tlp: string;
+  alamat: string;
+  kd_pj: string;
+};
+
+export type CekPasienResponse =
+  | { success: true; found: true; data: PasienKhanza }
+  | { success: true; found: false; message: string };
+
+export type PoliKhanza = {
+  kd_poli: string;
+  nm_poli: string;
+};
+
+export type DokterJadwal = {
+  kd_dokter: string;
+  nm_dokter: string;
+  jam_mulai: string;
+  jam_selesai: string;
+  kuota: number;
+  sisa_kuota: number;
+};
+
+export type PenjabKhanza = {
+  kd_pj: string;
+  png_jawab: string;
+  nama_perusahaan: string;
+};
+
+export type KuotaResponse = {
+  success: boolean;
+  kuota: number;
+  terisi: number;
+  sisa: number;
+  tersedia: boolean;
+  jam_mulai: string;
+  jam_selesai: string;
+};
+
+export type PendaftaranPayload = {
+  is_new_pasien: boolean;
+  no_rkm_medis?: string;
+  no_ktp: string;
+  nm_pasien?: string;
+  jk?: string;
+  tmp_lahir?: string;
+  tgl_lahir?: string;
+  nm_ibu?: string;
+  alamat?: string;
+  gol_darah?: string;
+  pekerjaan?: string;
+  stts_nikah?: string;
+  agama?: string;
+  no_tlp?: string;
+  pnd?: string;
+  keluarga?: string;
+  namakeluarga?: string;
+  kd_pj: string;
+  no_peserta?: string;
+  kd_poli: string;
+  kd_dokter: string;
+  tanggal_periksa: string;
+  waktu_kunjungan: string;
+};
+
+export type SubmitPendaftaranResponse = {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    no_reg: string;
+    no_rkm_medis: string;
+    tanggal_periksa: string;
+    waktu_kunjungan: string;
+    status: string;
+  };
+};
+
+// State yang disimpan di sessionStorage selama proses pendaftaran
+export type PendaftaranSession = {
+  step1?: {
+    isNewPasien: boolean;
+    no_rkm_medis?: string;
+    no_ktp: string;
+    nm_pasien?: string;
+    jk?: string;
+    tgl_lahir?: string;
+    tmp_lahir?: string;
+    no_tlp?: string;
+    alamat?: string;
+    gol_darah?: string;
+    agama?: string;
+    stts_nikah?: string;
+    pnd?: string;
+    pekerjaan?: string;
+    nm_ibu?: string;
+    namakeluarga?: string;
+    keluarga?: string;
+  };
+  step2?: {
+    kd_pj: string;
+    png_jawab: string;
+    no_peserta: string;
+    kd_poli: string;
+    nm_poli: string;
+    tanggal_periksa: string;
+    kd_dokter: string;
+    nm_dokter: string;
+    waktu_kunjungan: string;
+    jam_selesai: string;
+  };
+  result?: {
+    no_reg: string;
+    no_rkm_medis: string;
+    tanggal_periksa: string;
+    waktu_kunjungan: string;
+    nm_dokter: string;
+    nm_poli: string;
+    status: string;
+  };
+};
+
+export const SESSION_KEY = "pendaftaran_state";
+
+export function savePendaftaranSession(patch: Partial<PendaftaranSession>) {
+  if (typeof window === "undefined") return;
+  const existing: PendaftaranSession = JSON.parse(
+    sessionStorage.getItem(SESSION_KEY) ?? "{}",
+  );
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ...existing, ...patch }));
+}
+
+export function loadPendaftaranSession(): PendaftaranSession {
+  if (typeof window === "undefined") return {};
+  return JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "{}");
+}
+
+export function clearPendaftaranSession() {
+  if (typeof window !== "undefined") sessionStorage.removeItem(SESSION_KEY);
+}
+
+// Konversi Date ke nama hari format Khanza
+export function getHariKhanza(date: Date): string {
+  const map = ["AKHAD", "SENIN", "SELASA", "RABU", "KAMIS", "JUMAT", "SABTU"];
+  return map[date.getDay()];
+}
+
+export async function cekPasienByNIK(nik: string): Promise<CekPasienResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/pendaftaran/cek-pasien?nik=${encodeURIComponent(nik)}`,
+    { cache: "no-store", headers: { Accept: "application/json" } },
+  );
+  return res.json();
+}
+
+export async function getPoliKhanza(): Promise<PoliKhanza[]> {
+  return requestJson<PoliKhanza[]>("/pendaftaran/poli");
+}
+
+export async function getDokterKhanza(
+  kdPoli: string,
+  hari: string,
+  tanggal?: string,
+): Promise<DokterJadwal[]> {
+  const params = new URLSearchParams({ kd_poli: kdPoli, hari });
+  if (tanggal) params.set("tanggal", tanggal);
+  return requestJson<DokterJadwal[]>(`/pendaftaran/dokter?${params}`);
+}
+
+export async function cekKuota(
+  kdDokter: string,
+  tanggal: string,
+): Promise<KuotaResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/pendaftaran/kuota?kd_dokter=${encodeURIComponent(kdDokter)}&tanggal=${encodeURIComponent(tanggal)}`,
+    { cache: "no-store", headers: { Accept: "application/json" } },
+  );
+  return res.json();
+}
+
+export async function getPenjamin(): Promise<PenjabKhanza[]> {
+  return requestJson<PenjabKhanza[]>("/pendaftaran/penjamin");
+}
+
+export async function submitPendaftaran(
+  data: PendaftaranPayload,
+): Promise<SubmitPendaftaranResponse> {
+  const res = await fetch(`${API_BASE_URL}/pendaftaran`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {

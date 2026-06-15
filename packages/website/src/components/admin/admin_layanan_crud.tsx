@@ -28,6 +28,7 @@ import {
   useHomeData,
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+import ImagePicker from "@/src/UiKecil/image_picker";
 
 type ServiceItem = {
   id: number;
@@ -255,22 +256,12 @@ export default function AdminLayananCrud() {
                       placeholder="Contoh: Homevisit"
                     />
                   </div>
-                  <div>
-                    <div className="mb-1 text-[8px] font-semibold uppercase tracking-[0.5px] text-slate-500">
-                      URL / gambar
-                    </div>
-                    <input
-                      value={form.url}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          url: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none"
-                      placeholder="https://..."
-                    />
-                  </div>
+                  <ImagePicker
+                    value={form.url}
+                    onChange={(url) => setForm((current) => ({ ...current, url }))}
+                    folder="layanan"
+                    label="URL / Gambar"
+                  />
                 </div>
                 {submitError ? (
                   <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">
@@ -409,21 +400,12 @@ export default function AdminLayananCrud() {
                         className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none"
                       />
                     </div>
-                    <div>
-                      <div className="mb-1 text-[8px] font-semibold uppercase tracking-[0.5px] text-slate-500">
-                        Deskripsi
-                      </div>
-                      <textarea
-                        value={editForm.url}
-                        onChange={(event) =>
-                          setEditForm((current) => ({
-                            ...current,
-                            url: event.target.value,
-                          }))
-                        }
-                        className="h-16 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none"
-                      />
-                    </div>
+                    <ImagePicker
+                      value={editForm.url}
+                      onChange={(url) => setEditForm((current) => ({ ...current, url }))}
+                      folder="layanan"
+                      label="Deskripsi / URL Gambar"
+                    />
                     <div>
                       <div className="mb-1 text-[8px] font-semibold uppercase tracking-[0.5px] text-slate-500">
                         Ikon pilihan

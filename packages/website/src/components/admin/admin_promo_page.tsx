@@ -9,7 +9,6 @@ import {
   Save,
   Tag,
   Trash2,
-  Upload,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -21,6 +20,7 @@ import {
   useHomeData,
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+import ImagePicker from "@/src/UiKecil/image_picker";
 
 export default function AdminPromoPage() {
   const { data } = useHomeData();
@@ -174,11 +174,11 @@ export default function AdminPromoPage() {
                     POST /api/promo
                   </span>
                 </div>
-                <input
+                <ImagePicker
                   value={form.url}
-                  onChange={(event) => setForm({ url: event.target.value })}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none"
-                  placeholder="URL gambar promo"
+                  onChange={(url) => setForm({ url })}
+                  folder="promo"
+                  label="URL Gambar Promo"
                 />
                 {submitError ? (
                   <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">
@@ -321,26 +321,12 @@ export default function AdminPromoPage() {
                 </div>
                 {selectedPromo ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => previewPromo(selectedPromo?.url)}
-                      className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-slate-500 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-600"
-                    >
-                      <Upload className="h-5 w-5" />
-                      Upload gambar promo (data URL dari database)
-                    </button>
-                    <div>
-                      <div className="mb-1 text-[8px] font-semibold uppercase tracking-[0.5px] text-slate-500">
-                        URL gambar
-                      </div>
-                      <input
-                        value={editForm.url}
-                        onChange={(event) =>
-                          setEditForm({ url: event.target.value })
-                        }
-                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 outline-none"
-                      />
-                    </div>
+                    <ImagePicker
+                      value={editForm.url}
+                      onChange={(url) => setEditForm({ url })}
+                      folder="promo"
+                      label="URL Gambar Promo"
+                    />
                     {actionError ? (
                       <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">
                         {actionError}

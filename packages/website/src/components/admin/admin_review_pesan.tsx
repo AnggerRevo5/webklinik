@@ -1,289 +1,553 @@
 "use client";
 
-import { Eye, Mail, RefreshCw, Star } from "lucide-react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useHomeData } from "@/src/lib/api";
+import {
+  Eye,
+  EyeOff,
+  Plus,
+  RefreshCw,
+  Star,
+  Trash2,
+  Edit3,
+  X,
+  Info,
+  ExternalLink,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  adminCreateReview,
+  adminDeleteReview,
+  adminGetReview,
+  adminToggleFeatured,
+  adminToggleTampil,
+  adminUpdateReview,
+  adminUpdateReviewSummary,
+  type Review,
+  type ReviewSummary,
+} from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 
-type ReviewTab = "review" | "ringkasan" | "ditampilkan" | "disembunyikan";
+type ReviewForm = {
+  nama: string;
+  rating: number;
+  komentar: string;
+  tanggal: string;
+  tag: string;
+  featured: boolean;
+  tampil: boolean;
+  urutan: number;
+};
+
+const emptyForm: ReviewForm = {
+  nama: "",
+  rating: 5,
+  komentar: "",
+  tanggal: "",
+  tag: "",
+  featured: false,
+  tampil: true,
+  urutan: 0,
+};
+
+const TAG_OPTIONS = ["BPJS", "Umum", "Persalinan", "Pasien Lama", "Anak", "Gigi", "Bedah", "Lainnya"];
+
+function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          aria-label={`${n} bintang`}
+          onClick={() => onChange(n)}
+          className="focus:outline-none"
+        >
+          <Star
+            className={`h-5 w-5 transition-colors ${n <= value ? "fill-amber-400 text-amber-400" : "text-slate-300"}`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminReviewPesan() {
-  const { data } = useHomeData();
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ReviewTab>("review");
-  const reviews = data?.google_reviews ?? [];
-  const googleSummary = reviews[0] ?? null;
-  const averageRating =
-    reviews.length > 0
-      ? (
-          reviews.reduce(
-            (total, review) => total + Number(review.average_rating ?? 0),
-            0,
-          ) / reviews.length
-        ).toFixed(1)
-      : "0.0";
-  const totalReviews = reviews.reduce(
-    (total, review) => total + Number(review.review_count ?? 0),
-    0,
-  );
-  const activeReviewCount = reviews.length;
-  const hiddenReviewCount = 0;
-  const tabItems: Array<{ key: ReviewTab; label: string; badge?: string }> = [
-    { key: "review", label: "Google Review" },
-    { key: "ringkasan", label: "Ringkasan" },
-    {
-      key: "ditampilkan",
-      label: "Ditampilkan",
-      badge: String(activeReviewCount),
-    },
-    {
-      key: "disembunyikan",
-      label: "Disembunyikan",
-      badge: String(hiddenReviewCount),
-    },
-  ];
-  const tabButtonClass =
-    "rounded-md px-3 py-1 text-[10px] font-medium transition-all duration-200 ease-out motion-reduce:transition-none";
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [summary, setSummary] = useState<ReviewSummary>({ rating_google: 0, total_ulasan: 0, link_gmaps: "" });
+  const [loading, setLoading] = useState(true);
 
-  function openGoogleMaps() {
-    if (typeof window === "undefined") return;
-    window.open("https://maps.google.com", "_blank", "noopener,noreferrer");
+  // Summary form
+  const [summaryForm, setSummaryForm] = useState<ReviewSummary>({ rating_google: 0, total_ulasan: 0, link_gmaps: "" });
+  const [savingSummary, setSavingSummary] = useState(false);
+  const [summaryMsg, setSummaryMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Modal add/edit
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Review | null>(null);
+  const [form, setForm] = useState<ReviewForm>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Tab filter
+  const [activeTab, setActiveTab] = useState<"semua" | "tampil" | "tersembunyi">("semua");
+
+  async function loadData() {
+    setLoading(true);
+    const data = await adminGetReview();
+    setReviews(data.reviews);
+    setSummary(data.summary);
+    setSummaryForm(data.summary);
+    setLoading(false);
   }
+
+  useEffect(() => { loadData(); }, []);
+
+  async function handleToggleTampil(r: Review) {
+    setReviews((prev) => prev.map((x) => x.id === r.id ? { ...x, tampil: !x.tampil } : x));
+    await adminToggleTampil(r.id);
+  }
+
+  async function handleToggleFeatured(r: Review) {
+    setReviews((prev) => prev.map((x) => x.id === r.id ? { ...x, featured: !x.featured } : x));
+    await adminToggleFeatured(r.id);
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Hapus review ini? Tindakan tidak bisa dibatalkan.")) return;
+    setReviews((prev) => prev.filter((x) => x.id !== id));
+    await adminDeleteReview(id);
+  }
+
+  async function handleSaveSummary(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingSummary(true);
+    setSummaryMsg(null);
+    const res = await adminUpdateReviewSummary(summaryForm);
+    if (res.success) {
+      setSummary(summaryForm);
+      setSummaryMsg({ ok: true, text: "Tersimpan." });
+    } else {
+      setSummaryMsg({ ok: false, text: res.error ?? "Gagal menyimpan." });
+    }
+    setSavingSummary(false);
+  }
+
+  function openAdd() {
+    setEditTarget(null);
+    setForm(emptyForm);
+    setFormError(null);
+    setModalOpen(true);
+  }
+
+  function openEdit(r: Review) {
+    setEditTarget(r);
+    setForm({
+      nama: r.nama,
+      rating: r.rating,
+      komentar: r.komentar,
+      tanggal: r.tanggal,
+      tag: r.tag,
+      featured: r.featured,
+      tampil: r.tampil,
+      urutan: r.urutan,
+    });
+    setFormError(null);
+    setModalOpen(true);
+  }
+
+  async function handleSaveReview(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.nama.trim() || !form.komentar.trim() || !form.tanggal) {
+      setFormError("Nama, komentar, dan tanggal wajib diisi.");
+      return;
+    }
+    setSaving(true);
+    setFormError(null);
+    if (editTarget) {
+      const res = await adminUpdateReview(editTarget.id, form);
+      if (res.success) {
+        setReviews((prev) => prev.map((x) => x.id === editTarget.id ? { ...x, ...form } : x));
+        setModalOpen(false);
+      } else {
+        setFormError(res.error ?? "Gagal menyimpan.");
+      }
+    } else {
+      const res = await adminCreateReview(form);
+      if (res.success && res.data) {
+        setReviews((prev) => [res.data!, ...prev]);
+        setModalOpen(false);
+      } else {
+        setFormError(res.error ?? "Gagal menyimpan.");
+      }
+    }
+    setSaving(false);
+  }
+
+  const filtered = reviews.filter((r) => {
+    if (activeTab === "tampil") return r.tampil;
+    if (activeTab === "tersembunyi") return !r.tampil;
+    return true;
+  });
+
+  const tampilCount = reviews.filter((r) => r.tampil).length;
+  const tersembunyiCount = reviews.filter((r) => !r.tampil).length;
 
   return (
     <main className="min-h-dvh w-full bg-slate-100 p-0">
-      <h2 className="sr-only">
-        Halaman admin review testimoni dan pesan masuk KRI AMC
-      </h2>
+      <h2 className="sr-only">Halaman admin review Google KRI AMC</h2>
       <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-[#F0F4FA] shadow-[0_20px_50px_rgba(15,23,42,0.08)] lg:grid-cols-[240px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="review" />
+
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
           <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              <div>
-                <div className="text-[15px] font-semibold text-slate-900">
-                  Review & Pesan
-                </div>
-                <div className="text-[9px] text-slate-500">
-                  Rating Google tersedia, daftar pesan belum punya tabel di
-                  schema
-                </div>
-              </div>
-              <div className="flex rounded-lg bg-slate-100 p-0.5">
-                {tabItems.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => setActiveTab(item.key)}
-                    className={`${tabButtonClass} ${activeTab === item.key ? "bg-white text-sky-600 shadow-sm scale-[1.02]" : "text-slate-400 hover:bg-white/70 hover:text-slate-600"}`}
-                    aria-pressed={activeTab === item.key}
-                  >
-                    {item.key === "review" ? (
-                      <Star className="mr-1 inline h-3 w-3" />
-                    ) : (
-                      <Mail className="mr-1 inline h-3 w-3" />
-                    )}
-                    {item.label}
-                    {item.badge ? (
-                      <span className="ml-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[7px] text-white">
-                        {item.badge}
-                      </span>
-                    ) : null}
-                  </button>
-                ))}
-              </div>
+            <div>
+              <div className="text-[15px] font-semibold text-slate-900">Review & Testimoni</div>
+              <div className="text-[9px] text-slate-500">Input manual dari Google Maps — data tersimpan di database</div>
             </div>
-            <button
-              type="button"
-              onClick={() => router.refresh()}
-              className="inline-flex items-center gap-1 text-[10px] text-slate-500 transition-all duration-300 hover:-translate-y-0.5 hover:text-slate-700"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Sync Google
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openAdd}
+                className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-amber-600"
+              >
+                <Plus className="h-3 w-3" />
+                Tambah Review
+              </button>
+              <button
+                type="button"
+                onClick={loadData}
+                className="inline-flex items-center gap-1 text-[10px] text-slate-500 transition-all hover:-translate-y-0.5 hover:text-slate-700"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </button>
+            </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-4 lg:p-5">
-            <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
-              <div className="grid gap-4 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center">
-                <div className="text-center">
-                  <div className="text-[36px] font-bold leading-none text-slate-900">
-                    {googleSummary
-                      ? googleSummary.average_rating.toFixed(1)
-                      : "0.0"}
-                  </div>
-                  <div className="my-1 flex justify-center gap-1 text-amber-400">
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                  </div>
-                  <div className="text-[9px] text-slate-500">
-                    {googleSummary
-                      ? `${googleSummary.review_count} ulasan Google`
-                      : "Belum ada ringkasan review"}
-                  </div>
-                </div>
-                <div className="space-y-1 text-[9px] text-slate-500">
-                  {[
-                    ["5", "20", "85%"],
-                    ["4", "2", "10%"],
-                    ["3", "1", "3%"],
-                    ["2", "0", "0%"],
-                    ["1", "0", "0%"],
-                  ].map(([score, count, width]) => (
-                    <div key={score} className="flex items-center gap-2">
-                      <span className="w-3 text-right">{score}</span>
-                      <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                        <div
-                          className="h-full rounded-full bg-amber-400"
-                          style={{ width }}
-                        />
-                      </div>
-                      <span className="w-4 text-right">{count}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={openGoogleMaps}
-                    className="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-3 py-2 text-[9px] font-medium text-sky-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-sky-100"
-                  >
-                    <Eye className="h-3 w-3" />
-                    Buka Google Maps
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => router.refresh()}
-                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-[9px] font-medium text-emerald-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-100"
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    Sync ulasan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("ditampilkan")}
-                    className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-2 text-[9px] font-medium text-amber-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-amber-100"
-                  >
-                    <Star className="h-3 w-3" />
-                    {activeReviewCount} featured aktif
-                  </button>
-                </div>
+          <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-4">
+            {/* Summary card */}
+            <form
+              onSubmit={handleSaveSummary}
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-[12px] font-medium text-slate-900">Rating Keseluruhan Klinik</div>
+                <span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">
+                  PUT /api/admin/review/summary
+                </span>
               </div>
-            </div>
-
-            <div className="mb-3 flex flex-wrap gap-2 text-[9px] font-medium">
-              {tabItems.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`rounded-full border px-3 py-1.5 transition-all duration-200 ease-out motion-reduce:transition-none ${activeTab === tab.key ? "border-sky-600 bg-sky-600 text-white shadow-sm scale-[1.02]" : "border-slate-200 bg-white text-slate-500 hover:border-sky-200 hover:text-slate-700"}`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === "ringkasan" ? (
               <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
-                  <div className="text-[8px] text-slate-400">
-                    Rata-rata rating
-                  </div>
-                  <div className="mt-1 text-[28px] font-bold text-slate-900">
-                    {averageRating}
-                  </div>
-                  <div className="text-[9px] text-slate-500">
-                    berdasarkan {reviews.length} snapshot
-                  </div>
+                <div>
+                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Rating Google (1.0–5.0)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min={1}
+                    max={5}
+                    value={summaryForm.rating_google}
+                    onChange={(e) => setSummaryForm((s) => ({ ...s, rating_google: parseFloat(e.target.value) || 0 }))}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                    placeholder="4.8"
+                  />
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
-                  <div className="text-[8px] text-slate-400">
-                    Total review tercatat
-                  </div>
-                  <div className="mt-1 text-[28px] font-bold text-slate-900">
-                    {totalReviews}
-                  </div>
-                  <div className="text-[9px] text-slate-500">
-                    di seluruh snapshot Google
-                  </div>
+                <div>
+                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Total Ulasan Google</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={summaryForm.total_ulasan}
+                    onChange={(e) => setSummaryForm((s) => ({ ...s, total_ulasan: parseInt(e.target.value) || 0 }))}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                    placeholder="23"
+                  />
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
-                  <div className="text-[8px] text-slate-400">Status pesan</div>
-                  <div className="mt-1 text-[28px] font-bold text-slate-900">
-                    0
-                  </div>
-                  <div className="text-[9px] text-slate-500">
-                    belum ada tabel pesan masuk
-                  </div>
+                <div>
+                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Link Google Maps</label>
+                  <input
+                    type="url"
+                    value={summaryForm.link_gmaps}
+                    onChange={(e) => setSummaryForm((s) => ({ ...s, link_gmaps: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                    placeholder="https://maps.google.com/..."
+                  />
                 </div>
               </div>
-            ) : activeTab === "disembunyikan" ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-[10px] text-slate-500 shadow-sm transition-all duration-300 ease-out motion-reduce:transition-none">
-                Tidak ada kolom visibilitas di schema, jadi review yang
-                disembunyikan belum bisa dipisah dari database.
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={savingSummary}
+                  className="rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white disabled:opacity-60"
+                >
+                  {savingSummary ? "Menyimpan..." : "Simpan Rating"}
+                </button>
+                {summary.link_gmaps ? (
+                  <a
+                    href={summary.link_gmaps}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[9px] text-sky-600 hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Buka Google Maps
+                  </a>
+                ) : null}
+                {summaryMsg ? (
+                  <span className={`text-[9px] ${summaryMsg.ok ? "text-emerald-600" : "text-rose-600"}`}>
+                    {summaryMsg.text}
+                  </span>
+                ) : null}
               </div>
-            ) : (
-              <div className="space-y-3 transition-all duration-300 ease-out motion-reduce:transition-none">
-                {reviews.length > 0 ? (
-                  reviews.map((review) => (
+            </form>
+
+            {/* Panduan */}
+            <div className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+              <div className="text-[9px] text-sky-700">
+                <p className="font-semibold">Cara tambah review dari Google Maps:</p>
+                <ol className="mt-1 list-decimal pl-4 space-y-0.5">
+                  <li>Buka Google Maps → cari <strong>KRI Ampelgading Medical Centre</strong></li>
+                  <li>Klik tab <strong>Ulasan</strong></li>
+                  <li>Copy nama, bintang, komentar, dan tanggal</li>
+                  <li>Klik <strong>Tambah Review</strong> di atas dan paste datanya</li>
+                  <li>Centang <strong>Featured</strong> jika ingin ditampilkan di posisi utama</li>
+                </ol>
+              </div>
+            </div>
+
+            {/* Tab + list */}
+            <div>
+              <div className="mb-3 flex flex-wrap gap-2 text-[9px] font-medium">
+                {(["semua", "tampil", "tersembunyi"] as const).map((tab) => {
+                  const label = tab === "semua" ? `Semua (${reviews.length})` : tab === "tampil" ? `Ditampilkan (${tampilCount})` : `Disembunyikan (${tersembunyiCount})`;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`rounded-full border px-3 py-1.5 transition-all ${activeTab === tab ? "border-sky-600 bg-sky-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-sky-200"}`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {loading ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-[10px] text-slate-500">
+                  Memuat data...
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-[10px] text-slate-500">
+                  Belum ada review di kategori ini.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.map((r) => (
                     <article
-                      key={review.id}
+                      key={r.id}
                       className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
                     >
-                      <div className="mb-2 flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-600 text-[11px] font-semibold text-white">
-                          G
+                      <div className="flex flex-wrap items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-600 text-[12px] font-bold text-white">
+                          {r.nama[0]?.toUpperCase() ?? "?"}
                         </div>
-                        <div>
-                          <div className="text-[11px] font-medium text-slate-900">
-                            Review ID {review.id}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] font-semibold text-slate-900">{r.nama}</span>
+                            {r.tag ? (
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[8px] text-slate-500">{r.tag}</span>
+                            ) : null}
+                            {r.featured ? (
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-semibold text-amber-600">Featured</span>
+                            ) : null}
+                            {!r.tampil ? (
+                              <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[8px] text-rose-500">Tersembunyi</span>
+                            ) : null}
                           </div>
-                          <div className="text-[8px] text-slate-400">
-                            {review.recorded_at}
+                          <div className="mt-0.5 flex items-center gap-2">
+                            <div className="flex gap-0.5">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-3 w-3 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[8px] text-slate-400">{r.tanggal}</span>
                           </div>
+                          <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-600">{r.komentar}</p>
                         </div>
-                        <div className="ml-auto flex gap-0.5 text-amber-400">
-                          {Array.from({
-                            length: Math.max(
-                              1,
-                              Math.min(5, Math.round(review.average_rating)),
-                            ),
-                          }).map((_, starIndex) => (
-                            <Star
-                              key={starIndex}
-                              className="h-3 w-3 fill-current"
-                            />
-                          ))}
+
+                        <div className="flex shrink-0 flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            title={r.featured ? "Unfeature" : "Jadikan featured"}
+                            onClick={() => handleToggleFeatured(r)}
+                            className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[9px] font-medium transition-all hover:-translate-y-0.5 ${r.featured ? "bg-amber-50 text-amber-600 hover:bg-amber-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+                          >
+                            <Star className={`h-3 w-3 ${r.featured ? "fill-amber-400" : ""}`} />
+                          </button>
+                          <button
+                            type="button"
+                            title={r.tampil ? "Sembunyikan" : "Tampilkan"}
+                            onClick={() => handleToggleTampil(r)}
+                            className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[9px] font-medium transition-all hover:-translate-y-0.5 ${r.tampil ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+                          >
+                            {r.tampil ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Edit review"
+                            onClick={() => openEdit(r)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-1.5 text-[9px] font-medium text-sky-600 transition-all hover:-translate-y-0.5 hover:bg-sky-100"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Hapus review"
+                            onClick={() => handleDelete(r.id)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2 py-1.5 text-[9px] font-medium text-rose-600 transition-all hover:-translate-y-0.5 hover:bg-rose-100"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
-                      </div>
-                      <div className="text-[10px] leading-6 text-slate-600">
-                        {review.review_count} review tercatat pada snapshot ini.
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-semibold text-emerald-600">
-                          Terkini
-                        </span>
-                        <span className="rounded-full bg-amber-50 px-2 py-1 text-[8px] font-semibold text-amber-700">
-                          Rating {review.average_rating.toFixed(1)}
-                        </span>
                       </div>
                     </article>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-[10px] text-slate-500 shadow-sm">
-                    Belum ada ringkasan review Google di database.
-                  </div>
-                )}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
       </div>
+
+      {/* Modal tambah/edit */}
+      {modalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div className="text-[13px] font-semibold text-slate-900">
+                {editTarget ? "Edit Review" : "Tambah Review dari Google Maps"}
+              </div>
+              <button
+                type="button"
+                aria-label="Tutup modal"
+                onClick={() => setModalOpen(false)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveReview} className="space-y-3 p-5">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Nama Reviewer *</label>
+                  <input
+                    value={form.nama}
+                    onChange={(e) => setForm((f) => ({ ...f, nama: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                    placeholder="Nama dari Google Maps"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="form-tanggal" className="mb-1 block text-[9px] font-medium text-slate-500">Tanggal *</label>
+                  <input
+                    id="form-tanggal"
+                    type="date"
+                    value={form.tanggal}
+                    onChange={(e) => setForm((f) => ({ ...f, tanggal: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[9px] font-medium text-slate-500">Rating *</label>
+                <StarPicker value={form.rating} onChange={(v) => setForm((f) => ({ ...f, rating: v }))} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[9px] font-medium text-slate-500">Komentar *</label>
+                <textarea
+                  rows={4}
+                  value={form.komentar}
+                  onChange={(e) => setForm((f) => ({ ...f, komentar: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none focus:border-sky-400 resize-none"
+                  placeholder="Isi review dari Google Maps..."
+                />
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <label htmlFor="form-tag" className="mb-1 block text-[9px] font-medium text-slate-500">Tag</label>
+                  <select
+                    id="form-tag"
+                    value={form.tag}
+                    onChange={(e) => setForm((f) => ({ ...f, tag: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                  >
+                    <option value="">-- Pilih tag --</option>
+                    {TAG_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Urutan tampil</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.urutan}
+                    onChange={(e) => setForm((f) => ({ ...f, urutan: parseInt(e.target.value) || 0 }))}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                    placeholder="0 = pertama"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 text-[10px]">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.featured}
+                    onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
+                    className="h-3.5 w-3.5 rounded"
+                  />
+                  <span className="text-slate-700">Featured (tampil paling menonjol)</span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.tampil}
+                    onChange={(e) => setForm((f) => ({ ...f, tampil: e.target.checked }))}
+                    className="h-3.5 w-3.5 rounded"
+                  />
+                  <span className="text-slate-700">Tampilkan di website</span>
+                </label>
+              </div>
+
+              {formError ? (
+                <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">{formError}</div>
+              ) : null}
+
+              <div className="flex gap-2 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-medium text-slate-500"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-lg bg-sky-600 px-4 py-2 text-[10px] font-medium text-white disabled:opacity-60"
+                >
+                  {saving ? "Menyimpan..." : editTarget ? "Simpan Perubahan" : "Tambah Review"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -110,23 +110,70 @@ type GoogleReview struct {
 
 func (GoogleReview) TableName() string { return "google_reviews" }
 
-type Pasien struct {
-	ID               uint64    `gorm:"column:id" json:"id"`
-	Nama             string    `gorm:"column:nama" json:"nama"`
-	NamaOrtu         string    `gorm:"column:nama_ortu" json:"nama_ortu"`
-	PenanggungJawab  string    `gorm:"column:penanggung_jawab" json:"penanggung_jawab"`
-	NoTelp           string    `gorm:"column:no_telp" json:"no_telp"`
-	Alamat           string    `gorm:"column:alamat" json:"alamat"`
-	TanggalLahir     time.Time `gorm:"column:tanggal_lahir" json:"tanggal_lahir"`
-	NIK              string    `gorm:"column:nik" json:"nik"`
-	JenisKelamin     string    `gorm:"column:jenis_kelamin" json:"jenis_kelamin"`
-	JenisPasien      string    `gorm:"column:jenis_pasien" json:"jenis_pasien"`
-	TanggalKunjungan time.Time `gorm:"column:tanggal_kunjungan" json:"tanggal_kunjungan"`
-	WaktuKunjungan   time.Time `gorm:"column:waktu_kunjungan" json:"waktu_kunjungan"`
-	Keluhan          string    `gorm:"column:keluhan" json:"keluhan"`
-	Layanan          string    `gorm:"column:layanan" json:"layanan"`
-	Dokter           string    `gorm:"column:dokter" json:"dokter"`
-	CreatedAt        time.Time `gorm:"column:created_at" json:"created_at"`
+type DokterFoto struct {
+	KdDokter      string    `gorm:"column:kd_dokter;primaryKey"        json:"kd_dokter"`
+	FotoURL       string    `gorm:"column:foto_url"                    json:"foto_url"`
+	TampilWebsite bool      `gorm:"column:tampil_website;default:0"    json:"tampil_website"`
+	CreatedAt     time.Time `gorm:"column:created_at;autoCreateTime"   json:"created_at"`
+	UpdatedAt     time.Time `gorm:"column:updated_at;autoUpdateTime"   json:"updated_at"`
 }
 
-func (Pasien) TableName() string { return "pasien" }
+func (DokterFoto) TableName() string { return "dokter_foto" }
+
+type MediaLibrary struct {
+	ID         uint      `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	URL        string    `gorm:"column:url;not null"               json:"url"`
+	PublicID   string    `gorm:"column:public_id;not null;unique"  json:"public_id"`
+	NamaFile   string    `gorm:"column:nama_file"                  json:"nama_file"`
+	Folder     string    `gorm:"column:folder"                     json:"folder"`
+	Format     string    `gorm:"column:format"                     json:"format"`
+	Ukuran     int       `gorm:"column:ukuran"                     json:"ukuran"`
+	Lebar      int       `gorm:"column:lebar"                      json:"lebar"`
+	Tinggi     int       `gorm:"column:tinggi"                     json:"tinggi"`
+	UploadedAt time.Time `gorm:"column:uploaded_at;autoCreateTime" json:"uploaded_at"`
+}
+
+func (MediaLibrary) TableName() string { return "media_library" }
+
+type Review struct {
+	ID        uint      `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	Nama      string    `gorm:"column:nama"                       json:"nama"`
+	Rating    int       `gorm:"column:rating"                     json:"rating"`
+	Komentar  string    `gorm:"column:komentar"                   json:"komentar"`
+	Tanggal   string    `gorm:"column:tanggal"                    json:"tanggal"`
+	Tag       string    `gorm:"column:tag"                        json:"tag"`
+	Featured  bool      `gorm:"column:featured;default:0"         json:"featured"`
+	Tampil    bool      `gorm:"column:tampil;default:1"           json:"tampil"`
+	Urutan    int       `gorm:"column:urutan;default:0"           json:"urutan"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"  json:"created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"  json:"updated_at"`
+}
+
+func (Review) TableName() string { return "review" }
+
+type KlinikInfo struct {
+	ID           uint    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	RatingGoogle float64 `gorm:"column:rating_google"               json:"rating_google"`
+	TotalUlasan  int     `gorm:"column:total_ulasan"                json:"total_ulasan"`
+	LinkGmaps    string  `gorm:"column:link_gmaps"                  json:"link_gmaps"`
+}
+
+func (KlinikInfo) TableName() string { return "klinik_info" }
+
+type Artikel struct {
+	ID          uint       `gorm:"column:id;primaryKey;autoIncrement"     json:"id"`
+	Judul       string     `gorm:"column:judul;not null"                  json:"judul"`
+	Slug        string     `gorm:"column:slug;not null;unique"            json:"slug"`
+	Ringkasan   string     `gorm:"column:ringkasan"                       json:"ringkasan"`
+	Konten      string     `gorm:"column:konten"                          json:"konten"`
+	Kategori    string     `gorm:"column:kategori;default:Tips Kesehatan" json:"kategori"`
+	FotoURL     string     `gorm:"column:foto_url"                        json:"foto_url"`
+	Penulis     string     `gorm:"column:penulis;default:Tim Medis"       json:"penulis"`
+	Status      string     `gorm:"column:status;default:draft"            json:"status"`
+	PublishedAt *time.Time `gorm:"column:published_at"                    json:"published_at"`
+	Urutan      int        `gorm:"column:urutan;default:0"                json:"urutan"`
+	CreatedAt   time.Time  `gorm:"column:created_at;autoCreateTime"       json:"created_at"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at;autoUpdateTime"       json:"updated_at"`
+}
+
+func (Artikel) TableName() string { return "artikel" }
