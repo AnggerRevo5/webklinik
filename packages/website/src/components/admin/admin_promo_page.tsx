@@ -21,6 +21,12 @@ import {
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
+import {
+  ConfirmDialog,
+  ToastContainer,
+  useToast,
+  type ConfirmDialogState,
+} from "@/src/UiKecil/admin_ui";
 
 export default function AdminPromoPage() {
   const { data } = useHomeData();
@@ -32,6 +38,8 @@ export default function AdminPromoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const { toasts, showToast, dismissToast } = useToast();
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   useEffect(() => {
     if (data?.promo) {
@@ -85,10 +93,11 @@ export default function AdminPromoPage() {
       setSelectedPromoId(created.id);
       setEditForm({ url: created.url });
       setForm({ url: "" });
+      showToast("Promo berhasil ditambahkan!", "success");
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Gagal menambah promo",
-      );
+      const msg = error instanceof Error ? error.message : "Gagal menambah promo";
+      setSubmitError(msg);
+      showToast(msg, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -108,31 +117,39 @@ export default function AdminPromoPage() {
       );
       setSelectedPromoId(updated.id);
       setEditForm({ url: updated.url });
+      showToast("Promo berhasil disimpan!", "success");
     } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : "Gagal mengubah promo",
-      );
+      const msg = error instanceof Error ? error.message : "Gagal mengubah promo";
+      setActionError(msg);
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleDeletePromo(promoId: number) {
-    setActionError(null);
-    try {
-      await deletePromo(promoId);
-      setPromos((current) => {
-        const nextPromos = current.filter((item) => item.id !== promoId);
-        if (selectedPromoId === promoId) {
-          setSelectedPromoId(nextPromos[0]?.id ?? null);
+  function handleDeletePromo(promoId: number, promoTitle: string) {
+    setConfirmDialog({
+      title: "Hapus Promo?",
+      message: `"${promoTitle}" akan dihapus permanen dan tidak bisa dikembalikan.`,
+      onConfirm: async () => {
+        setActionError(null);
+        try {
+          await deletePromo(promoId);
+          setPromos((current) => {
+            const nextPromos = current.filter((item) => item.id !== promoId);
+            if (selectedPromoId === promoId) {
+              setSelectedPromoId(nextPromos[0]?.id ?? null);
+            }
+            return nextPromos;
+          });
+          showToast("Promo berhasil dihapus", "success");
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Gagal menghapus promo";
+          setActionError(msg);
+          showToast(msg, "error");
         }
-        return nextPromos;
-      });
-    } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : "Gagal menghapus promo",
-      );
-    }
+      },
+    });
   }
 
   return (
@@ -141,12 +158,12 @@ export default function AdminPromoPage() {
       <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-[#F0F4FA] shadow-[0_20px_50px_rgba(15,23,42,0.08)] lg:grid-cols-[240px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="promo" />
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-slate-900">
                 Promo
               </div>
-              <div className="text-[9px] text-slate-500">
+              <div className="text-[10px] text-slate-500">
                 Data diambil dari tabel promo pada database
               </div>
             </div>
@@ -271,7 +288,9 @@ export default function AdminPromoPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeletePromo(promo.id)}
+                            title="Hapus promo ini"
+                            aria-label="Hapus promo ini"
+                            onClick={() => handleDeletePromo(promo.id, promo.title)}
                             className="rounded-md bg-rose-50 p-1.5 text-rose-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-rose-100"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -289,8 +308,8 @@ export default function AdminPromoPage() {
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                <div className="flex items-center gap-2 text-[12px] font-medium text-slate-900">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-slate-900">
                   <Tag className="h-4 w-4 text-amber-500" />
                   Edit promo
                 </div>
@@ -370,24 +389,18 @@ export default function AdminPromoPage() {
                 <button
                   type="button"
                   onClick={() => previewPromo(selectedPromo?.url)}
-                  className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-sky-700"
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  Simpan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => previewPromo(selectedPromo?.url)}
                   className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-[10px] font-medium text-emerald-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-100"
                 >
                   <Eye className="h-3.5 w-3.5" />
-                  Preview
+                  Lihat Gambar
                 </button>
               </div>
             </section>
           </div>
         </section>
       </div>
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmDialog dialog={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </main>
   );
 }

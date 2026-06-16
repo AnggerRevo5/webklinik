@@ -10,6 +10,7 @@ import {
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
+import { ToastContainer, useToast } from "@/src/UiKecil/admin_ui";
 
 export default function DokterJadwalAdmin() {
   const [doctors, setDoctors] = useState<DokterAdmin[]>([]);
@@ -20,6 +21,7 @@ export default function DokterJadwalAdmin() {
   const [toggling, setToggling] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const { toasts, showToast, dismissToast } = useToast();
 
   const loadDokter = useCallback(() => {
     setLoading(true);
@@ -85,8 +87,11 @@ export default function DokterJadwalAdmin() {
         ),
       );
       setSaveSuccess(true);
+      showToast("Foto dokter berhasil disimpan!", "success");
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Gagal menyimpan foto");
+      const msg = err instanceof Error ? err.message : "Gagal menyimpan foto";
+      setSaveError(msg);
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -103,10 +108,10 @@ export default function DokterJadwalAdmin() {
         <SidebarAdmin activeKey="dokter" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-slate-900">Dokter & Jadwal</div>
-              <div className="text-[9px] text-slate-400">Data dari SIK Khanza (read-only)</div>
+              <div className="text-[10px] text-slate-400">Data dari SIK Khanza (read-only) — atur visibilitas & foto di sini</div>
             </div>
             {!loading && doctors.length > 0 && (
               <div className="flex items-center gap-2 text-[9px] text-slate-500">
@@ -180,7 +185,7 @@ export default function DokterJadwalAdmin() {
                             {dok.nm_dokter}
                           </div>
                           <div className="text-[10px] text-slate-400">{dok.spesialis || "Umum"}</div>
-                          <div className="mt-1 text-[8px] text-slate-400">
+                          <div className="mt-1 text-[9px] text-slate-400">
                             kd: {dok.kd_dokter}
                           </div>
                         </div>
@@ -191,6 +196,7 @@ export default function DokterJadwalAdmin() {
                             disabled={isToggling}
                             onClick={() => handleToggleTampil(dok.kd_dokter)}
                             aria-label={dok.tampil_website ? "Sembunyikan dari website" : "Tampilkan di website"}
+                            title={dok.tampil_website ? "Klik untuk sembunyikan dari website" : "Klik untuk tampilkan di website"}
                             className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[9px] font-medium transition-all hover:-translate-y-0.5 disabled:opacity-50 ${
                               dok.tampil_website
                                 ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
@@ -202,7 +208,7 @@ export default function DokterJadwalAdmin() {
                             ) : (
                               <EyeOff className="h-3 w-3" />
                             )}
-                            {dok.tampil_website ? "Tampil" : "Sembunyikan"}
+                            {dok.tampil_website ? "Ditampilkan" : "Tersembunyi"}
                           </button>
                           {/* Edit foto */}
                           <button
@@ -218,14 +224,14 @@ export default function DokterJadwalAdmin() {
 
                       {dok.jadwal && dok.jadwal.length > 0 ? (
                         <div className="border-t border-slate-100 px-4 pb-3 pt-2">
-                          <div className="mb-1 text-[8px] font-medium uppercase tracking-widest text-slate-400">
+                          <div className="mb-1.5 text-[9px] font-semibold uppercase tracking-widest text-slate-400">
                             Jadwal Praktek
                           </div>
                           <div className="flex flex-col gap-1">
                             {dok.jadwal.map((j, ji) => (
                               <div
                                 key={ji}
-                                className="flex items-center gap-2 text-[9px] text-slate-600"
+                                className="flex items-center gap-2 text-[10px] text-slate-600"
                               >
                                 <CalendarDays className="h-3 w-3 shrink-0 text-sky-400" />
                                 <span className="font-medium">{j.hari_kerja}</span>
@@ -233,7 +239,7 @@ export default function DokterJadwalAdmin() {
                                   {j.jam_mulai}–{j.jam_selesai}
                                 </span>
                                 {j.nm_poli ? (
-                                  <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[8px] text-slate-500">
+                                  <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
                                     {j.nm_poli}
                                   </span>
                                 ) : null}
@@ -255,7 +261,7 @@ export default function DokterJadwalAdmin() {
                 className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
               >
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="text-[12px] font-medium text-slate-900">
+                  <div className="text-[13px] font-semibold text-slate-900">
                     Ubah foto — {selectedDoctor.nm_dokter}
                   </div>
                   <span className="rounded-full bg-amber-50 px-2 py-1 text-[8px] font-semibold text-amber-600">
@@ -306,6 +312,7 @@ export default function DokterJadwalAdmin() {
           </div>
         </section>
       </div>
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </main>
   );
 }

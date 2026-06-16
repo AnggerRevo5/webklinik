@@ -27,6 +27,12 @@ import {
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
+import {
+  ConfirmDialog,
+  ToastContainer,
+  useToast,
+  type ConfirmDialogState,
+} from "@/src/UiKecil/admin_ui";
 
 type GalleryItem = {
   id: number;
@@ -53,7 +59,7 @@ function GalleryCard({
 }: {
   item: GalleryItem;
   onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number, title: string) => void;
 }) {
   const Icon = item.icon;
 
@@ -74,6 +80,8 @@ function GalleryCard({
           <div className="mt-2 flex items-center gap-2">
             <button
               type="button"
+              title="Edit foto ini"
+              aria-label="Edit foto ini"
               onClick={() => onEdit(item.id)}
               className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-slate-900"
             >
@@ -81,7 +89,9 @@ function GalleryCard({
             </button>
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              title="Hapus foto ini"
+              aria-label="Hapus foto ini"
+              onClick={() => onDelete(item.id, item.title)}
               className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-rose-600"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -115,6 +125,8 @@ export default function GaleriArtikelAdmin() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const { toasts, showToast, dismissToast } = useToast();
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   useEffect(() => {
     if (data?.galeri) {
@@ -189,36 +201,45 @@ export default function GaleriArtikelAdmin() {
           current.map((item) => (item.id === updated.id ? updated : item)),
         );
         setSelectedGalleryId(updated.id);
+        showToast("Foto berhasil diperbarui!", "success");
       } else {
         const created = await createGallery(form);
         setGallery((current) => [created, ...current]);
         setSelectedGalleryId(created.id);
+        showToast("Foto berhasil ditambahkan!", "success");
       }
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Gagal menyimpan galeri",
-      );
+      const msg = error instanceof Error ? error.message : "Gagal menyimpan galeri";
+      setSubmitError(msg);
+      showToast(msg, "error");
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function handleDeleteGallery(id: number) {
-    setActionError(null);
-    try {
-      await deleteGallery(id);
-      setGallery((current) => {
-        const next = current.filter((item) => item.id !== id);
-        if (selectedGalleryId === id) {
-          setSelectedGalleryId(next[0]?.id ?? null);
+  function handleDeleteGallery(id: number, title: string) {
+    setConfirmDialog({
+      title: "Hapus Foto?",
+      message: `"${title}" akan dihapus permanen dari galeri dan tidak bisa dikembalikan.`,
+      onConfirm: async () => {
+        setActionError(null);
+        try {
+          await deleteGallery(id);
+          setGallery((current) => {
+            const next = current.filter((item) => item.id !== id);
+            if (selectedGalleryId === id) {
+              setSelectedGalleryId(next[0]?.id ?? null);
+            }
+            return next;
+          });
+          showToast("Foto berhasil dihapus", "success");
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Gagal menghapus galeri";
+          setActionError(msg);
+          showToast(msg, "error");
         }
-        return next;
-      });
-    } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : "Gagal menghapus galeri",
-      );
-    }
+      },
+    });
   }
 
   return (
@@ -229,14 +250,13 @@ export default function GaleriArtikelAdmin() {
         <SidebarAdmin activeKey="galeri" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-slate-900">
                 Galeri
               </div>
-              <div className="text-[9px] text-slate-500">
-                CRUD galeri langsung ke tabel galeri, artikel tidak disertakan
-                karena tidak ada tabelnya.
+              <div className="text-[10px] text-slate-500">
+                CRUD galeri langsung ke tabel galeri pada database
               </div>
             </div>
             <button
@@ -258,7 +278,7 @@ export default function GaleriArtikelAdmin() {
               className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3"
             >
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[12px] font-medium text-slate-900">
+                <div className="text-[13px] font-semibold text-slate-900">
                   {selectedGallery ? "Edit galeri" : "Tambah galeri"}
                 </div>
                 <span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">
@@ -318,7 +338,7 @@ export default function GaleriArtikelAdmin() {
                 {selectedGallery ? (
                   <button
                     type="button"
-                    onClick={() => handleDeleteGallery(selectedGallery.id)}
+                    onClick={() => handleDeleteGallery(selectedGallery.id, form.text || `Galeri ${selectedGallery.id}`)}
                     className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1.5 text-[10px] font-medium text-rose-600"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -370,6 +390,8 @@ export default function GaleriArtikelAdmin() {
           </div>
         </section>
       </div>
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmDialog dialog={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </main>
   );
 }

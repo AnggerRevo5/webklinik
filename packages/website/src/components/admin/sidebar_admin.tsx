@@ -3,12 +3,12 @@
 import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
 import {
-  CalendarDays,
   ClipboardList,
   FileImage,
   FileText,
   Home,
   Image as ImageIcon,
+  LogOut,
   Menu,
   MessageCircle,
   Stethoscope,
@@ -104,10 +104,10 @@ export default function SidebarAdmin({
   function renderItem(item: SidebarItem, index: number) {
     const isActive = activeKey != null && item.key === activeKey;
     const Icon = item.icon;
-    const baseClassName = `group flex w-full items-center gap-3 rounded-3xl border px-4 py-3 text-left text-sm transition-all duration-300 ease-out ${
+    const baseClassName = `group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-all duration-200 ease-out ${
       isActive
-        ? "bg-sky-600 text-white shadow-[0_18px_40px_rgba(14,165,233,0.18)] border-sky-500/50"
-        : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+        ? "bg-sky-600 text-white border-sky-500/40 shadow-sm"
+        : "bg-transparent text-slate-700 border-transparent hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
     }`;
 
     return (
@@ -118,43 +118,41 @@ export default function SidebarAdmin({
         aria-label={item.label}
         onClick={() => setMenuOpen(false)}
       >
-        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 shadow-sm transition-all duration-300 group-hover:bg-slate-200">
-          <Icon className="h-4 w-4" />
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+          isActive ? "bg-white/20" : "bg-slate-100 group-hover:bg-slate-200"
+        }`}>
+          <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-600"}`} />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold leading-tight">
             {item.label}
           </div>
-          <div className={`mt-0.5 max-w-full truncate text-[10px] leading-none ${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-700"}`}>
+          <div className={`mt-0.5 max-w-full truncate text-[10px] leading-none ${isActive ? "text-white/70" : "text-slate-400"}`}>
             {item.description}
           </div>
         </div>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 group-hover:bg-slate-200">
-          {String(index + 1).padStart(2, "0")}
-        </span>
       </Link>
     );
   }
 
   return (
     <>
-      <header className="flex w-full items-center justify-between border-b border-white/10 bg-[#0D1B2A] px-3 py-3 lg:hidden">
-        <div className="flex h-11 min-w-[72px] items-center justify-center rounded-2xl border border-[#E8861E] bg-gradient-to-br from-sky-600 to-sky-800 px-3 text-[10px] font-bold tracking-[0.2em] text-[#E8861E] shadow-sm">
-          <img
-            src="/assets/logo/LOGO.svg"
-            alt="Logo admin"
-            className="h-8 w-8"
-          />
+      <header className="flex w-full items-center justify-between border-b border-white/10 bg-[#0D1B2A] px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-3">
+          <img src="/assets/logo/LOGO.svg" alt="Logo admin" className="h-8 w-8 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold leading-tight text-white">KRI AMC</p>
+            <p className="mt-0.5 text-[10px] leading-none text-white/50">Admin Panel</p>
+          </div>
         </div>
-
         <button
           type="button"
           onClick={() => setMenuOpen((current) => !current)}
           aria-label={menuOpen ? "Tutup menu admin" : "Buka menu admin"}
           aria-expanded={menuOpen}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition-all duration-300 hover:bg-white/10"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-100 transition-all duration-200 hover:bg-white/10"
         >
-          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
       </header>
 
@@ -164,29 +162,60 @@ export default function SidebarAdmin({
         aria-hidden="true"
       />
 
-      <aside className="hidden w-full flex-col gap-5 overflow-y-auto border-b border-slate-200 bg-white p-4 lg:flex lg:w-[220px] lg:border-b-0 lg:border-r lg:p-5">
-        <div className="flex justify-center">
-          <img
-            src="/assets/logo/LOGO.svg"
-            alt="Logo admin"
-            className="h-10 w-10"
-          />
+      <aside className="hidden w-full flex-col border-b border-slate-200 bg-white lg:flex lg:w-[220px] lg:border-b-0 lg:border-r">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5">
+          <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-8 w-8 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight text-slate-900">KRI AMC</p>
+            <p className="mt-0.5 text-[10px] leading-none text-slate-400">Admin Panel</p>
+          </div>
         </div>
-        <div className="space-y-4">{sidebarItems.map((item, index) => renderItem(item, index))}</div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Menu</p>
+          <div className="space-y-0.5">{sidebarItems.map((item, index) => renderItem(item, index))}</div>
+        </div>
+        <div className="shrink-0 border-t border-slate-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
+              A
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-slate-900">Admin</p>
+              <p className="text-[10px] text-slate-400">Super Admin</p>
+            </div>
+            <button type="button" title="Logout" className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </aside>
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-dvh w-[85vw] max-w-[280px] flex-col gap-5 overflow-y-auto border-r border-slate-200 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out lg:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-[85vw] max-w-[280px] flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-hidden={!menuOpen}
       >
-        <div className="flex justify-center">
-          <img
-            src="/assets/logo/LOGO.svg"
-            alt="Logo admin"
-            className="h-10 w-10"
-          />
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5">
+          <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-8 w-8 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight text-slate-900">KRI AMC</p>
+            <p className="mt-0.5 text-[10px] leading-none text-slate-400">Admin Panel</p>
+          </div>
         </div>
-        <div className="space-y-4">{sidebarItems.map((item, index) => renderItem(item, index))}</div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Menu</p>
+          <div className="space-y-0.5">{sidebarItems.map((item, index) => renderItem(item, index))}</div>
+        </div>
+        <div className="shrink-0 border-t border-slate-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
+              A
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-slate-900">Admin</p>
+              <p className="text-[10px] text-slate-400">Super Admin</p>
+            </div>
+          </div>
+        </div>
       </aside>
     </>
   );

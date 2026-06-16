@@ -4,6 +4,7 @@ import { ExternalLink, MessageSquare, Siren, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
+import { useEffect, useState } from "react";
 import Footer from "@/src/components/footer";
 import Navbar from "@/src/components/navbar";
 import { Button } from "@/src/UiKecil/button";
@@ -11,6 +12,7 @@ import { Card, CardContent } from "@/src/UiKecil/card";
 import { Section, SectionHeader } from "@/src/UiKecil/section";
 import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";
+import { getReview, type ReviewAdminData } from "@/src/lib/api";
 
 /* ─── Types ─── */
 
@@ -34,23 +36,15 @@ type GalleryItem = { title: string; image: string; description: string };
 
 type StatItem = { value: string; label: string };
 
-type RatingBar = { label: string; value: number };
-
-type ReviewItem = {
-  name: string;
-  role: string;
-  text: string;
-  image: string;
-  initials: string;
-};
 
 /* ─── Constants ─── */
 
-const GOOGLE_REVIEW_URL = "https://maps.google.com";
+const GOOGLE_REVIEW_URL = "https://maps.app.goo.gl/vkGS2vwxcmb6rvzd8";
+const MAPS_EMBED_URL =
+  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4874.12081354438!2d112.8737492!3d-8.237420400000001!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd6119ef38ca617%3A0x24c74a32e7d6bfb!2sKRI%20Ampelgading%20Medical%20Centre!5e1!3m2!1sid!2sid!4v1781523411427!5m2!1sid!2sid";
 
 const ASSETS = {
   aboutHero: "/assets/about/about-1.png",
-  googleMaps: "/assets/about/about-3.png",
   icons: {
     phone: "/assets/icons/phone.svg",
     whatsapp: "/assets/icons/whatsapp.svg",
@@ -169,39 +163,23 @@ const stats: StatItem[] = [
   { value: "250+", label: "Pasien terlayani" },
 ];
 
-const ratingBars: RatingBar[] = [
-  { label: "5", value: 85 },
-  { label: "4", value: 10 },
-  { label: "3", value: 3 },
-  { label: "2", value: 0 },
-  { label: "1", value: 2 },
-];
-
-const reviews: ReviewItem[] = [
-  {
-    name: "Sara Ali Khan",
-    role: "Cardiology Patient",
-    text: "Thanks for all the services, no doubt it is the best hospital.",
-    image: "/assets/team/team1.png",
-    initials: "SA",
-  },
-  {
-    name: "Simon Targett",
-    role: "Neurology Patient",
-    text: "Thanks for all the services, no doubt it is the best hospital.",
-    image: "/assets/team/team2.png",
-    initials: "ST",
-  },
-  {
-    name: "Sara Ali Khan",
-    role: "Cardiology Patient",
-    text: "Thanks for all the services, no doubt it is the best hospital.",
-    image: "/assets/team/team3.png",
-    initials: "SA",
-  },
-];
-
 const stars = Array.from({ length: 5 });
+
+const AVATAR_COLORS = [
+  "#1a5fa0",
+  "#e8861e",
+  "#00b4d8",
+  "#6b5ce7",
+  "#0d9e6e",
+];
+
+function getInitials(nama: string): string {
+  return nama
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 /* ─── Helpers ─── */
 
@@ -250,37 +228,6 @@ function ProgressBar({
         )}
         style={{ width: `${value}%` }}
       />
-    </div>
-  );
-}
-
-function ReviewAvatar({
-  src,
-  alt,
-  initials,
-}: {
-  src: string;
-  alt: string;
-  initials: string;
-}) {
-  return (
-    <div className="relative">
-      <div className="absolute inset-0 rounded-full bg-[#4200ff]" />
-      <div className="relative ml-3 mt-1 h-[52px] w-[52px] overflow-hidden rounded-full bg-[#d9d9d9]">
-        {src ? (
-          <Image
-            src={src}
-            alt={alt}
-            fill
-            className="object-cover"
-            sizes="52px"
-          />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center t-body-sm font-medium text-[#3f3f3f]">
-            {initials}
-          </span>
-        )}
-      </div>
     </div>
   );
 }
@@ -496,35 +443,75 @@ function GaleriSection() {
 
 /* ─── Rating ─── */
 
-function RatingSection() {
+function RatingSection({
+  reviewData,
+  loading,
+}: {
+  reviewData: ReviewAdminData;
+  loading: boolean;
+}) {
+  const { reviews, summary } = reviewData;
+
+  const dynamicRatingBars = [5, 4, 3, 2, 1].map((star) => {
+    const count = reviews.filter((r) => r.rating === star).length;
+    const pct =
+      reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
+    return { label: String(star), value: pct };
+  });
+
+  const displayRating =
+    summary.rating_google > 0 ? summary.rating_google.toFixed(1) : "—";
+  const totalUlasan =
+    summary.total_ulasan > 0 ? `${summary.total_ulasan} ulasan` : "—";
+  const mapsHref = summary.link_gmaps || GOOGLE_REVIEW_URL;
+
   return (
     <Section id="google-review">
       <SectionHeader label="RATING" title="Apa kata mereka" />
 
+      {/* Rating overview row */}
       <div
-        className="grid lg:grid-cols-[1fr_244px]"
+        className="grid lg:grid-cols-[1fr_260px]"
         style={{ gap: "var(--gap-cards)" }}
       >
+        {/* Star distribution card */}
         <Card className={cn("card-radius border-0 bg-[#f7f5f2]", cardShadowMd)}>
           <CardContent className="card-base">
-            <div className="mb-3 flex items-center gap-1 text-[#ff8c00]">
-              {stars.map((_, index) => (
-                <Star key={index} className="h-4 w-4 fill-[#ff8c00]" />
-              ))}
+            <div className="mb-1 flex items-center gap-2">
+              <div className="flex gap-0.5">
+                {stars.map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-[#ff8c00] text-[#ff8c00]" />
+                ))}
+              </div>
+              <span className="t-body-sm font-semibold text-[#ff8c00]">
+                Google Review
+              </span>
             </div>
-            <div className="mb-5 t-body-sm font-medium text-[#757575]">
-              Berdasarkan 23 ulasan di Google
+            <div className="mb-6 t-caption text-[#9a9a9a]">
+              {summary.total_ulasan > 0
+                ? `Berdasarkan ${summary.total_ulasan} ulasan di Google Maps`
+                : "Belum ada data ulasan Google"}
             </div>
-            <div className="grid grid-cols-[60px_1fr] gap-4">
-              <div className="t-h2 font-medium text-[#3f3f3f]">4.8</div>
-              <div className="space-y-3">
-                {ratingBars.map((item) => (
+            <div className="flex items-end gap-6">
+              <div className="shrink-0">
+                <div className="t-h1 font-bold leading-none text-[#3f3f3f]">
+                  {displayRating}
+                </div>
+                <div className="mt-1 t-caption text-[#9a9a9a]">dari 5</div>
+              </div>
+              <div className="flex-1 space-y-2">
+                {dynamicRatingBars.map((item) => (
                   <div
                     key={item.label}
-                    className="grid grid-cols-[16px_1fr] items-center gap-3"
+                    className="flex items-center gap-2"
                   >
-                    <div className="t-body text-[#3f3f3f]">{item.label}</div>
+                    <span className="w-3 shrink-0 t-caption text-right text-[#757575]">
+                      {item.label}
+                    </span>
                     <ProgressBar value={item.value} />
+                    <span className="w-8 shrink-0 t-caption text-[#9a9a9a]">
+                      {item.value}%
+                    </span>
                   </div>
                 ))}
               </div>
@@ -532,87 +519,152 @@ function RatingSection() {
           </CardContent>
         </Card>
 
-        <Card
+        {/* Google Maps embed card */}
+        <div
           className={cn(
-            "overflow-hidden card-radius border-0 bg-[#f7f5f2]",
+            "overflow-hidden card-radius bg-white",
             cardShadowMd,
           )}
         >
-          <CardContent className="relative h-[200px] p-0">
-            <Image
-              src={ASSETS.googleMaps}
-              alt="Google Maps klinik"
-              fill
-              className="object-cover"
-              sizes="244px"
+          <div className="relative h-50 w-full">
+            <iframe
+              src={MAPS_EMBED_URL}
+              className="absolute inset-0 h-full w-full border-0"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Lokasi KRI Ampelgading Medical Centre"
             />
-          </CardContent>
-        </Card>
+          </div>
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <div>
+              <div className="t-body-sm font-semibold text-[#3f3f3f]">
+                KRI Ampelgading Medical Centre
+              </div>
+              <div className="mt-0.5 flex items-center gap-1">
+                <div className="flex gap-0.5">
+                  {stars.map((_, i) => (
+                    <Star
+                      key={i}
+                      className="h-3 w-3 fill-[#ff8c00] text-[#ff8c00]"
+                    />
+                  ))}
+                </div>
+                <span className="t-caption text-[#9a9a9a]">
+                  {displayRating} · {totalUlasan}
+                </span>
+              </div>
+            </div>
+            <a
+              href={mapsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 rounded-full bg-[#e8f4fd] px-3 py-1.5 t-caption font-semibold text-[#1a5fa0] transition-colors hover:bg-[#d0e8f8]"
+            >
+              Buka →
+            </a>
+          </div>
+        </div>
       </div>
 
+      {/* Review cards */}
       <div
         className="mt-8 grid md:grid-cols-2 lg:grid-cols-3"
         style={{ gap: "var(--gap-cards)" }}
       >
-        {reviews.map((review, index) => (
-          <Card
-            key={`${review.name}-${index}`}
-            className={cn("card-radius border-0 bg-white", cardShadowMd)}
-          >
-            <CardContent className="card-base">
-              <div className="mb-4 flex items-start gap-4">
-                <ReviewAvatar
-                  src={review.image}
-                  alt={review.name}
-                  initials={review.initials}
-                />
-                <div>
-                  <h3 className="t-h4 font-medium text-[#3f3f3f]">
-                    {review.name}
-                  </h3>
-                  <div className="t-caption font-medium text-[#757575]">
-                    {review.role}
+        {loading ? (
+          [1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className={cn(
+                "card-radius h-52 animate-pulse bg-[#f7f5f2]",
+                cardShadowMd,
+              )}
+            />
+          ))
+        ) : reviews.length === 0 ? (
+          <div className="col-span-3 py-12 text-center">
+            <MessageSquare className="mx-auto mb-3 h-8 w-8 text-[#d9d9d9]" />
+            <p className="t-body text-[#9a9a9a]">
+              Belum ada ulasan yang ditampilkan.
+            </p>
+          </div>
+        ) : (
+          reviews.map((review, index) => (
+            <Card
+              key={review.id ?? index}
+              className={cn("card-radius border-0 bg-white", cardShadowMd)}
+            >
+              <CardContent className="card-base flex flex-col gap-3">
+                {/* Header: avatar + name */}
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full t-body-sm font-semibold text-white"
+                    style={{
+                      backgroundColor:
+                        AVATAR_COLORS[index % AVATAR_COLORS.length],
+                    }}
+                  >
+                    {getInitials(review.nama)}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="truncate t-body font-semibold text-[#3f3f3f]">
+                      {review.nama}
+                    </h3>
+                    <div className="t-caption text-[#9a9a9a]">
+                      {review.tag || review.tanggal}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="mb-4 flex items-center gap-1 text-[#4200ff]">
-                {stars.map((_, starIndex) => (
-                  <Star
-                    key={starIndex}
-                    className="h-3.5 w-3.5 fill-[#4200ff] text-[#4200ff]"
-                  />
-                ))}
-              </div>
-              <p className="t-body-sm text-[#3f3f3f]">{review.text}</p>
-            </CardContent>
-          </Card>
-        ))}
+
+                {/* Stars */}
+                <div className="flex gap-0.5">
+                  {stars.map((_, starIndex) => (
+                    <Star
+                      key={starIndex}
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        starIndex < review.rating
+                          ? "fill-[#ff8c00] text-[#ff8c00]"
+                          : "fill-[#e5e5e5] text-[#e5e5e5]",
+                      )}
+                    />
+                  ))}
+                </div>
+
+                {/* Comment */}
+                <p className="line-clamp-4 t-body-sm leading-relaxed text-[#5a5a5a]">
+                  {review.komentar}
+                </p>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
+      {/* CTA bar */}
       <Card
-        className={cn("mt-8 card-radius border-0 bg-[#f7f5f2]", cardShadowMd)}
+        className={cn("mt-8 card-radius border-0 bg-[#1a5fa0]", cardShadowMd)}
       >
         <CardContent className="card-base flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div className="flex items-center gap-4">
-            <MessageSquare className="h-9 w-9 shrink-0 text-[#63a9df]" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15">
+              <MessageSquare className="h-6 w-6 text-white" />
+            </div>
             <div>
-              <h3 className="t-h4 font-bold text-[#3f3f3f]">
+              <h3 className="t-h4 font-bold text-white">
                 Punya pengalaman di klinik kami?
               </h3>
-              <p className="t-body text-[#3f3f3f]">
+              <p className="t-body text-white/75">
                 Bagikan ulasan Anda di Google Maps
               </p>
             </div>
           </div>
           <Button
-            className="h-12 rounded-full bg-[#8480f6] px-5 t-body text-white hover:bg-[#8480f6]/90"
+            className="h-12 shrink-0 rounded-full bg-white px-6 t-body font-semibold text-[#1a5fa0] hover:bg-white/90"
             asChild
           >
-            <a
-              href={GOOGLE_REVIEW_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={mapsHref} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-2 h-4 w-4" />
               Tulis Ulasan
             </a>
@@ -683,12 +735,25 @@ function EmergencyCta() {
 /* ─── Main ─── */
 
 export default function TentangKami() {
+  const [reviewData, setReviewData] = useState<ReviewAdminData>({
+    reviews: [],
+    summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" },
+  });
+  const [loadingReview, setLoadingReview] = useState(true);
+
+  useEffect(() => {
+    getReview()
+      .then(setReviewData)
+      .catch(() => {})
+      .finally(() => setLoadingReview(false));
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#f2f0ed] text-[#3f3f3f]">
       <Navbar />
       <AboutIntroSection />
       <GaleriSection />
-      <RatingSection />
+      <RatingSection reviewData={reviewData} loading={loadingReview} />
       <EmergencyCta />
       <Footer />
     </main>

@@ -29,6 +29,12 @@ import {
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
+import {
+  ConfirmDialog,
+  ToastContainer,
+  useToast,
+  type ConfirmDialogState,
+} from "@/src/UiKecil/admin_ui";
 
 type ServiceItem = {
   id: number;
@@ -75,6 +81,8 @@ export default function AdminLayananCrud() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { toasts, showToast, dismissToast } = useToast();
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   useEffect(() => {
     if (data?.layanan) {
@@ -117,10 +125,11 @@ export default function AdminLayananCrud() {
       setSelectedServiceId(created.id);
       setEditForm({ nama_layanan: created.nama_layanan, url: created.url });
       setForm({ nama_layanan: "", url: "" });
+      showToast("Layanan berhasil ditambahkan!", "success");
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Gagal menambah layanan",
-      );
+      const msg = error instanceof Error ? error.message : "Gagal menambah layanan";
+      setSubmitError(msg);
+      showToast(msg, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -140,35 +149,43 @@ export default function AdminLayananCrud() {
       );
       setSelectedServiceId(updated.id);
       setEditForm({ nama_layanan: updated.nama_layanan, url: updated.url });
+      showToast("Perubahan berhasil disimpan!", "success");
     } catch (error) {
-      setDeleteError(
-        error instanceof Error ? error.message : "Gagal mengubah layanan",
-      );
+      const msg = error instanceof Error ? error.message : "Gagal mengubah layanan";
+      setDeleteError(msg);
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleDeleteService(serviceId: number) {
-    setDeleteError(null);
-    try {
-      await deleteService(serviceId);
-      setServices((current) => current.filter((item) => item.id !== serviceId));
-      setServiceActiveMap((current) => {
-        const nextMap = { ...current };
-        delete nextMap[serviceId];
-        return nextMap;
-      });
-      setSelectedServiceId((currentSelected) => {
-        if (currentSelected !== serviceId) return currentSelected;
-        const nextItem = services.find((item) => item.id !== serviceId);
-        return nextItem?.id ?? null;
-      });
-    } catch (error) {
-      setDeleteError(
-        error instanceof Error ? error.message : "Gagal menghapus layanan",
-      );
-    }
+  function handleDeleteService(serviceId: number, serviceName: string) {
+    setConfirmDialog({
+      title: "Hapus Layanan?",
+      message: `"${serviceName}" akan dihapus permanen dan tidak bisa dikembalikan.`,
+      onConfirm: async () => {
+        setDeleteError(null);
+        try {
+          await deleteService(serviceId);
+          setServices((current) => current.filter((item) => item.id !== serviceId));
+          setServiceActiveMap((current) => {
+            const nextMap = { ...current };
+            delete nextMap[serviceId];
+            return nextMap;
+          });
+          setSelectedServiceId((currentSelected) => {
+            if (currentSelected !== serviceId) return currentSelected;
+            const nextItem = services.find((item) => item.id !== serviceId);
+            return nextItem?.id ?? null;
+          });
+          showToast("Layanan berhasil dihapus", "success");
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Gagal menghapus layanan";
+          setDeleteError(msg);
+          showToast(msg, "error");
+        }
+      },
+    });
   }
 
   const serviceCards: ServiceItem[] = services.map((item, index) => ({
@@ -192,12 +209,12 @@ export default function AdminLayananCrud() {
       <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-[#F0F4FA] shadow-[0_20px_50px_rgba(15,23,42,0.08)] lg:grid-cols-[240px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="layanan" />
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-slate-900">
                 Layanan
               </div>
-              <div className="text-[9px] text-slate-500">
+              <div className="text-[10px] text-slate-500">
                 Data diambil dari tabel layanan pada database
               </div>
             </div>
@@ -241,7 +258,7 @@ export default function AdminLayananCrud() {
                 </div>
                 <div className="grid gap-2 md:grid-cols-2">
                   <div>
-                    <div className="mb-1 text-[8px] font-semibold uppercase tracking-[0.5px] text-slate-500">
+                    <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                       Nama layanan
                     </div>
                     <input
@@ -318,6 +335,8 @@ export default function AdminLayananCrud() {
                       </span>
                       <button
                         type="button"
+                        title={service.active ? "Klik untuk sembunyikan dari website" : "Klik untuk tampilkan di website"}
+                        aria-label={service.active ? "Sembunyikan dari website" : "Tampilkan di website"}
                         onClick={() =>
                           setServiceActiveMap((current) => ({
                             ...current,
@@ -330,9 +349,14 @@ export default function AdminLayananCrud() {
                           className={`absolute top-[2px] h-3.5 w-3.5 rounded-full bg-white shadow-sm ${service.active ? "left-4" : "left-[2px]"}`}
                         />
                       </button>
+                      <span className={`text-[8px] font-medium ${service.active ? "text-emerald-600" : "text-slate-400"}`}>
+                        {service.active ? "Tampil" : "Sembunyi"}
+                      </span>
                       <div className="flex gap-1">
                         <button
                           type="button"
+                          title="Edit layanan ini"
+                          aria-label="Edit layanan ini"
                           onClick={() => setSelectedServiceId(service.id)}
                           className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-sky-50 text-sky-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-sky-100"
                         >
@@ -340,7 +364,9 @@ export default function AdminLayananCrud() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeleteService(service.id)}
+                          title="Hapus layanan ini"
+                          aria-label="Hapus layanan ini"
+                          onClick={() => handleDeleteService(service.id, service.name)}
                           className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-rose-50 text-rose-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-rose-100"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -357,12 +383,12 @@ export default function AdminLayananCrud() {
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                <div className="flex items-center gap-2 text-[12px] font-medium text-slate-900">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-slate-900">
                   <Edit3 className="h-4 w-4 text-sky-600" />
                   Edit layanan
                 </div>
-                <span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">
+                <span className="rounded-full bg-sky-50 px-2 py-1 text-[9px] font-semibold text-sky-600">
                   {selectedService?.nama_layanan ?? "Belum ada data"}
                 </span>
               </div>
@@ -386,7 +412,7 @@ export default function AdminLayananCrud() {
                 {selectedService ? (
                   <div className="space-y-2">
                     <div>
-                      <div className="mb-1 text-[8px] font-semibold uppercase tracking-[0.5px] text-slate-500">
+                      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                         Nama layanan
                       </div>
                       <input
@@ -407,7 +433,7 @@ export default function AdminLayananCrud() {
                       label="Deskripsi / URL Gambar"
                     />
                     <div>
-                      <div className="mb-1 text-[8px] font-semibold uppercase tracking-[0.5px] text-slate-500">
+                      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                         Ikon pilihan
                       </div>
                       <div className="grid grid-cols-5 gap-2">
@@ -422,7 +448,7 @@ export default function AdminLayananCrud() {
                       </div>
                     </div>
                     <div>
-                      <div className="mb-1 text-[8px] font-semibold uppercase tracking-[0.5px] text-slate-500">
+                      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                         Preview di website
                       </div>
                       <div className="flex items-center gap-3 rounded-xl bg-gradient-to-br from-sky-600 to-sky-800 p-3 text-white">
@@ -453,7 +479,7 @@ export default function AdminLayananCrud() {
                     {deleteError}
                   </div>
                 ) : null}
-                <div className="flex gap-2 border-t border-slate-100 px-4 py-3">
+                <div className="flex gap-2 border-t border-slate-100 px-4 py-4">
                   <button
                     type="button"
                     onClick={() =>
@@ -481,6 +507,8 @@ export default function AdminLayananCrud() {
           </div>
         </section>
       </div>
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmDialog dialog={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </main>
   );
 }

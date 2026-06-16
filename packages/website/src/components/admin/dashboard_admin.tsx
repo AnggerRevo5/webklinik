@@ -75,7 +75,7 @@ function SectionTitle({
         <div className="text-[11px] font-semibold text-slate-900">{title}</div>
       </div>
       {subtitle ? (
-        <div className="text-[8px] text-slate-400">{subtitle}</div>
+        <div className="text-[10px] text-slate-400">{subtitle}</div>
       ) : null}
     </div>
   );
@@ -526,10 +526,11 @@ export default function DashboardAdmin() {
         <SidebarAdmin activeKey="dashboard" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
-              <div className="text-[15px] font-semibold text-slate-900">
-                Dashboard
+              <div>
+                <div className="text-[15px] font-semibold text-slate-900">Dashboard</div>
+                <div className="text-[10px] text-slate-400">Ringkasan data dan analitik KRI AMC</div>
               </div>
               <div className="flex rounded-lg bg-slate-100 p-0.5">
                 {tabItems.map((item) => (
@@ -591,26 +592,26 @@ export default function DashboardAdmin() {
                         return (
                           <article
                             key={metric.title}
-                            className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                           >
-                            <div className="mb-1 flex items-center justify-between">
+                            <div className="mb-2 flex items-center justify-between">
                               <div
-                                className={`flex h-6 w-6 items-center justify-center rounded-md ${metric.containerClassName}`}
+                                className={`flex h-8 w-8 items-center justify-center rounded-lg ${metric.containerClassName}`}
                               >
                                 <Icon
-                                  className={`h-3.5 w-3.5 ${metric.iconClassName}`}
+                                  className={`h-4 w-4 ${metric.iconClassName}`}
                                 />
                               </div>
                               {metric.trend ? (
-                                <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] font-semibold text-emerald-600">
+                                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-600">
                                   {metric.trend}
                                 </span>
                               ) : null}
                             </div>
-                            <div className="text-[20px] font-semibold leading-none text-slate-900">
+                            <div className="text-[22px] font-bold leading-none text-slate-900">
                               {metric.value}
                             </div>
-                            <div className="mt-1 text-[8px] text-slate-400">
+                            <div className="mt-1.5 text-[10px] font-medium text-slate-500">
                               {metric.title}
                             </div>
                             <MetricSpark
@@ -622,7 +623,7 @@ export default function DashboardAdmin() {
                       })}
                 </section>
 
-                <section className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4 pt-12 px-2 pb-6">
+                <section className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
                   {isLoading
                     ? Array.from({ length: 4 }).map((_, index) => (
                         <article
@@ -672,6 +673,37 @@ export default function DashboardAdmin() {
               </>
             ) : null}
 
+            {activeTab === "overview" ? (
+              <section className="mb-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex items-center gap-2">
+                  <Workflow className="h-4 w-4 text-sky-500" />
+                  <span className="text-[13px] font-semibold text-slate-900">Aksi Cepat</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {[
+                    { label: "Kelola Layanan", href: "/admin_layanan_crud", icon: ClipboardList },
+                    { label: "Kelola Promo", href: "/admin_promo_page", icon: Tag },
+                    { label: "Kelola Dokter", href: "/dokter_jadwal_admin", icon: Stethoscope },
+                    { label: "Lihat Website", href: "/", icon: Eye },
+                  ].map((action) => {
+                    const ActionIcon = action.icon;
+                    return (
+                      <a
+                        key={action.label}
+                        href={action.href}
+                        className="group flex items-center gap-3 rounded-xl border border-slate-200 p-3 transition-all hover:border-sky-200 hover:bg-sky-50"
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 transition-colors group-hover:bg-sky-100">
+                          <ActionIcon className="h-4 w-4 text-slate-600 group-hover:text-sky-600" />
+                        </div>
+                        <span className="text-xs font-medium text-slate-700 group-hover:text-sky-700">{action.label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
             {activeTab === "analytics" ? (
               <>
                 <section className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-2 transition-all duration-300 ease-out motion-reduce:transition-none">
@@ -717,10 +749,10 @@ export default function DashboardAdmin() {
                           >
                             {item.num}
                           </div>
-                          <div className="mt-0.5 text-[8px] text-slate-400">
+                          <div className="mt-0.5 text-[10px] text-slate-400">
                             {item.label}
                           </div>
-                          <div className="mt-0.5 text-[7px] font-medium text-emerald-600">
+                          <div className="mt-0.5 text-[9px] font-medium text-emerald-600">
                             {item.trend}
                           </div>
                         </div>
@@ -732,25 +764,25 @@ export default function DashboardAdmin() {
                     <SectionTitle icon={Star} title="Review tracker" />
                     <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                       <div className="rounded-lg bg-slate-50 p-2 text-center">
-                        <div className="text-[8px] text-slate-400">
+                        <div className="text-[10px] text-slate-400">
                           Snapshot terakhir
                         </div>
                         <div className="text-[18px] font-semibold text-slate-400">
                           {latestReviewCount}
                         </div>
-                        <div className="text-[8px] text-slate-400">review</div>
+                        <div className="text-[10px] text-slate-400">review</div>
                       </div>
                       <div className="text-lg font-semibold text-emerald-600">
                         →
                       </div>
                       <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-center">
-                        <div className="text-[8px] text-slate-400">
+                        <div className="text-[10px] text-slate-400">
                           Rata-rata rating
                         </div>
                         <div className="text-[18px] font-semibold text-emerald-600">
                           {latestRating.toFixed(1)}
                         </div>
-                        <div className="text-[8px] text-emerald-600">
+                        <div className="text-[10px] text-emerald-600">
                           {socialMediaStatsCount} platform
                         </div>
                       </div>
@@ -820,68 +852,44 @@ export default function DashboardAdmin() {
                           className={`relative flex h-20 items-center justify-center bg-gradient-to-br ${card.gradient}`}
                         >
                           <span
-                            className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[7px] font-semibold ${card.statusClassName}`}
+                            className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[9px] font-semibold ${card.statusClassName}`}
                           >
                             {card.status}
                           </span>
                           <Icon className={`h-6 w-6 ${card.iconClassName}`} />
                         </div>
-                        <div className="p-2.5">
-                          <div className="truncate text-[10px] font-medium text-slate-900">
+                        <div className="p-3">
+                          <div className="truncate text-xs font-medium text-slate-900">
                             {card.title}
                           </div>
-                          <div className="mt-0.5 flex items-center gap-1 text-[8px] text-slate-400">
+                          <div className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
                             <CalendarDays className="h-2.5 w-2.5" />
                             {card.date}
                           </div>
                           <div className="mt-2 flex gap-1">
                             <button
                               type="button"
+                              title={`Kelola ${card.title}`}
                               aria-label={`Buka pengelolaan ${card.title}`}
-                              onClick={() => {
-                                if (
-                                  typeof window !== "undefined" &&
-                                  !window.confirm(
-                                    `Buka halaman kelola untuk ${card.title}?`,
-                                  )
-                                )
-                                  return;
-                                router.push(card.editPath);
-                              }}
+                              onClick={() => router.push(card.editPath)}
                               className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-50 text-sky-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-sky-100"
                             >
                               <Workflow className="h-3 w-3" />
                             </button>
                             <button
                               type="button"
+                              title={`Lihat ${card.title} di website`}
                               aria-label={`Buka preview ${card.title}`}
-                              onClick={() => {
-                                if (
-                                  typeof window !== "undefined" &&
-                                  !window.confirm(
-                                    `Buka halaman preview ${card.title}?`,
-                                  )
-                                )
-                                  return;
-                                router.push(card.previewPath);
-                              }}
+                              onClick={() => router.push(card.previewPath)}
                               className="flex h-5 w-5 items-center justify-center rounded-md bg-slate-50 text-slate-400 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700"
                             >
                               <Eye className="h-3 w-3" />
                             </button>
                             <button
                               type="button"
+                              title={`Pengaturan ${card.title}`}
                               aria-label={`Buka pengaturan ${card.title}`}
-                              onClick={() => {
-                                if (
-                                  typeof window !== "undefined" &&
-                                  !window.confirm(
-                                    `Buka pengaturan untuk ${card.title}?`,
-                                  )
-                                )
-                                  return;
-                                router.push(card.editPath);
-                              }}
+                              onClick={() => router.push(card.editPath)}
                               className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-50 text-rose-500 transition-all duration-300 hover:-translate-y-0.5 hover:bg-rose-100"
                             >
                               <Settings className="h-3 w-3" />

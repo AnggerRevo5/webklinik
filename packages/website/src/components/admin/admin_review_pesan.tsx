@@ -25,6 +25,12 @@ import {
   type ReviewSummary,
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+import {
+  ConfirmDialog,
+  ToastContainer,
+  useToast,
+  type ConfirmDialogState,
+} from "@/src/UiKecil/admin_ui";
 
 type ReviewForm = {
   nama: string;
@@ -74,6 +80,8 @@ export default function AdminReviewPesan() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary>({ rating_google: 0, total_ulasan: 0, link_gmaps: "" });
   const [loading, setLoading] = useState(true);
+  const { toasts, showToast, dismissToast } = useToast();
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   // Summary form
   const [summaryForm, setSummaryForm] = useState<ReviewSummary>({ rating_google: 0, total_ulasan: 0, link_gmaps: "" });
@@ -111,10 +119,16 @@ export default function AdminReviewPesan() {
     await adminToggleFeatured(r.id);
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm("Hapus review ini? Tindakan tidak bisa dibatalkan.")) return;
-    setReviews((prev) => prev.filter((x) => x.id !== id));
-    await adminDeleteReview(id);
+  function handleDelete(id: number, nama: string) {
+    setConfirmDialog({
+      title: "Hapus Review?",
+      message: `Review dari "${nama}" akan dihapus permanen dan tidak bisa dikembalikan.`,
+      onConfirm: async () => {
+        setReviews((prev) => prev.filter((x) => x.id !== id));
+        await adminDeleteReview(id);
+        showToast("Review berhasil dihapus", "success");
+      },
+    });
   }
 
   async function handleSaveSummary(e: React.FormEvent) {
@@ -125,8 +139,10 @@ export default function AdminReviewPesan() {
     if (res.success) {
       setSummary(summaryForm);
       setSummaryMsg({ ok: true, text: "Tersimpan." });
+      showToast("Rating klinik berhasil disimpan!", "success");
     } else {
       setSummaryMsg({ ok: false, text: res.error ?? "Gagal menyimpan." });
+      showToast(res.error ?? "Gagal menyimpan rating", "error");
     }
     setSavingSummary(false);
   }
@@ -167,16 +183,20 @@ export default function AdminReviewPesan() {
       if (res.success) {
         setReviews((prev) => prev.map((x) => x.id === editTarget.id ? { ...x, ...form } : x));
         setModalOpen(false);
+        showToast("Review berhasil diperbarui!", "success");
       } else {
         setFormError(res.error ?? "Gagal menyimpan.");
+        showToast(res.error ?? "Gagal menyimpan review", "error");
       }
     } else {
       const res = await adminCreateReview(form);
       if (res.success && res.data) {
         setReviews((prev) => [res.data!, ...prev]);
         setModalOpen(false);
+        showToast("Review berhasil ditambahkan!", "success");
       } else {
         setFormError(res.error ?? "Gagal menyimpan.");
+        showToast(res.error ?? "Gagal menambah review", "error");
       }
     }
     setSaving(false);
@@ -198,10 +218,10 @@ export default function AdminReviewPesan() {
         <SidebarAdmin activeKey="review" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-slate-900">Review & Testimoni</div>
-              <div className="text-[9px] text-slate-500">Input manual dari Google Maps — data tersimpan di database</div>
+              <div className="text-[10px] text-slate-500">Input manual dari Google Maps — data tersimpan di database</div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -230,14 +250,14 @@ export default function AdminReviewPesan() {
               className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
             >
               <div className="mb-3 flex items-center justify-between">
-                <div className="text-[12px] font-medium text-slate-900">Rating Keseluruhan Klinik</div>
+                <div className="text-[13px] font-semibold text-slate-900">Rating Keseluruhan Klinik</div>
                 <span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">
                   PUT /api/admin/review/summary
                 </span>
               </div>
               <div className="grid gap-3 md:grid-cols-3">
                 <div>
-                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Rating Google (1.0–5.0)</label>
+                  <label className="mb-1.5 block text-[10px] font-medium text-slate-500">Rating Google (1.0–5.0)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -250,7 +270,7 @@ export default function AdminReviewPesan() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Total Ulasan Google</label>
+                  <label className="mb-1.5 block text-[10px] font-medium text-slate-500">Total Ulasan Google</label>
                   <input
                     type="number"
                     min={0}
@@ -261,7 +281,7 @@ export default function AdminReviewPesan() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Link Google Maps</label>
+                  <label className="mb-1.5 block text-[10px] font-medium text-slate-500">Link Google Maps</label>
                   <input
                     type="url"
                     value={summaryForm.link_gmaps}
@@ -405,7 +425,8 @@ export default function AdminReviewPesan() {
                           <button
                             type="button"
                             aria-label="Hapus review"
-                            onClick={() => handleDelete(r.id)}
+                            title="Hapus review ini"
+                            onClick={() => handleDelete(r.id, r.nama)}
                             className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2 py-1.5 text-[9px] font-medium text-rose-600 transition-all hover:-translate-y-0.5 hover:bg-rose-100"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -421,12 +442,15 @@ export default function AdminReviewPesan() {
         </section>
       </div>
 
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmDialog dialog={confirmDialog} onClose={() => setConfirmDialog(null)} />
+
       {/* Modal tambah/edit */}
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8">
           <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <div className="text-[13px] font-semibold text-slate-900">
+              <div className="text-[14px] font-semibold text-slate-900">
                 {editTarget ? "Edit Review" : "Tambah Review dari Google Maps"}
               </div>
               <button
@@ -441,7 +465,7 @@ export default function AdminReviewPesan() {
             <form onSubmit={handleSaveReview} className="space-y-3 p-5">
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Nama Reviewer *</label>
+                  <label className="mb-1.5 block text-[10px] font-medium text-slate-500">Nama Reviewer *</label>
                   <input
                     value={form.nama}
                     onChange={(e) => setForm((f) => ({ ...f, nama: e.target.value }))}
@@ -491,7 +515,7 @@ export default function AdminReviewPesan() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[9px] font-medium text-slate-500">Urutan tampil</label>
+                  <label className="mb-1.5 block text-[10px] font-medium text-slate-500">Urutan tampil</label>
                   <input
                     type="number"
                     min={0}
