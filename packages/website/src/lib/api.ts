@@ -541,6 +541,80 @@ export async function updateDokterFoto(
   return res.json();
 }
 
+// ─── Khanza SIK — CRUD Dokter (Admin) ───────────────────────────────────────
+
+export type KhanzaSpesialis = {
+  kd_sps: string;
+  nm_sps: string;
+};
+
+export type KhanzaDokterInput = {
+  kd_dokter: string;
+  nm_dokter: string;
+  jk: string;
+  tmp_lahir: string;
+  tgl_lahir: string;
+  gol_drh: string;
+  agama: string;
+  almt_tgl: string;
+  no_telp: string;
+  email: string;
+  stts_nikah: string;
+  kd_sps: string;
+  alumni: string;
+  no_ijn_praktek: string;
+};
+
+export async function adminGetSpesialis(): Promise<KhanzaSpesialis[]> {
+  try {
+    return await requestJson<KhanzaSpesialis[]>("/admin/spesialis");
+  } catch {
+    return [];
+  }
+}
+
+export async function adminCreateKhanzaDokter(
+  input: KhanzaDokterInput,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/khanza/dokter`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminUpdateKhanzaDokter(
+  kdDokter: string,
+  input: Omit<KhanzaDokterInput, "kd_dokter">,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(
+    `${API_BASE_URL}/admin/khanza/dokter/${encodeURIComponent(kdDokter)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(input),
+      cache: "no-store",
+    },
+  );
+  return res.json();
+}
+
+export async function adminDeleteKhanzaDokter(
+  kdDokter: string,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(
+    `${API_BASE_URL}/admin/khanza/dokter/${encodeURIComponent(kdDokter)}`,
+    {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    },
+  );
+  return res.json();
+}
+
 // ─── Khanza SIK — Pendaftaran Online ────────────────────────────────────────
 
 export type PasienKhanza = {

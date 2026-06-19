@@ -6,16 +6,12 @@ import (
 	"backend/models"
 	"backend/services"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SetupRouter(db *gorm.DB, dbKhanza *gorm.DB, cldSvc *services.CloudinaryService) *gin.Engine {
-	r := gin.Default()
-	r.MaxMultipartMemory = 10 << 20 // 10MB max multipart
-	r.Use(cors.Default())
-
+// RegisterRoutes mendaftarkan semua endpoint ke engine yang sudah dibuat di package routes.
+func RegisterRoutes(r *gin.Engine, db *gorm.DB, dbKhanza *gorm.DB, cldSvc *services.CloudinaryService) {
 	// Pendaftaran online (Khanza SIK)
 	pendaftaran := r.Group("/api/pendaftaran")
 	{
@@ -33,6 +29,18 @@ func SetupRouter(db *gorm.DB, dbKhanza *gorm.DB, cldSvc *services.CloudinaryServ
 	// Admin dokter (dari Khanza + toggle tampil di db_klinik)
 	r.GET("/api/admin/dokter", AdminGetDokterHandler(db, dbKhanza))
 	r.PATCH("/api/admin/dokter/:kd_dokter/toggle-tampil", AdminToggleTampilDokterHandler(db))
+
+	// Admin CRUD dokter langsung ke sik.dokter
+	r.GET("/api/admin/spesialis", AdminGetSpesialisHandler(dbKhanza))
+	r.POST("/api/admin/khanza/dokter", AdminCreateKhanzaDokterHandler(dbKhanza))
+	r.PUT("/api/admin/khanza/dokter/:kd_dokter", AdminUpdateKhanzaDokterHandler(dbKhanza))
+	r.DELETE("/api/admin/khanza/dokter/:kd_dokter", AdminDeleteKhanzaDokterHandler(dbKhanza))
+
+	// Jadwal dokter (db_klinik)
+	r.GET("/api/jadwal-dokter", GetJadwalDokterHandler(db))
+	r.POST("/api/jadwal-dokter", CreateJadwalDokterHandler(db))
+	r.PUT("/api/jadwal-dokter", UpdateJadwalDokterHandler(db))
+	r.DELETE("/api/jadwal-dokter", DeleteJadwalDokterHandler(db))
 
 	// Artikel publik
 	r.GET("/api/artikel", GetArtikelPublicHandler(db))
@@ -88,8 +96,6 @@ func SetupRouter(db *gorm.DB, dbKhanza *gorm.DB, cldSvc *services.CloudinaryServ
 	r.DELETE("/api/galeri/:id", deleteGaleriHandler(db))
 	r.GET("/api/event", eventHandler(db))
 	r.GET("/api/visitor-sessions", visitorSessionHandler(db))
-
-	return r
 }
 
 func homeHandler(db *gorm.DB) gin.HandlerFunc {

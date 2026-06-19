@@ -118,6 +118,16 @@ type DokterFoto struct {
 	UpdatedAt     time.Time `gorm:"column:updated_at;autoUpdateTime"   json:"updated_at"`
 }
 
+
+type JadwalDokter struct {
+	KodeDokter string `gorm:"column:kd_dokter;primaryKey" json:"kd_dokter"`
+	HariKerja string `gorm:"column:hari_kerja" json:"hari_kerja"`
+	JamMulai   string `gorm:"column:jam_mulai" json:"jam_mulai"`
+	JamSelesai string `gorm:"column:jam_selesai" json:"jam_selesai"`
+	KodePoli   string `gorm:"column:kd_poli" json:"kd_poli"`
+	kuota      int    `gorm:"column:kuota" json:"kuota"`
+}
+
 func (DokterFoto) TableName() string { return "dokter_foto" }
 
 type MediaLibrary struct {

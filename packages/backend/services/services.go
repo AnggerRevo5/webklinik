@@ -260,3 +260,31 @@ func Home(db *gorm.DB) (HomeData, error) {
 	return data, nil
 }
 
+func GetJadwalDokter(db *gorm.DB) ([]models.JadwalDokter, error) {
+	var jadwal []models.JadwalDokter
+	if err := db.Find(&jadwal).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil data jadwal dokter: %w", err)
+	}
+	return jadwal, nil
+}
+
+func CreateJadwalDokter(db *gorm.DB, jadwal *models.JadwalDokter) error {
+	if err := db.Create(jadwal).Error; err != nil {
+		return fmt.Errorf("gagal menambah jadwal dokter: %w", err)
+	}
+	return nil
+}
+
+func UpdateJadwalDokter(db *gorm.DB, jadwal *models.JadwalDokter) error {
+	if err := db.Save(jadwal).Error; err != nil {
+		return fmt.Errorf("gagal mengubah jadwal dokter: %w", err)
+	}
+	return nil
+}
+
+func DeleteJadwalDokter(db *gorm.DB, kodeDokter string) error {
+	if err := db.Delete(&models.JadwalDokter{}, "kd_dokter = ?", kodeDokter).Error; err != nil {
+		return fmt.Errorf("gagal menghapus jadwal dokter: %w", err)
+	}
+	return nil
+}

@@ -528,6 +528,7 @@ function CoverImage({
   roundedClass?: string;
   priority?: boolean;
 }) {
+  if (!src) return <div className={cn("relative overflow-hidden bg-gray-200", aspectClass, roundedClass)} />;
   return (
     <div className={cn("relative overflow-hidden", aspectClass, roundedClass)}>
       <Image

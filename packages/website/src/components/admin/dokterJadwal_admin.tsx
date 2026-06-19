@@ -1,19 +1,315 @@
 "use client";
 
-import { CalendarDays, Info, Camera, Eye, EyeOff } from "lucide-react";
+import { CalendarDays, Info, Camera, Eye, EyeOff, Plus, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import {
   adminGetDokter,
   adminToggleTampilDokter,
   updateDokterFoto,
+  adminGetSpesialis,
+  adminCreateKhanzaDokter,
+  adminUpdateKhanzaDokter,
+  adminDeleteKhanzaDokter,
   type DokterAdmin,
+  type KhanzaSpesialis,
+  type KhanzaDokterInput,
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
-import { ToastContainer, useToast } from "@/src/UiKecil/admin_ui";
+import { ToastContainer, useToast, ConfirmDialog, type ConfirmDialogState } from "@/src/UiKecil/admin_ui";
+
+const EMPTY_FORM: KhanzaDokterInput = {
+  kd_dokter: "",
+  nm_dokter: "",
+  jk: "L",
+  tmp_lahir: "",
+  tgl_lahir: "",
+  gol_drh: "-",
+  agama: "",
+  almt_tgl: "",
+  no_telp: "",
+  email: "",
+  stts_nikah: "",
+  kd_sps: "",
+  alumni: "",
+  no_ijn_praktek: "",
+};
+
+type FormModal = { mode: "create"; data: KhanzaDokterInput } | { mode: "edit"; kdDokter: string; data: KhanzaDokterInput };
+
+function DokterFormModal({
+  modal,
+  spesialis,
+  onClose,
+  onSaved,
+}: {
+  modal: FormModal;
+  spesialis: KhanzaSpesialis[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<KhanzaDokterInput>(modal.data);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  async function handleSubmit(e: React.SyntheticEvent) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      let res: { success: boolean; error?: string };
+      if (modal.mode === "create") {
+        res = await adminCreateKhanzaDokter(form);
+      } else {
+        const { kd_dokter: _kd, ...rest } = form;
+        void _kd;
+        res = await adminUpdateKhanzaDokter(modal.kdDokter, rest);
+      }
+      if (!res.success) throw new Error(res.error ?? "Gagal menyimpan");
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menyimpan");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const inputCls = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-200";
+  const labelCls = "mb-1 block text-[9px] font-semibold uppercase tracking-wider text-slate-500";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8">
+      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div className="text-[14px] font-semibold text-slate-900">
+            {modal.mode === "create" ? "Tambah Dokter Baru" : `Edit — ${modal.data.nm_dokter}`}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-100"
+          >
+            Tutup
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+          {/* Kode dokter — hanya di create */}
+          {modal.mode === "create" && (
+            <div>
+              <label className={labelCls}>
+                Kode Dokter <span className="text-rose-500">*</span>
+              </label>
+              <input
+                name="kd_dokter"
+                value={form.kd_dokter}
+                onChange={handleChange}
+                placeholder="contoh: D001"
+                maxLength={20}
+                required
+                className={inputCls}
+              />
+              <p className="mt-1 text-[9px] text-slate-400">Kode unik, maks 20 karakter. Tidak bisa diubah setelah disimpan.</p>
+            </div>
+          )}
+
+          {/* Nama */}
+          <div className={modal.mode === "edit" ? "sm:col-span-2" : ""}>
+            <label className={labelCls}>
+              Nama Dokter <span className="text-rose-500">*</span>
+            </label>
+            <input
+              name="nm_dokter"
+              value={form.nm_dokter}
+              onChange={handleChange}
+              placeholder="dr. Nama Lengkap, Sp.X"
+              maxLength={50}
+              required
+              className={inputCls}
+            />
+          </div>
+
+          {/* Jenis kelamin */}
+          <div>
+            <label className={labelCls}>Jenis Kelamin</label>
+            <select name="jk" value={form.jk} onChange={handleChange} className={inputCls}>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
+
+          {/* Spesialis */}
+          <div>
+            <label className={labelCls}>Spesialis / Poli</label>
+            <select name="kd_sps" value={form.kd_sps} onChange={handleChange} className={inputCls}>
+              <option value="">— Pilih spesialis —</option>
+              {spesialis.map((s) => (
+                <option key={s.kd_sps} value={s.kd_sps}>
+                  {s.nm_sps}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className={labelCls}>
+              Email <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              maxLength={70}
+              required
+              className={inputCls}
+            />
+          </div>
+
+          {/* No. telepon */}
+          <div>
+            <label className={labelCls}>No. Telepon</label>
+            <input
+              name="no_telp"
+              value={form.no_telp}
+              onChange={handleChange}
+              maxLength={13}
+              className={inputCls}
+            />
+          </div>
+
+          {/* No. izin praktik */}
+          <div className="sm:col-span-2">
+            <label className={labelCls}>No. Izin Praktik (SIP)</label>
+            <input
+              name="no_ijn_praktek"
+              value={form.no_ijn_praktek}
+              onChange={handleChange}
+              maxLength={120}
+              className={inputCls}
+            />
+          </div>
+
+          {/* Tempat lahir */}
+          <div>
+            <label className={labelCls}>Tempat Lahir</label>
+            <input
+              name="tmp_lahir"
+              value={form.tmp_lahir}
+              onChange={handleChange}
+              maxLength={20}
+              className={inputCls}
+            />
+          </div>
+
+          {/* Tanggal lahir */}
+          <div>
+            <label className={labelCls}>Tanggal Lahir</label>
+            <input
+              type="date"
+              name="tgl_lahir"
+              value={form.tgl_lahir}
+              onChange={handleChange}
+              className={inputCls}
+            />
+          </div>
+
+          {/* Gol. darah */}
+          <div>
+            <label className={labelCls}>Gol. Darah</label>
+            <select name="gol_drh" value={form.gol_drh} onChange={handleChange} className={inputCls}>
+              {["-", "A", "B", "O", "AB"].map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status nikah */}
+          <div>
+            <label className={labelCls}>Status Pernikahan</label>
+            <select name="stts_nikah" value={form.stts_nikah} onChange={handleChange} className={inputCls}>
+              <option value="">— Pilih —</option>
+              <option value="BELUM KAWIN">Belum Kawin</option>
+              <option value="KAWIN">Kawin</option>
+              <option value="JANDA">Janda</option>
+              <option value="DUDA">Duda</option>
+            </select>
+          </div>
+
+          {/* Agama */}
+          <div>
+            <label className={labelCls}>Agama</label>
+            <input
+              name="agama"
+              value={form.agama}
+              onChange={handleChange}
+              maxLength={12}
+              className={inputCls}
+            />
+          </div>
+
+          {/* Alamat */}
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Alamat</label>
+            <input
+              name="almt_tgl"
+              value={form.almt_tgl}
+              onChange={handleChange}
+              maxLength={60}
+              className={inputCls}
+            />
+          </div>
+
+          {/* Alumni */}
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Alumni / Pendidikan</label>
+            <input
+              name="alumni"
+              value={form.alumni}
+              onChange={handleChange}
+              maxLength={60}
+              className={inputCls}
+            />
+          </div>
+
+          {error && (
+            <div className="sm:col-span-2 rounded-lg bg-rose-50 px-3 py-2 text-[10px] text-rose-600">
+              {error}
+            </div>
+          )}
+
+          <div className="sm:col-span-2 flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-medium text-slate-500 hover:bg-slate-100"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-lg bg-sky-600 px-4 py-2 text-[10px] font-medium text-white disabled:opacity-60 hover:bg-sky-700"
+            >
+              {isSubmitting ? "Menyimpan..." : modal.mode === "create" ? "Tambah Dokter" : "Simpan Perubahan"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function DokterJadwalAdmin() {
   const [doctors, setDoctors] = useState<DokterAdmin[]>([]);
+  const [spesialis, setSpesialis] = useState<KhanzaSpesialis[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedKd, setSelectedKd] = useState<string | null>(null);
   const [editFoto, setEditFoto] = useState("");
@@ -21,6 +317,8 @@ export default function DokterJadwalAdmin() {
   const [toggling, setToggling] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [formModal, setFormModal] = useState<FormModal | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<ConfirmDialogState>(null);
   const { toasts, showToast, dismissToast } = useToast();
 
   const loadDokter = useCallback(() => {
@@ -33,6 +331,7 @@ export default function DokterJadwalAdmin() {
 
   useEffect(() => {
     loadDokter();
+    adminGetSpesialis().then(setSpesialis);
   }, [loadDokter]);
 
   useEffect(() => {
@@ -46,7 +345,6 @@ export default function DokterJadwalAdmin() {
 
   async function handleToggleTampil(kdDokter: string) {
     setToggling(kdDokter);
-    // optimistic update
     setDoctors((prev) =>
       prev.map((d) =>
         d.kd_dokter === kdDokter ? { ...d, tampil_website: !d.tampil_website } : d,
@@ -54,14 +352,12 @@ export default function DokterJadwalAdmin() {
     );
     try {
       const res = await adminToggleTampilDokter(kdDokter);
-      // sync dengan nilai aktual dari server
       setDoctors((prev) =>
         prev.map((d) =>
           d.kd_dokter === kdDokter ? { ...d, tampil_website: res.tampil_website } : d,
         ),
       );
     } catch {
-      // revert jika gagal
       setDoctors((prev) =>
         prev.map((d) =>
           d.kd_dokter === kdDokter ? { ...d, tampil_website: !d.tampil_website } : d,
@@ -72,7 +368,7 @@ export default function DokterJadwalAdmin() {
     }
   }
 
-  async function handleSaveFoto(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSaveFoto(event: React.SyntheticEvent) {
     event.preventDefault();
     if (!selectedKd) return;
     setIsSaving(true);
@@ -97,6 +393,52 @@ export default function DokterJadwalAdmin() {
     }
   }
 
+  function openCreateModal() {
+    setFormModal({ mode: "create", data: { ...EMPTY_FORM } });
+  }
+
+  function openEditModal(dok: DokterAdmin) {
+    setFormModal({
+      mode: "edit",
+      kdDokter: dok.kd_dokter,
+      data: {
+        kd_dokter: dok.kd_dokter,
+        nm_dokter: dok.nm_dokter,
+        jk: dok.jk ?? "L",
+        tmp_lahir: "",
+        tgl_lahir: "",
+        gol_drh: "-",
+        agama: "",
+        almt_tgl: "",
+        no_telp: dok.no_telp ?? "",
+        email: "",
+        stts_nikah: "",
+        kd_sps: "",
+        alumni: "",
+        no_ijn_praktek: "",
+      },
+    });
+  }
+
+  function handleDeleteClick(dok: DokterAdmin) {
+    setConfirmDelete({
+      title: "Nonaktifkan Dokter",
+      message: `dr. ${dok.nm_dokter} akan dinonaktifkan di SIK Khanza (soft-delete). Data historis tetap aman. Lanjutkan?`,
+      type: "danger",
+      onConfirm: async () => {
+        setConfirmDelete(null);
+        try {
+          const res = await adminDeleteKhanzaDokter(dok.kd_dokter);
+          if (!res.success) throw new Error(res.error ?? "Gagal menonaktifkan");
+          showToast(`${dok.nm_dokter} berhasil dinonaktifkan.`, "success");
+          loadDokter();
+        } catch (err) {
+          showToast(err instanceof Error ? err.message : "Gagal menonaktifkan dokter", "error");
+        }
+      },
+    });
+  }
+
   const selectedDoctor = doctors.find((d) => d.kd_dokter === selectedKd) ?? null;
   const totalTampil = doctors.filter((d) => d.tampil_website).length;
 
@@ -111,18 +453,28 @@ export default function DokterJadwalAdmin() {
           <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-[15px] font-semibold text-slate-900">Dokter & Jadwal</div>
-              <div className="text-[10px] text-slate-400">Data dari SIK Khanza (read-only) — atur visibilitas & foto di sini</div>
+              <div className="text-[10px] text-slate-400">Data dari SIK Khanza — kelola dokter, atur visibilitas & foto</div>
             </div>
-            {!loading && doctors.length > 0 && (
-              <div className="flex items-center gap-2 text-[9px] text-slate-500">
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">
-                  {totalTampil} ditampilkan di website
-                </span>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-500">
-                  {doctors.length - totalTampil} disembunyikan
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              {!loading && doctors.length > 0 && (
+                <div className="flex items-center gap-2 text-[9px] text-slate-500">
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">
+                    {totalTampil} ditampilkan di website
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-500">
+                    {doctors.length - totalTampil} disembunyikan
+                  </span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white hover:bg-sky-700"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Tambah Dokter
+              </button>
+            </div>
           </header>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-5">
@@ -130,7 +482,7 @@ export default function DokterJadwalAdmin() {
             <div className="mb-4 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
               <p className="text-[10px] text-sky-700">
-                Data dokter dan jadwal dikelola melalui SIK Khanza (read-only). Di sini dapat mengubah foto dokter dan memilih dokter mana yang ditampilkan di website publik.
+                Data dokter disimpan langsung ke SIK Khanza. Hapus berarti menonaktifkan (soft-delete) — data historis tetap aman. Jadwal dikelola dari aplikasi Khanza.
               </p>
             </div>
 
@@ -210,15 +562,32 @@ export default function DokterJadwalAdmin() {
                             )}
                             {dok.tampil_website ? "Ditampilkan" : "Tersembunyi"}
                           </button>
-                          {/* Edit foto */}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedKd(dok.kd_dokter)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1.5 text-[9px] font-medium text-amber-600 transition-all hover:-translate-y-0.5 hover:bg-amber-100"
-                          >
-                            <Camera className="h-3 w-3" />
-                            Foto
-                          </button>
+                          {/* Tombol aksi */}
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedKd(dok.kd_dokter)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1.5 text-[9px] font-medium text-amber-600 transition-all hover:-translate-y-0.5 hover:bg-amber-100"
+                            >
+                              <Camera className="h-3 w-3" />
+                              Foto
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(dok)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1.5 text-[9px] font-medium text-slate-600 transition-all hover:-translate-y-0.5 hover:bg-slate-200"
+                            >
+                              <Pencil className="h-3 w-3" />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteClick(dok)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2 py-1.5 text-[9px] font-medium text-rose-500 transition-all hover:-translate-y-0.5 hover:bg-rose-100"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -312,6 +681,24 @@ export default function DokterJadwalAdmin() {
           </div>
         </section>
       </div>
+
+      {/* Form modal create/edit */}
+      {formModal && (
+        <DokterFormModal
+          modal={formModal}
+          spesialis={spesialis}
+          onClose={() => setFormModal(null)}
+          onSaved={() => {
+            showToast(
+              formModal.mode === "create" ? "Dokter baru berhasil ditambahkan." : "Data dokter berhasil diperbarui.",
+              "success",
+            );
+            loadDokter();
+          }}
+        />
+      )}
+
+      <ConfirmDialog dialog={confirmDelete} onClose={() => setConfirmDelete(null)} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </main>
   );

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	database "backend/Database"
-	"backend/handlers"
 	"backend/models"
+	"backend/routes"
 	"backend/services"
 
 	"github.com/joho/godotenv"
@@ -40,7 +40,7 @@ func main() {
 		cldSvc = nil
 	}
 
-	r := handlers.SetupRouter(db, dbKhanza, cldSvc)
+	r := routes.SetupRouter(db, dbKhanza, cldSvc)
 
 	port := os.Getenv("PORT")
 	if port == "" {
