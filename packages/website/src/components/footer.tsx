@@ -2,7 +2,7 @@
 
 import { MapPin, Phone, Siren } from "lucide-react";
 import Image from "next/image";
-import { useHomeData } from "@/src/lib/api";
+import { useHomeData } from "@/src/lib/hooks";
 import { cn } from "@/src/lib/utils";
 
 const ASSETS = {

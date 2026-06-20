@@ -25,6 +25,7 @@ func main() {
 	db.AutoMigrate(&models.Review{})
 	db.AutoMigrate(&models.KlinikInfo{})
 	db.AutoMigrate(&models.Artikel{})
+	db.AutoMigrate(&models.SocialIconClick{})
 
 	dbKhanza := database.ConnectKhanza()
 	if dbKhanza == nil {

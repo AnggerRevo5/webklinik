@@ -3,15 +3,23 @@
 import * as React from "react";
 import gsap from "gsap";
 import { usePathname } from "next/navigation";
+import { startSession, trackPageview, endSession } from "@/src/lib/tracking";
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+// Halaman admin tidak perlu di-track — hanya trafik pengunjung website publik
+function isAdminPath(path: string): boolean {
+  return path.startsWith("/admin") || path.includes("_admin");
+}
+
 export default function SiteAnimations() {
   const pathname = usePathname();
   const transitionLayerRef = React.useRef<HTMLDivElement | null>(null);
+  const isFirstRender = React.useRef(true);
 
+  // GSAP page transition — berjalan setiap route berubah (sama seperti sebelumnya)
   React.useLayoutEffect(() => {
     if (typeof window === "undefined" || prefersReducedMotion()) return;
 
@@ -28,6 +36,36 @@ export default function SiteAnimations() {
     return () => {
       timeline.kill();
     };
+  }, [pathname]);
+
+  // Mulai sesi sekali saat mount + pasang listener visibilitychange untuk end session
+  // Lewati tracking jika halaman admin — baca window.location.pathname karena effect
+  // hanya berjalan di client, dan deps array harus tetap [] (tidak boleh berubah ukuran)
+  React.useEffect(() => {
+    if (isAdminPath(window.location.pathname)) return;
+
+    startSession();
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        endSession();
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  // Catat pageview setiap kali pathname berubah, lewati render pertama dan halaman admin
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (isAdminPath(pathname)) return;
+    trackPageview();
   }, [pathname]);
 
   return (

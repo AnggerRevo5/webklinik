@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"path/filepath"
@@ -9,8 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"backend/models"
+
 	cloudinary "github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api"
+	"github.com/cloudinary/cloudinary-go/v2/api/admin"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
+	"gorm.io/gorm"
 )
 
 type CloudinaryService struct {
@@ -119,3 +125,83 @@ func sanitizeFileName(name string) string {
 }
 
 func boolPtr(b bool) *bool { return &b }
+
+// SyncResult adalah ringkasan hasil SyncFromCloudinary.
+type SyncResult struct {
+	TotalFound int
+	Added      int
+	Skipped    int
+}
+
+// SyncFromCloudinary menarik semua image asset dari Cloudinary dan mendaftarkannya
+// ke tabel media_library. Idempotent — record yang public_id-nya sudah ada di DB dilewati.
+func (s *CloudinaryService) SyncFromCloudinary(db *gorm.DB) (*SyncResult, error) {
+	ctx := context.Background()
+	result := &SyncResult{}
+
+	var nextCursor string
+	for {
+		params := admin.AssetsParams{
+			AssetType:  api.Image,
+			MaxResults: 500,
+			NextCursor: nextCursor,
+		}
+
+		resp, err := s.cld.Admin.Assets(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("gagal fetch assets dari Cloudinary: %w", err)
+		}
+
+		for _, asset := range resp.Assets {
+			result.TotalFound++
+
+			var existing models.MediaLibrary
+			dbErr := db.Where("public_id = ?", asset.PublicID).First(&existing).Error
+			if dbErr == nil {
+				result.Skipped++
+				continue
+			}
+			if !errors.Is(dbErr, gorm.ErrRecordNotFound) {
+				return nil, fmt.Errorf("gagal cek database: %w", dbErr)
+			}
+
+			// Ambil nama folder: pakai AssetFolder, fallback ke prefix public_id
+			folder := asset.AssetFolder
+			if folder == "" {
+				if idx := strings.LastIndex(asset.PublicID, "/"); idx != -1 {
+					folder = asset.PublicID[:idx]
+				}
+			}
+
+			// Nama file = bagian setelah "/" terakhir di public_id
+			namaFile := asset.PublicID
+			if idx := strings.LastIndex(asset.PublicID, "/"); idx != -1 {
+				namaFile = asset.PublicID[idx+1:]
+			}
+
+			media := models.MediaLibrary{
+				URL:      asset.SecureURL,
+				PublicID: asset.PublicID,
+				NamaFile: namaFile,
+				Folder:   folder,
+				Format:   asset.Format,
+				Ukuran:   asset.Bytes,
+				Lebar:    asset.Width,
+				Tinggi:   asset.Height,
+			}
+			if err := db.Create(&media).Error; err != nil {
+				// Duplikat akibat race condition — lewati saja
+				result.Skipped++
+				continue
+			}
+			result.Added++
+		}
+
+		if resp.NextCursor == "" {
+			break
+		}
+		nextCursor = resp.NextCursor
+	}
+
+	return result, nil
+}

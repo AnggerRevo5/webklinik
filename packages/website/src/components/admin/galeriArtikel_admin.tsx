@@ -24,8 +24,8 @@ import {
   type CreateGalleryPayload,
   type Gallery,
   updateGallery,
-  useHomeData,
 } from "@/src/lib/api";
+import { useHomeData } from "@/src/lib/hooks";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
 import {

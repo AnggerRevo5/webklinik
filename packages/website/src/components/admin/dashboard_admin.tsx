@@ -20,7 +20,7 @@ import {
   Workflow,
 } from "lucide-react";
 import { useState } from "react";
-import { useHomeData } from "@/src/lib/api";
+import { useHomeData } from "@/src/lib/hooks";
 import { useRouter } from "next/navigation";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 

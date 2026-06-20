@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Check,
+  CheckSquare,
   Copy,
   FileImage,
-  Image as ImageIcon,
   Loader2,
+  Minus,
   Plus,
+  RefreshCw,
+  Square,
   Trash2,
   Upload,
   X,
@@ -17,6 +20,7 @@ import {
   deleteMedia,
   formatFileSize,
   getMedia,
+  syncCloudinaryMedia,
   uploadMedia,
   validateImageFile,
   type MediaFolder,
@@ -47,7 +51,15 @@ export default function MediaAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<MediaItem | null>(null);
   const [copied, setCopied] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncInfo, setSyncInfo] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const isSelectMode = selected.size > 0;
+  const allOnPageSelected = media.length > 0 && media.every((m) => selected.has(m.id));
+  const someOnPageSelected = media.some((m) => selected.has(m.id));
 
   const fetchMedia = useCallback(async () => {
     setLoading(true);
@@ -65,6 +77,51 @@ export default function MediaAdminPage() {
 
   useEffect(() => { fetchMedia(); }, [fetchMedia]);
   useEffect(() => { setPage(1); setDetail(null); }, [activeFolder]);
+  // Tutup detail saat masuk select mode
+  useEffect(() => { if (isSelectMode) setDetail(null); }, [isSelectMode]);
+
+  function toggleSelect(id: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allOnPageSelected) {
+      // Deselect semua yang ada di halaman ini
+      setSelected((prev) => {
+        const next = new Set(prev);
+        media.forEach((m) => next.delete(m.id));
+        return next;
+      });
+    } else {
+      // Select semua yang ada di halaman ini
+      setSelected((prev) => {
+        const next = new Set(prev);
+        media.forEach((m) => next.add(m.id));
+        return next;
+      });
+    }
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
+
+  function handleCardClick(item: MediaItem) {
+    if (isSelectMode) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.has(item.id) ? next.delete(item.id) : next.add(item.id);
+        return next;
+      });
+    } else {
+      setDetail(detail?.id === item.id ? null : item);
+    }
+  }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -113,6 +170,43 @@ export default function MediaAdminPage() {
     }
   }
 
+  async function handleBulkDelete() {
+    const count = selected.size;
+    if (!confirm(`Hapus ${count} gambar yang dipilih? Tindakan ini tidak bisa dibatalkan.`)) return;
+    setBulkDeleting(true);
+    setError(null);
+    const ids = Array.from(selected);
+    let failed = 0;
+    for (const id of ids) {
+      const result = await deleteMedia(id);
+      if (!result.success) failed++;
+    }
+    clearSelection();
+    setBulkDeleting(false);
+    if (failed > 0) setError(`${failed} gambar gagal dihapus.`);
+    await fetchMedia();
+  }
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncInfo(null);
+    setError(null);
+    try {
+      const result = await syncCloudinaryMedia();
+      if (result.success) {
+        setSyncInfo(`Ditambahkan ${result.added} gambar baru · ${result.skipped} sudah ada`);
+        setTimeout(() => setSyncInfo(null), 5000);
+        if ((result.added ?? 0) > 0) await fetchMedia();
+      } else {
+        setError(result.error ?? "Sync gagal");
+      }
+    } catch {
+      setError("Gagal sync. Cek koneksi.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   function copyURL(url: string) {
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
@@ -136,6 +230,18 @@ export default function MediaAdminPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSync}
+                disabled={syncing || uploading}
+                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-medium text-slate-600 transition-all hover:-translate-y-0.5 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-60"
+              >
+                {syncing ? (
+                  <><Loader2 className="h-3 w-3 animate-spin" /> Menyinkronkan...</>
+                ) : (
+                  <><RefreshCw className="h-3 w-3" /> Sync Cloudinary</>
+                )}
+              </button>
               <label className={`inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-amber-600 ${uploading ? "pointer-events-none opacity-60" : ""}`}>
                 {uploading ? (
                   <><Loader2 className="h-3 w-3 animate-spin" /> Mengupload...</>
@@ -164,13 +270,13 @@ export default function MediaAdminPage() {
           <div className="flex flex-1 overflow-hidden">
             {/* Main content */}
             <div className="flex flex-1 flex-col overflow-y-auto p-4 lg:p-5">
-              {/* Folder filter */}
-              <div className="mb-4 flex flex-wrap gap-2">
+              {/* Folder filter + select-all row */}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
                 {FOLDERS.map((f) => (
                   <button
                     key={f.value}
                     type="button"
-                    onClick={() => setActiveFolder(f.value as MediaFolder | "")}
+                    onClick={() => { setActiveFolder(f.value as MediaFolder | ""); clearSelection(); }}
                     className={`rounded-full px-3 py-1.5 text-[9px] font-semibold transition-all ${
                       activeFolder === f.value
                         ? "bg-sky-600 text-white shadow-sm"
@@ -183,7 +289,33 @@ export default function MediaAdminPage() {
                     )}
                   </button>
                 ))}
+
+                {/* Select-all toggle — selalu tampil kalau ada media */}
+                {media.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="ml-auto flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-semibold text-slate-500 transition-all hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    {allOnPageSelected ? (
+                      <CheckSquare className="h-3.5 w-3.5 text-sky-600" />
+                    ) : someOnPageSelected ? (
+                      <Minus className="h-3.5 w-3.5 text-slate-400" />
+                    ) : (
+                      <Square className="h-3.5 w-3.5 text-slate-400" />
+                    )}
+                    {allOnPageSelected ? "Batalkan semua" : "Pilih semua"}
+                  </button>
+                )}
               </div>
+
+              {/* Sync result */}
+              {syncInfo && (
+                <div className="mb-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-[9px] text-emerald-700">
+                  <span>{syncInfo}</span>
+                  <button type="button" onClick={() => setSyncInfo(null)}><X className="h-3 w-3" /></button>
+                </div>
+              )}
 
               {/* Error */}
               {error && (
@@ -217,44 +349,67 @@ export default function MediaAdminPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 xl:grid-cols-6">
-                  {media.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => setDetail(detail?.id === item.id ? null : item)}
-                      className={`group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border-2 transition-all ${
-                        detail?.id === item.id
-                          ? "border-sky-600 shadow-[0_0_0_3px_rgba(14,165,233,0.15)]"
-                          : "border-transparent hover:border-slate-200"
-                      }`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={item.url}
-                        alt={item.nama_file}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                      {detail?.id === item.id && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-sky-600/15">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-600 text-white shadow">
-                            <Check className="h-3.5 w-3.5" />
-                          </div>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/0 transition-all group-hover:bg-black/25">
+                  {media.map((item) => {
+                    const isSelected = selected.has(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleCardClick(item)}
+                        className={`group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border-2 transition-all ${
+                          isSelected
+                            ? "border-sky-600 shadow-[0_0_0_3px_rgba(14,165,233,0.15)]"
+                            : detail?.id === item.id
+                            ? "border-sky-400 shadow-[0_0_0_3px_rgba(14,165,233,0.10)]"
+                            : "border-transparent hover:border-slate-200"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.url}
+                          alt={item.nama_file}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+
+                        {/* Checkbox pojok kiri atas */}
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
-                          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg bg-rose-500 text-white opacity-0 shadow transition-opacity group-hover:opacity-100 hover:bg-rose-600"
+                          onClick={(e) => toggleSelect(item.id, e)}
+                          className={`absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-md shadow transition-all ${
+                            isSelected
+                              ? "bg-sky-600 text-white opacity-100"
+                              : "bg-white/90 text-slate-400 opacity-0 group-hover:opacity-100"
+                          }`}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          {isSelected
+                            ? <Check className="h-3 w-3" />
+                            : <Square className="h-3 w-3" />
+                          }
                         </button>
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <p className="truncate text-[8px] text-white">{item.nama_file}</p>
-                        </div>
+
+                        {/* Overlay terpilih */}
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-sky-600/10 pointer-events-none" />
+                        )}
+
+                        {/* Hover overlay — tombol hapus & nama file */}
+                        {!isSelectMode && (
+                          <div className="absolute inset-0 bg-black/0 transition-all group-hover:bg-black/25">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
+                              className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg bg-rose-500 text-white opacity-0 shadow transition-opacity group-hover:opacity-100 hover:bg-rose-600"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
+                              <p className="truncate text-[8px] text-white">{item.nama_file}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -278,8 +433,8 @@ export default function MediaAdminPage() {
               )}
             </div>
 
-            {/* Detail panel */}
-            {detail && (
+            {/* Detail panel — sembunyikan saat select mode */}
+            {detail && !isSelectMode && (
               <aside className="hidden w-64 shrink-0 border-l border-slate-200 bg-white p-4 xl:flex xl:flex-col xl:gap-3">
                 <div className="flex items-center justify-between">
                   <div className="text-[11px] font-semibold text-slate-900">Detail</div>
@@ -335,6 +490,48 @@ export default function MediaAdminPage() {
           </div>
         </section>
       </div>
+
+      {/* Floating bulk action bar */}
+      {isSelectMode && (
+        <div className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-[0_8px_30px_rgba(15,23,42,0.15)]">
+          <span className="text-[10px] font-semibold text-slate-700">
+            {selected.size} dipilih
+          </span>
+          <div className="mx-1 h-4 w-px bg-slate-200" />
+          <button
+            type="button"
+            onClick={toggleSelectAll}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[9px] font-medium text-slate-500 hover:bg-slate-50"
+          >
+            {allOnPageSelected ? (
+              <><CheckSquare className="h-3.5 w-3.5 text-sky-600" /> Batalkan halaman ini</>
+            ) : (
+              <><Square className="h-3.5 w-3.5" /> Pilih halaman ini</>
+            )}
+          </button>
+          <div className="mx-1 h-4 w-px bg-slate-200" />
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+            className="flex items-center gap-1 rounded-lg bg-rose-500 px-3 py-1.5 text-[9px] font-medium text-white transition-colors hover:bg-rose-600 disabled:opacity-60"
+          >
+            {bulkDeleting ? (
+              <><Loader2 className="h-3 w-3 animate-spin" /> Menghapus...</>
+            ) : (
+              <><Trash2 className="h-3 w-3" /> Hapus</>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={clearSelection}
+            disabled={bulkDeleting}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-60"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </main>
   );
 }

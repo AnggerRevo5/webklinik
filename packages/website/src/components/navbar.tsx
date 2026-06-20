@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
-import { useHomeData } from "@/src/lib/api";
+import { useHomeData } from "@/src/lib/hooks";
 import { Button } from "@/src/UiKecil/button";
 import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";

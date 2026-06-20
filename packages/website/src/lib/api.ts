@@ -1,7 +1,3 @@
-"use client";
-
-import { useEffect, useState } from "react";
-
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
@@ -44,13 +40,6 @@ export type CreatePromoPayload = {
 
 export type Doctor = {
   id: number;
-  url: string;
-  nama_dokter: string;
-  jadwal_praktek: string;
-  kategori: string;
-};
-
-export type CreateDoctorPayload = {
   url: string;
   nama_dokter: string;
   jadwal_praktek: string;
@@ -211,6 +200,20 @@ export async function deleteMedia(
 ): Promise<{ success: boolean; error?: string }> {
   const res = await fetch(`${API_BASE_URL}/media/${id}`, {
     method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  return res.json();
+}
+
+export async function syncCloudinaryMedia(): Promise<{
+  success: boolean;
+  total_found?: number;
+  added?: number;
+  skipped?: number;
+  error?: string;
+}> {
+  const res = await fetch(`${API_BASE_URL}/admin/media/sync-cloudinary`, {
+    method: "POST",
     headers: { Accept: "application/json" },
   });
   return res.json();
@@ -889,6 +892,212 @@ export async function submitPendaftaran(
   return res.json();
 }
 
+// ─── Tracking & Stats ────────────────────────────────────────────────────────
+
+export type VisitorStats = {
+  success: boolean;
+  total_sesi_minggu_ini: number;
+  rata_rata_halaman: number;
+  rata_rata_durasi_menit: number;
+  device: Record<string, number>;
+  source: { source: string; count: number }[];
+  daily_trend: { date: string; count: number }[];
+};
+
+export type SocialClickStats = {
+  success: boolean;
+  total_minggu_ini: number;
+  per_platform: { platform: string; count: number }[];
+  all_time: { platform: string; count: number }[];
+};
+
+export type VisitorSessionItem = {
+  id: number;
+  session_id: string;
+  ip_address: string;
+  device: string;
+  browser: string;
+  pages_visited: number;
+  duration_second: number;
+  source: string;
+  started_at: string;
+  ended_at: string | null;
+};
+
+export async function adminGetVisitorStats(): Promise<VisitorStats | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/stats/visitor`, { cache: "no-store" });
+    return res.json();
+  } catch { return null; }
+}
+
+export async function adminGetSocialClickStats(): Promise<SocialClickStats | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/stats/social-clicks`, { cache: "no-store" });
+    return res.json();
+  } catch { return null; }
+}
+
+export async function adminGetVisitorSessions(
+  page = 1,
+  device?: string,
+  source?: string,
+  browser?: string,
+): Promise<{ data: VisitorSessionItem[]; pagination: MediaPagination }> {
+  const params = new URLSearchParams({ page: String(page), per_page: "20" });
+  if (device) params.set("device", device);
+  if (source) params.set("source", source);
+  if (browser) params.set("browser", browser);
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/visitor-sessions?${params}`, { cache: "no-store" });
+    const json = await res.json();
+    return {
+      data: json.data ?? [],
+      pagination: json.pagination ?? { page: 1, per_page: 20, total: 0, total_pages: 0 },
+    };
+  } catch {
+    return { data: [], pagination: { page: 1, per_page: 20, total: 0, total_pages: 0 } };
+  }
+}
+
+// ─── Sosmed Snapshot CRUD ────────────────────────────────────────────────────
+
+export type SocialMediaStatsItem = {
+  id: number;
+  platform: string;
+  follower_count: number;
+  engagement_rate: number;
+  recorded_at: string;
+};
+
+export type SocialMediaEngagementItem = {
+  id: number;
+  platform: string;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+  saves_count: number;
+  recorded_at: string;
+};
+
+export type GBPInteractionItem = {
+  id: number;
+  interaction_type: string;
+  count: number;
+  recorded_at: string;
+};
+
+// --- Social Media Stats ---
+export async function adminGetSocialMediaStats(): Promise<SocialMediaStatsItem[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/social-media-stats`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? json ?? [];
+  } catch { return []; }
+}
+
+export async function adminCreateSocialMediaStats(
+  data: Omit<SocialMediaStatsItem, "id">,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/social-media-stats`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function adminUpdateSocialMediaStats(
+  id: number,
+  data: Omit<SocialMediaStatsItem, "id">,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/social-media-stats/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function adminDeleteSocialMediaStats(id: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/admin/social-media-stats/${id}`, { method: "DELETE" });
+  return res.json();
+}
+
+// --- Social Media Engagement ---
+export async function adminGetSocialMediaEngagement(): Promise<SocialMediaEngagementItem[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/social-media-engagement`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? json ?? [];
+  } catch { return []; }
+}
+
+export async function adminCreateSocialMediaEngagement(
+  data: Omit<SocialMediaEngagementItem, "id">,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/social-media-engagement`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function adminUpdateSocialMediaEngagement(
+  id: number,
+  data: Omit<SocialMediaEngagementItem, "id">,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/social-media-engagement/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function adminDeleteSocialMediaEngagement(id: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/admin/social-media-engagement/${id}`, { method: "DELETE" });
+  return res.json();
+}
+
+// --- GBP Interaction ---
+export async function adminGetGBPInteraction(): Promise<GBPInteractionItem[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/gbp-interaction`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? json ?? [];
+  } catch { return []; }
+}
+
+export async function adminCreateGBPInteraction(
+  data: Omit<GBPInteractionItem, "id">,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/gbp-interaction`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function adminUpdateGBPInteraction(
+  id: number,
+  data: Omit<GBPInteractionItem, "id">,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/gbp-interaction/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function adminDeleteGBPInteraction(id: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/admin/gbp-interaction/${id}`, { method: "DELETE" });
+  return res.json();
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     cache: "no-store",
@@ -965,36 +1174,6 @@ export async function updateService(id: number, payload: CreateServicePayload) {
 
 export async function deleteService(id: number) {
   return requestJson<{ message: string }>(`/layanan/${id}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id }),
-  });
-}
-
-export async function createDoctor(payload: CreateDoctorPayload) {
-  return requestJson<Doctor>("/dokter", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function updateDoctor(id: number, payload: CreateDoctorPayload) {
-  return requestJson<Doctor>(`/dokter/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id, ...payload }),
-  });
-}
-
-export async function deleteDoctor(id: number) {
-  return requestJson<{ message: string }>(`/dokter/${id}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -1094,46 +1273,4 @@ export async function createContactMessage(payload: ContactMessagePayload) {
       status: payload.status ?? "new",
     }),
   });
-}
-
-export function useHomeData() {
-  const [data, setData] = useState<HomeData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadHomeData() {
-      try {
-        setLoading(true);
-        const nextData = await fetchHomeData();
-
-        if (!cancelled) {
-          setData(nextData);
-          setError(null);
-        }
-      } catch (fetchError) {
-        if (!cancelled) {
-          setError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : "Gagal mengambil data API",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadHomeData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { data, loading, error };
 }

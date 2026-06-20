@@ -19,10 +19,10 @@ import {
   type HomeData,
   type DokterPublik,
   type Artikel,
-  useHomeData,
   getDokterPublik,
   getArtikel,
 } from "@/src/lib/api";
+import { useHomeData } from "@/src/lib/hooks";
 import { Button } from "@/src/UiKecil/button";
 import { Card, CardContent } from "@/src/UiKecil/card";
 import { Input } from "@/src/UiKecil/input";

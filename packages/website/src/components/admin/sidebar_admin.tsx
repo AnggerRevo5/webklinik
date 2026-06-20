@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
 import {
+  BarChart2,
   ClipboardList,
   FileImage,
   FileText,
@@ -13,6 +14,7 @@ import {
   MessageCircle,
   Stethoscope,
   Tag,
+  Users,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -25,7 +27,9 @@ export type SidebarKey =
   | "galeri"
   | "media"
   | "review"
-  | "artikel";
+  | "artikel"
+  | "pengunjung"
+  | "sosmed";
 
 type SidebarItem = {
   label: string;
@@ -91,6 +95,20 @@ const sidebarItems: SidebarItem[] = [
     href: "/artikel_admin",
     key: "artikel",
     icon: FileText,
+  },
+  {
+    label: "Pengunjung",
+    description: "Laporan sesi",
+    href: "/admin_laporan_pengunjung",
+    key: "pengunjung",
+    icon: Users,
+  },
+  {
+    label: "Sosmed",
+    description: "Snapshot & GBP",
+    href: "/admin_sosmed_snapshot",
+    key: "sosmed",
+    icon: BarChart2,
   },
 ];
 

@@ -132,6 +132,35 @@ func UploadMediaHandler(db *gorm.DB, cldSvc *services.CloudinaryService) gin.Han
 	}
 }
 
+// POST /api/admin/media/sync-cloudinary  — tarik semua asset dari Cloudinary ke media_library
+func SyncCloudinaryMediaHandler(db *gorm.DB, cldSvc *services.CloudinaryService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if cldSvc == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"success": false,
+				"error":   "Cloudinary tidak dikonfigurasi. Periksa CLOUDINARY_* di .env backend",
+			})
+			return
+		}
+
+		result, err := cldSvc.SyncFromCloudinary(db)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "Gagal sync: " + err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success":     true,
+			"total_found": result.TotalFound,
+			"added":       result.Added,
+			"skipped":     result.Skipped,
+		})
+	}
+}
+
 // DELETE /api/media/:id  — hapus dari Cloudinary + media_library
 func DeleteMediaHandler(db *gorm.DB, cldSvc *services.CloudinaryService) gin.HandlerFunc {
 	return func(c *gin.Context) {
