@@ -3,6 +3,8 @@ package services
 import (
 	"backend/models"
 	"fmt"
+	"log"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -111,10 +113,25 @@ func DeleteDokter(db *gorm.DB, id uint64) error {
 
 func Promo(db *gorm.DB) ([]models.Promo, error) {
 	var promo []models.Promo
-	if err := db.Find(&promo).Error; err != nil {
+	if err := db.Order("id DESC").Find(&promo).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil data promo: %w", err)
 	}
 	return promo, nil
+}
+
+// PromoPublik hanya mengembalikan promo yang aktif (tampil=1) dan dalam rentang tanggal.
+func PromoPublik(db *gorm.DB) ([]models.Promo, error) {
+	var promos []models.Promo
+	now := time.Now()
+	err := db.Where("tampil = ?", true).
+		Where("tanggal_mulai IS NULL OR tanggal_mulai <= ?", now).
+		Where("tanggal_selesai IS NULL OR tanggal_selesai >= ?", now).
+		Order("id DESC").
+		Find(&promos).Error
+	if err != nil {
+		return nil, fmt.Errorf("gagal mengambil promo publik: %w", err)
+	}
+	return promos, nil
 }
 
 func CreatePromo(db *gorm.DB, promo *models.Promo) error {
@@ -218,38 +235,30 @@ func GoogleReview(db *gorm.DB) ([]models.GoogleReview, error) {
 func Home(db *gorm.DB) (HomeData, error) {
 	var data HomeData
 
-	if err := db.Find(&data.Banner).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data banner: %w", err)
+	// Tabel-tabel inti — hanya kembalikan error kalau tabel benar-benar krusial dan pasti ada.
+	// Tabel yang mungkin tidak ada di beberapa environment (XAMPP vs Docker) dilewati dengan log.
+	tryFind := func(dest interface{}, label string) {
+		if err := db.Find(dest).Error; err != nil {
+			log.Printf("WARNING home/%s: %v", label, err)
+		}
 	}
-	if err := db.Find(&data.Layanan).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data layanan: %w", err)
-	}
-	if err := db.Find(&data.Dokter).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data dokter: %w", err)
-	}
-	if err := db.Find(&data.Promo).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data promo: %w", err)
-	}
-	if err := db.Find(&data.Galeri).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data galeri: %w", err)
-	}
-	if err := db.Find(&data.Event).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data event: %w", err)
-	}
-	if err := db.Find(&data.VisitorSessions).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data visitor session: %w", err)
-	}
-	if err := db.Find(&data.SocialMediaEngagement).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data social media engagement: %w", err)
-	}
-	if err := db.Find(&data.SocialMediaStats).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data social media stats: %w", err)
-	}
-	if err := db.Find(&data.GBPInteractions).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data GBP interaction: %w", err)
-	}
-	if err := db.Find(&data.GoogleReviews).Error; err != nil {
-		return data, fmt.Errorf("gagal mengambil data Google review: %w", err)
+
+	tryFind(&data.Banner, "banner")
+	tryFind(&data.Layanan, "layanan")
+	tryFind(&data.Dokter, "dokter")
+	tryFind(&data.Galeri, "galeri")
+	tryFind(&data.Event, "event")
+	tryFind(&data.VisitorSessions, "visitor_sessions")
+	tryFind(&data.SocialMediaEngagement, "social_media_engagement")
+	tryFind(&data.SocialMediaStats, "social_media_stats")
+	tryFind(&data.GBPInteractions, "gbp_interactions")
+	tryFind(&data.GoogleReviews, "google_reviews")
+
+	if promoPublik, promoErr := PromoPublik(db); promoErr != nil {
+		log.Printf("WARNING home/promo: %v", promoErr)
+		data.Promo = []models.Promo{}
+	} else {
+		data.Promo = promoPublik
 	}
 
 	var klinikInfo models.KlinikInfo
@@ -260,30 +269,37 @@ func Home(db *gorm.DB) (HomeData, error) {
 	return data, nil
 }
 
-func GetJadwalDokter(db *gorm.DB) ([]models.JadwalDokter, error) {
-	var jadwal []models.JadwalDokter
-	if err := db.Find(&jadwal).Error; err != nil {
-		return nil, fmt.Errorf("gagal mengambil data jadwal dokter: %w", err)
+func GetJadwalDokter(db *gorm.DB, kdDokter string) ([]models.KhanzaJadwal, error) {
+	var jadwal []models.KhanzaJadwal
+	query := db.Order("hari_kerja, jam_mulai")
+	if kdDokter != "" {
+		query = query.Where("kd_dokter = ?", kdDokter)
+	}
+	if err := query.Find(&jadwal).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil jadwal dokter: %w", err)
 	}
 	return jadwal, nil
 }
 
-func CreateJadwalDokter(db *gorm.DB, jadwal *models.JadwalDokter) error {
+func CreateJadwalDokter(db *gorm.DB, jadwal *models.KhanzaJadwal) error {
 	if err := db.Create(jadwal).Error; err != nil {
 		return fmt.Errorf("gagal menambah jadwal dokter: %w", err)
 	}
 	return nil
 }
 
-func UpdateJadwalDokter(db *gorm.DB, jadwal *models.JadwalDokter) error {
-	if err := db.Save(jadwal).Error; err != nil {
-		return fmt.Errorf("gagal mengubah jadwal dokter: %w", err)
+func UpdateJadwalDokter(db *gorm.DB, jadwal *models.KhanzaJadwal, oldHariKerja, oldJamMulai string) error {
+	if err := db.Where("kd_dokter = ? AND hari_kerja = ? AND jam_mulai = ?", jadwal.KdDokter, oldHariKerja, oldJamMulai).Delete(&models.KhanzaJadwal{}).Error; err != nil {
+		return fmt.Errorf("gagal menghapus jadwal lama: %w", err)
+	}
+	if err := db.Create(jadwal).Error; err != nil {
+		return fmt.Errorf("gagal membuat jadwal baru: %w", err)
 	}
 	return nil
 }
 
-func DeleteJadwalDokter(db *gorm.DB, kodeDokter string) error {
-	if err := db.Delete(&models.JadwalDokter{}, "kd_dokter = ?", kodeDokter).Error; err != nil {
+func DeleteJadwalDokter(db *gorm.DB, kdDokter, hariKerja, jamMulai string) error {
+	if err := db.Where("kd_dokter = ? AND hari_kerja = ? AND jam_mulai = ?", kdDokter, hariKerja, jamMulai).Delete(&models.KhanzaJadwal{}).Error; err != nil {
 		return fmt.Errorf("gagal menghapus jadwal dokter: %w", err)
 	}
 	return nil

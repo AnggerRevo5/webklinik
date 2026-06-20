@@ -9,6 +9,13 @@ import (
 	"gorm.io/gorm"
 )
 
+func nilIfEmpty(s string) interface{} {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	return s
+}
+
 // GET /api/admin/spesialis — daftar spesialis dari sik untuk dropdown form
 func AdminGetSpesialisHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -62,7 +69,25 @@ func AdminCreateKhanzaDokterHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 		}
 		input.Status = "1"
 
-		if err := dbKhanza.Create(&input).Error; err != nil {
+		// kd_sps kosong → simpan sebagai NULL agar tidak melanggar FK constraint
+		createData := map[string]interface{}{
+			"kd_dokter":      input.KdDokter,
+			"nm_dokter":      input.NmDokter,
+			"jk":             input.Jk,
+			"tmp_lahir":      input.TmpLahir,
+			"tgl_lahir":      input.TglLahir,
+			"gol_drh":        input.GolDrh,
+			"agama":          input.Agama,
+			"almt_tgl":       input.AlmtTgl,
+			"no_telp":        input.NoTelp,
+			"email":          input.Email,
+			"stts_nikah":     input.SttsNikah,
+			"kd_sps":         nilIfEmpty(input.KdSps),
+			"alumni":         input.Alumni,
+			"no_ijn_praktek": input.NoIjnPraktek,
+			"status":         "1",
+		}
+		if err := dbKhanza.Model(&models.KhanzaDokter{}).Create(createData).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -99,18 +124,35 @@ func AdminUpdateKhanzaDokterHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if input.TglLahir == "" {
-			input.TglLahir = existing.TglLahir
+		tglLahir := input.TglLahir
+		if tglLahir == "" {
+			tglLahir = existing.TglLahir
 		}
-		input.KdDokter = kdDokter
-		input.Status = existing.Status // jangan ubah status lewat endpoint ini
 
-		if err := dbKhanza.Save(&input).Error; err != nil {
+		// kd_sps kosong → NULL agar tidak melanggar FK constraint
+		updates := map[string]interface{}{
+			"nm_dokter":      input.NmDokter,
+			"jk":             input.Jk,
+			"tmp_lahir":      input.TmpLahir,
+			"tgl_lahir":      tglLahir,
+			"gol_drh":        input.GolDrh,
+			"agama":          input.Agama,
+			"almt_tgl":       input.AlmtTgl,
+			"no_telp":        input.NoTelp,
+			"email":          input.Email,
+			"stts_nikah":     input.SttsNikah,
+			"kd_sps":         nilIfEmpty(input.KdSps),
+			"alumni":         input.Alumni,
+			"no_ijn_praktek": input.NoIjnPraktek,
+			"status":         existing.Status,
+		}
+
+		if err := dbKhanza.Model(&models.KhanzaDokter{}).Where("kd_dokter = ?", kdDokter).Updates(updates).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"success": true, "data": input})
+		c.JSON(http.StatusOK, gin.H{"success": true})
 	}
 }
 

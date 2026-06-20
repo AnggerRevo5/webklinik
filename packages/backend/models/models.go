@@ -28,8 +28,11 @@ type Dokter struct {
 func (Dokter) TableName() string { return "dokter" }
 
 type Promo struct {
-	ID  uint64 `gorm:"column:id" json:"id"`
-	URL string `gorm:"column:url" json:"url"`
+	ID             uint64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	URL            string     `gorm:"column:url"                         json:"url"`
+	Tampil         bool       `gorm:"column:tampil;default:0"            json:"tampil"`
+	TanggalMulai   *time.Time `gorm:"column:tanggal_mulai"               json:"tanggal_mulai"`
+	TanggalSelesai *time.Time `gorm:"column:tanggal_selesai"             json:"tanggal_selesai"`
 }
 
 func (Promo) TableName() string { return "promo" }
@@ -118,15 +121,6 @@ type DokterFoto struct {
 	UpdatedAt     time.Time `gorm:"column:updated_at;autoUpdateTime"   json:"updated_at"`
 }
 
-
-type JadwalDokter struct {
-	KodeDokter string `gorm:"column:kd_dokter;primaryKey" json:"kd_dokter"`
-	HariKerja string `gorm:"column:hari_kerja" json:"hari_kerja"`
-	JamMulai   string `gorm:"column:jam_mulai" json:"jam_mulai"`
-	JamSelesai string `gorm:"column:jam_selesai" json:"jam_selesai"`
-	KodePoli   string `gorm:"column:kd_poli" json:"kd_poli"`
-	kuota      int    `gorm:"column:kuota" json:"kuota"`
-}
 
 func (DokterFoto) TableName() string { return "dokter_foto" }
 

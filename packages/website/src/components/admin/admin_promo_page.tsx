@@ -1,23 +1,25 @@
 "use client";
 
 import {
-  CalendarDays,
+  Calendar,
   Edit3,
   Eye,
   Gift,
   Plus,
   Save,
   Tag,
+  ToggleLeft,
+  ToggleRight,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createPromo,
   deletePromo,
+  getPromo,
   type CreatePromoPayload,
   type Promo,
   updatePromo,
-  useHomeData,
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
@@ -28,12 +30,56 @@ import {
   type ConfirmDialogState,
 } from "@/src/UiKecil/admin_ui";
 
+type PromoStatus = "aktif" | "draft" | "expired" | "dijadwalkan";
+type TabKey = "semua" | "aktif" | "draft" | "expired";
+
+function getPromoStatus(promo: Promo): PromoStatus {
+  if (!promo.tampil) return "draft";
+  const now = new Date();
+  if (promo.tanggal_selesai && new Date(promo.tanggal_selesai) < now) return "expired";
+  if (promo.tanggal_mulai && new Date(promo.tanggal_mulai) > now) return "dijadwalkan";
+  return "aktif";
+}
+
+const STATUS_LABEL: Record<PromoStatus, string> = {
+  aktif: "Aktif",
+  draft: "Draft",
+  expired: "Expired",
+  dijadwalkan: "Dijadwalkan",
+};
+
+const STATUS_CLASS: Record<PromoStatus, string> = {
+  aktif: "bg-emerald-50 text-emerald-700",
+  draft: "bg-amber-50 text-amber-700",
+  expired: "bg-rose-50 text-rose-700",
+  dijadwalkan: "bg-sky-50 text-sky-700",
+};
+
+function toInputDate(val: string | null | undefined): string {
+  if (!val) return "";
+  return val.slice(0, 10);
+}
+
+function formatDateDisplay(val: string | null | undefined): string {
+  if (!val) return "";
+  const d = new Date(val);
+  return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function sisaHari(tanggalSelesai: string | null | undefined): number | null {
+  if (!tanggalSelesai) return null;
+  const diff = new Date(tanggalSelesai).getTime() - Date.now();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
 export default function AdminPromoPage() {
-  const { data } = useHomeData();
   const [promos, setPromos] = useState<Promo[]>([]);
+  const [loadingPromo, setLoadingPromo] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("semua");
   const [selectedPromoId, setSelectedPromoId] = useState<number | null>(null);
-  const [form, setForm] = useState<CreatePromoPayload>({ url: "" });
-  const [editForm, setEditForm] = useState<CreatePromoPayload>({ url: "" });
+  const [form, setForm] = useState<CreatePromoPayload>({ url: "", tampil: false, tanggal_mulai: null, tanggal_selesai: null });
+  const [editForm, setEditForm] = useState<CreatePromoPayload>({ url: "", tampil: false, tanggal_mulai: null, tanggal_selesai: null });
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -41,14 +87,21 @@ export default function AdminPromoPage() {
   const { toasts, showToast, dismissToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
-  useEffect(() => {
-    if (data?.promo) {
-      setPromos(data.promo);
-      if (selectedPromoId == null && data.promo[0]) {
-        setSelectedPromoId(data.promo[0].id);
-      }
-    }
-  }, [data?.promo, selectedPromoId]);
+  const loadPromo = useCallback(() => {
+    setLoadingPromo(true);
+    setFetchError(null);
+    getPromo()
+      .then((list) => {
+        setPromos(list);
+        if (list[0]) setSelectedPromoId((prev) => prev ?? list[0].id);
+      })
+      .catch((err) => {
+        setFetchError(err instanceof Error ? err.message : "Gagal memuat data promo dari server.");
+      })
+      .finally(() => setLoadingPromo(false));
+  }, []);
+
+  useEffect(() => { loadPromo(); }, [loadPromo]);
 
   const selectedPromo = useMemo(
     () => promos.find((item) => item.id === selectedPromoId) ?? null,
@@ -57,14 +110,41 @@ export default function AdminPromoPage() {
 
   useEffect(() => {
     if (selectedPromo) {
-      setEditForm({ url: selectedPromo.url });
+      setEditForm({
+        url: selectedPromo.url,
+        tampil: selectedPromo.tampil,
+        tanggal_mulai: toInputDate(selectedPromo.tanggal_mulai),
+        tanggal_selesai: toInputDate(selectedPromo.tanggal_selesai),
+      });
     }
   }, [selectedPromo]);
 
+  const counts = useMemo(() => {
+    const result = { semua: promos.length, aktif: 0, draft: 0, expired: 0 };
+    for (const p of promos) {
+      const s = getPromoStatus(p);
+      if (s === "aktif") result.aktif++;
+      else if (s === "draft" || s === "dijadwalkan") result.draft++;
+      else if (s === "expired") result.expired++;
+    }
+    return result;
+  }, [promos]);
+
+  const filteredPromos = useMemo(() => {
+    if (activeTab === "semua") return promos;
+    return promos.filter((p) => {
+      const s = getPromoStatus(p);
+      if (activeTab === "aktif") return s === "aktif";
+      if (activeTab === "draft") return s === "draft" || s === "dijadwalkan";
+      if (activeTab === "expired") return s === "expired";
+      return true;
+    });
+  }, [promos, activeTab]);
+
   function startNewPromo() {
     setSelectedPromoId(null);
-    setForm({ url: "" });
-    setEditForm({ url: "" });
+    setForm({ url: "", tampil: false, tanggal_mulai: null, tanggal_selesai: null });
+    setEditForm({ url: "", tampil: false, tanggal_mulai: null, tanggal_selesai: null });
   }
 
   function previewPromo(url?: string) {
@@ -72,27 +152,34 @@ export default function AdminPromoPage() {
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  const promoCards = promos.map((promo, index) => ({
-    id: promo.id,
-    title: `Promo ${index + 1}`,
-    desc: promo.url || "URL gambar promo belum diisi",
-    status: index === 0 ? "Aktif" : "Draft",
-    badge: index === 0 ? "Aktif" : "",
-    period: "Data dari tabel promo",
-    countdown: String(index + 1),
-  }));
+  async function handleToggleTampil(promo: Promo) {
+    try {
+      const updated = await updatePromo(promo.id, {
+        url: promo.url,
+        tampil: !promo.tampil,
+        tanggal_mulai: toInputDate(promo.tanggal_mulai) || null,
+        tanggal_selesai: toInputDate(promo.tanggal_selesai) || null,
+      });
+      setPromos((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      showToast(updated.tampil ? "Promo ditampilkan di website" : "Promo disembunyikan dari website", "success");
+    } catch {
+      showToast("Gagal mengubah status promo", "error");
+    }
+  }
 
-  async function handleCreatePromo(event: React.FormEvent<HTMLFormElement>) {
+  async function handleCreatePromo(event: { preventDefault(): void }) {
     event.preventDefault();
+    if (!form.url) {
+      setSubmitError("Pilih gambar promo terlebih dahulu.");
+      return;
+    }
     setSubmitError(null);
     setIsSubmitting(true);
-
     try {
       const created = await createPromo(form);
       setPromos((current) => [created, ...current]);
       setSelectedPromoId(created.id);
-      setEditForm({ url: created.url });
-      setForm({ url: "" });
+      setForm({ url: "", tampil: false, tanggal_mulai: null, tanggal_selesai: null });
       showToast("Promo berhasil ditambahkan!", "success");
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Gagal menambah promo";
@@ -103,20 +190,14 @@ export default function AdminPromoPage() {
     }
   }
 
-  async function handleUpdatePromo(event: React.FormEvent<HTMLFormElement>) {
+  async function handleUpdatePromo(event: { preventDefault(): void }) {
     event.preventDefault();
     if (selectedPromo == null) return;
-
     setActionError(null);
     setIsSaving(true);
-
     try {
       const updated = await updatePromo(selectedPromo.id, editForm);
-      setPromos((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
-      );
-      setSelectedPromoId(updated.id);
-      setEditForm({ url: updated.url });
+      setPromos((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       showToast("Promo berhasil disimpan!", "success");
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Gagal mengubah promo";
@@ -127,20 +208,17 @@ export default function AdminPromoPage() {
     }
   }
 
-  function handleDeletePromo(promoId: number, promoTitle: string) {
+  function handleDeletePromo(promoId: number, label: string) {
     setConfirmDialog({
       title: "Hapus Promo?",
-      message: `"${promoTitle}" akan dihapus permanen dan tidak bisa dikembalikan.`,
+      message: `"${label}" akan dihapus permanen dan tidak bisa dikembalikan.`,
       onConfirm: async () => {
-        setActionError(null);
         try {
           await deletePromo(promoId);
           setPromos((current) => {
-            const nextPromos = current.filter((item) => item.id !== promoId);
-            if (selectedPromoId === promoId) {
-              setSelectedPromoId(nextPromos[0]?.id ?? null);
-            }
-            return nextPromos;
+            const next = current.filter((item) => item.id !== promoId);
+            if (selectedPromoId === promoId) setSelectedPromoId(next[0]?.id ?? null);
+            return next;
           });
           showToast("Promo berhasil dihapus", "success");
         } catch (error) {
@@ -152,6 +230,13 @@ export default function AdminPromoPage() {
     });
   }
 
+  const TABS: { key: TabKey; label: string }[] = [
+    { key: "semua", label: `Semua (${counts.semua})` },
+    { key: "aktif", label: `Aktif (${counts.aktif})` },
+    { key: "draft", label: `Draft (${counts.draft})` },
+    { key: "expired", label: `Expired (${counts.expired})` },
+  ];
+
   return (
     <main className="min-h-dvh w-full bg-slate-100 p-0">
       <h2 className="sr-only">Halaman admin kelola promo KRI AMC</h2>
@@ -160,11 +245,9 @@ export default function AdminPromoPage() {
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
           <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="text-[15px] font-semibold text-slate-900">
-                Promo
-              </div>
+              <div className="text-[15px] font-semibold text-slate-900">Promo</div>
               <div className="text-[10px] text-slate-500">
-                Data diambil dari tabel promo pada database
+                Promo dengan status Aktif dan dalam rentang tanggal akan tampil di website
               </div>
             </div>
             <button
@@ -179,28 +262,59 @@ export default function AdminPromoPage() {
 
           <div className="grid flex-1 gap-4 overflow-y-auto p-4 xl:grid-cols-[minmax(0,1fr)_380px] lg:p-5">
             <section className="space-y-3">
+              {/* Form tambah promo */}
               <form
                 onSubmit={handleCreatePromo}
                 className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-[12px] font-medium text-slate-900">
-                    Tambah promo
-                  </div>
+                  <div className="text-[12px] font-medium text-slate-900">Tambah promo baru</div>
                   <span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">
                     POST /api/promo
                   </span>
                 </div>
                 <ImagePicker
                   value={form.url}
-                  onChange={(url) => setForm({ url })}
+                  onChange={(url) => setForm((f) => ({ ...f, url }))}
                   folder="promo"
-                  label="URL Gambar Promo"
+                  label="Gambar Promo"
                 />
-                {submitError ? (
-                  <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">
-                    {submitError}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                      Tanggal Mulai (opsional)
+                    </label>
+                    <input
+                      type="date"
+                      value={form.tanggal_mulai ?? ""}
+                      onChange={(e) => setForm((f) => ({ ...f, tanggal_mulai: e.target.value || null }))}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-700 focus:border-sky-400 focus:outline-none"
+                    />
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                      Tanggal Selesai (opsional)
+                    </label>
+                    <input
+                      type="date"
+                      value={form.tanggal_selesai ?? ""}
+                      onChange={(e) => setForm((f) => ({ ...f, tanggal_selesai: e.target.value || null }))}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-700 focus:border-sky-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                  <span className="text-[10px] font-medium text-slate-700">Langsung tampilkan di website</span>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, tampil: !f.tampil }))}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.tampil ? "bg-emerald-500" : "bg-slate-300"}`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${form.tampil ? "translate-x-4" : "translate-x-0.5"}`} />
+                  </button>
+                </div>
+                {submitError ? (
+                  <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">{submitError}</div>
                 ) : null}
                 <button
                   type="submit"
@@ -212,151 +326,219 @@ export default function AdminPromoPage() {
                 </button>
               </form>
 
+              {/* Tabs */}
               <div className="flex flex-wrap gap-2 text-[9px] font-medium">
-                {[`Semua (${promos.length})`, "Aktif", "Draft", "Expired"].map(
-                  (label, index) => (
-                    <span
-                      key={label}
-                      className={`rounded-full border px-3 py-1.5 ${index === 0 ? "border-sky-600 bg-sky-600 text-white" : "border-slate-200 bg-white text-slate-500"}`}
-                    >
-                      {label}
-                    </span>
-                  ),
-                )}
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`rounded-full border px-3 py-1.5 transition-colors ${activeTab === tab.key ? "border-sky-600 bg-sky-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
+
+              {/* Daftar promo */}
               <div className="space-y-3">
-                {promoCards.length > 0 ? (
-                  promoCards.map((promo, index) => (
-                    <article
-                      key={promo.id}
-                      className={`grid overflow-hidden rounded-2xl border bg-white shadow-sm md:grid-cols-[160px_minmax(0,1fr)] ${index === 0 ? "border-sky-600 ring-2 ring-sky-100" : "border-slate-200"}`}
+                {loadingPromo ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-[10px] text-slate-400 shadow-sm">
+                    Memuat data promo...
+                  </div>
+                ) : fetchError ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
+                    <div className="mb-2 text-[10px] font-semibold text-rose-700">Gagal memuat promo</div>
+                    <div className="mb-3 text-[9px] text-rose-600">{fetchError}</div>
+                    <button
+                      type="button"
+                      onClick={loadPromo}
+                      className="rounded-lg bg-rose-600 px-3 py-1.5 text-[9px] font-medium text-white hover:bg-rose-700"
                     >
-                      <div
-                        className={`relative min-h-[120px] bg-gradient-to-br ${index === 0 ? "from-sky-600 to-sky-800" : index === 1 ? "from-emerald-500 to-emerald-700" : index === 2 ? "from-amber-300 to-orange-500" : "from-slate-300 to-slate-400"}`}
+                      Coba lagi
+                    </button>
+                  </div>
+                ) : filteredPromos.length > 0 ? (
+                  filteredPromos.map((promo, index) => {
+                    const status = getPromoStatus(promo);
+                    const sisa = sisaHari(promo.tanggal_selesai);
+                    return (
+                      <article
+                        key={promo.id}
+                        className={`grid overflow-hidden rounded-2xl border bg-white shadow-sm md:grid-cols-[160px_minmax(0,1fr)] ${selectedPromoId === promo.id ? "border-sky-500 ring-2 ring-sky-100" : "border-slate-200"}`}
                       >
-                        <div className="absolute inset-0 flex items-center justify-center text-white/40">
-                          <Gift className="h-10 w-10" />
+                        <div className="relative min-h-30 bg-slate-100">
+                          {promo.url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={promo.url}
+                              alt={`Promo ${index + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center text-slate-300">
+                              <Gift className="h-10 w-10" />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex flex-col gap-2 p-4 text-[10px]">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`rounded-full px-2 py-1 text-[8px] font-semibold ${promo.status === "Aktif" ? "bg-emerald-50 text-emerald-600" : promo.status === "Draft" ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"}`}
-                          >
-                            {promo.status}
-                          </span>
-                          {promo.badge ? (
-                            <span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">
-                              {promo.badge}
+                        <div className="flex flex-col gap-2 p-4 text-[10px]">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full px-2 py-0.5 text-[8px] font-semibold ${STATUS_CLASS[status]}`}>
+                              {STATUS_LABEL[status]}
                             </span>
-                          ) : null}
+                            {promo.tanggal_mulai || promo.tanggal_selesai ? (
+                              <span className="inline-flex items-center gap-1 text-[8px] text-slate-400">
+                                <Calendar className="h-3 w-3" />
+                                {promo.tanggal_mulai ? formatDateDisplay(promo.tanggal_mulai) : "—"}
+                                {" s/d "}
+                                {promo.tanggal_selesai ? formatDateDisplay(promo.tanggal_selesai) : "∞"}
+                              </span>
+                            ) : null}
+                            {status === "aktif" && sisa !== null && sisa <= 7 ? (
+                              <span className="rounded-lg bg-amber-50 px-2 py-0.5 text-[8px] font-semibold text-amber-600">
+                                {sisa > 0 ? `${sisa} hari lagi` : "Hari terakhir"}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="text-[11px] font-semibold text-slate-900">Promo {index + 1}</div>
+                          <div className="truncate text-[9px] text-slate-400" title={promo.url}>
+                            {promo.url || "URL gambar belum diisi"}
+                          </div>
+                          <div className="mt-auto flex gap-1 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTampil(promo)}
+                              title={promo.tampil ? "Sembunyikan dari website" : "Tampilkan di website"}
+                              className={`rounded-md p-1.5 transition-all duration-300 hover:-translate-y-0.5 ${promo.tampil ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+                            >
+                              {promo.tampil ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPromoId(promo.id)}
+                              title="Edit promo"
+                              className="rounded-md bg-sky-50 p-1.5 text-sky-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-sky-100"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => previewPromo(promo.url)}
+                              title="Lihat gambar"
+                              className="rounded-md bg-slate-50 p-1.5 text-slate-500 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Hapus promo ini"
+                              aria-label="Hapus promo ini"
+                              onClick={() => handleDeletePromo(promo.id, `Promo ${index + 1}`)}
+                              className="rounded-md bg-rose-50 p-1.5 text-rose-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-rose-100"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="text-[12px] font-semibold text-slate-900">
-                          {promo.title}
-                        </div>
-                        <div className="leading-6 text-slate-500">
-                          {promo.desc}
-                        </div>
-                        <div className="mt-auto flex flex-wrap items-center gap-3 text-slate-500">
-                          <span className="inline-flex items-center gap-1">
-                            <CalendarDays className="h-3.5 w-3.5" />
-                            {promo.period}
-                          </span>
-                          {promo.countdown ? (
-                            <span className="rounded-lg bg-amber-50 px-2 py-1 text-amber-600">
-                              <span className="font-semibold">
-                                {promo.countdown}
-                              </span>{" "}
-                              hari lagi
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="flex gap-1 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPromoId(promo.id)}
-                            className="rounded-md bg-sky-50 p-1.5 text-sky-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-sky-100"
-                          >
-                            <Edit3 className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => previewPromo(promo.desc)}
-                            className="rounded-md bg-slate-50 p-1.5 text-slate-500 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            title="Hapus promo ini"
-                            aria-label="Hapus promo ini"
-                            onClick={() => handleDeletePromo(promo.id, promo.title)}
-                            className="rounded-md bg-rose-50 p-1.5 text-rose-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-rose-100"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  ))
+                      </article>
+                    );
+                  })
                 ) : (
                   <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-[10px] text-slate-500 shadow-sm">
-                    Belum ada data promo di database.
+                    {promos.length === 0 ? "Belum ada data promo di database." : `Tidak ada promo dengan status "${activeTab}".`}
                   </div>
                 )}
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {/* Panel edit */}
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm self-start">
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
                 <div className="flex items-center gap-2 text-[13px] font-semibold text-slate-900">
                   <Tag className="h-4 w-4 text-amber-500" />
                   Edit promo
                 </div>
-                <span className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-semibold text-emerald-600">
-                  {selectedPromo?.url ?? "Kosong"}
-                </span>
+                {selectedPromo ? (
+                  <span className={`rounded-full px-2 py-1 text-[8px] font-semibold ${STATUS_CLASS[getPromoStatus(selectedPromo)]}`}>
+                    {STATUS_LABEL[getPromoStatus(selectedPromo)]}
+                  </span>
+                ) : null}
               </div>
-              <form
-                onSubmit={handleUpdatePromo}
-                className="space-y-3 p-4 text-[10px]"
-              >
-                <div className="rounded-2xl bg-gradient-to-br from-sky-600 to-sky-800 p-3 text-white">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
-                      <Tag className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-medium">
-                        {selectedPromo
-                          ? `Promo ${selectedPromo.id}`
-                          : "Belum ada data promo"}
-                      </div>
-                      <div className="text-[8px] text-white/70">
-                        Tampilan di website
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <form onSubmit={handleUpdatePromo} className="space-y-3 p-4 text-[10px]">
                 {selectedPromo ? (
                   <>
+                    {/* Preview gambar */}
+                    {selectedPromo.url ? (
+                      <div className="relative h-28 overflow-hidden rounded-xl bg-slate-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={selectedPromo.url} alt="Preview promo" className="h-full w-full object-cover" />
+                      </div>
+                    ) : null}
+
                     <ImagePicker
                       value={editForm.url}
-                      onChange={(url) => setEditForm({ url })}
+                      onChange={(url) => setEditForm((f) => ({ ...f, url }))}
                       folder="promo"
                       label="URL Gambar Promo"
                     />
-                    {actionError ? (
-                      <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">
-                        {actionError}
+
+                    {/* Toggle tampil */}
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
+                      <div>
+                        <div className="font-medium text-slate-700">Tampilkan di website</div>
+                        <div className="text-[8px] text-slate-400">
+                          {editForm.tampil ? "Promo aktif terlihat pengunjung" : "Promo tersembunyi (draft)"}
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditForm((f) => ({ ...f, tampil: !f.tampil }))}
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${editForm.tampil ? "bg-emerald-500" : "bg-slate-300"}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${editForm.tampil ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </button>
+                    </div>
+
+                    {/* Tanggal */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                        Tanggal Mulai (opsional)
+                      </label>
+                      <input
+                        type="date"
+                        value={editForm.tanggal_mulai ?? ""}
+                        onChange={(e) => setEditForm((f) => ({ ...f, tanggal_mulai: e.target.value || null }))}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-700 focus:border-sky-400 focus:outline-none"
+                      />
+                      <div className="text-[8px] text-slate-400">Kosongkan agar promo langsung tampil</div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                        Tanggal Selesai (opsional)
+                      </label>
+                      <input
+                        type="date"
+                        value={editForm.tanggal_selesai ?? ""}
+                        onChange={(e) => setEditForm((f) => ({ ...f, tanggal_selesai: e.target.value || null }))}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-700 focus:border-sky-400 focus:outline-none"
+                      />
+                      <div className="text-[8px] text-slate-400">Kosongkan agar promo tampil tanpa batas waktu</div>
+                    </div>
+
+                    {actionError ? (
+                      <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">{actionError}</div>
                     ) : null}
+
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() =>
-                          selectedPromo &&
-                          setEditForm({ url: selectedPromo.url })
+                          setEditForm({
+                            url: selectedPromo.url,
+                            tampil: selectedPromo.tampil,
+                            tanggal_mulai: toInputDate(selectedPromo.tanggal_mulai),
+                            tanggal_selesai: toInputDate(selectedPromo.tanggal_selesai),
+                          })
                         }
                         className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-medium text-slate-500 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100"
                       >
@@ -374,7 +556,7 @@ export default function AdminPromoPage() {
                   </>
                 ) : (
                   <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-[10px] text-slate-500">
-                    Belum ada promo di database.
+                    Pilih promo dari daftar untuk diedit, atau tambah promo baru.
                   </div>
                 )}
               </form>

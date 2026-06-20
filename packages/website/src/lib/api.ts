@@ -30,10 +30,16 @@ export type CreateServicePayload = {
 export type Promo = {
   id: number;
   url: string;
+  tampil: boolean;
+  tanggal_mulai: string | null;
+  tanggal_selesai: string | null;
 };
 
 export type CreatePromoPayload = {
   url: string;
+  tampil?: boolean;
+  tanggal_mulai?: string | null;
+  tanggal_selesai?: string | null;
 };
 
 export type Doctor = {
@@ -541,6 +547,70 @@ export async function updateDokterFoto(
   return res.json();
 }
 
+// ─── Khanza SIK — Jadwal Dokter (Admin CRUD) ────────────────────────────────
+
+export const HARI_KERJA = ["SENIN", "SELASA", "RABU", "KAMIS", "JUMAT", "SABTU", "AKHAD"] as const;
+export type HariKerja = (typeof HARI_KERJA)[number];
+
+export type KhanzaJadwal = {
+  kd_dokter: string;
+  hari_kerja: string;
+  jam_mulai: string;
+  jam_selesai: string;
+  kd_poli: string;
+  kuota: number;
+};
+
+export async function adminGetJadwalDokter(kdDokter: string): Promise<KhanzaJadwal[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/jadwal-dokter?kd_dokter=${encodeURIComponent(kdDokter)}`,
+      { cache: "no-store", headers: { Accept: "application/json" } },
+    );
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function adminCreateJadwalDokter(
+  data: KhanzaJadwal,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/jadwal-dokter`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminUpdateJadwalDokter(
+  data: KhanzaJadwal & { old_hari_kerja: string; old_jam_mulai: string },
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/jadwal-dokter`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminDeleteJadwalDokter(
+  kdDokter: string,
+  hariKerja: string,
+  jamMulai: string,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/jadwal-dokter`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kd_dokter: kdDokter, hari_kerja: hariKerja, jam_mulai: jamMulai }),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
 // ─── Khanza SIK — CRUD Dokter (Admin) ───────────────────────────────────────
 
 export type KhanzaSpesialis = {
@@ -933,6 +1003,10 @@ export async function deleteDoctor(id: number) {
   });
 }
 
+export async function getPromo(): Promise<Promo[]> {
+  return requestJson<Promo[]>("/promo");
+}
+
 export async function createPromo(payload: CreatePromoPayload) {
   return requestJson<Promo>("/promo", {
     method: "POST",
@@ -991,6 +1065,10 @@ export async function deleteGallery(id: number) {
     },
     body: JSON.stringify({ id }),
   });
+}
+
+export async function getGaleri() {
+  return requestJson<Gallery[]>("/galeri");
 }
 
 export async function fetchSiteSettings() {

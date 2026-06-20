@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/src/UiKecil/card";
 import { Section, SectionHeader } from "@/src/UiKecil/section";
 import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";
-import { getReview, type ReviewAdminData } from "@/src/lib/api";
+import { getGaleri, getReview, type Gallery, type ReviewAdminData } from "@/src/lib/api";
 
 /* ─── Types ─── */
 
@@ -358,8 +358,9 @@ function AboutIntroSection() {
 
 /* ─── Gallery ─── */
 
-function GaleriSection() {
-  const galleryGroups = [galeriKlinik, galeriKlinik];
+function GaleriSection({ items }: { items: GalleryItem[] }) {
+  const resolved = items.length > 0 ? items : galeriKlinik;
+  const galleryGroups = [resolved, resolved];
 
   return (
     <Section id="galeri">
@@ -397,13 +398,17 @@ function GaleriSection() {
                 >
                   <CardContent className="p-0">
                     <div className="group relative h-[280px] w-full overflow-hidden md:h-[300px] lg:h-[400px]">
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      />
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.title}
+                          fill
+                          className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-slate-200" />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100" />
                       <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:translate-y-0 translate-y-2">
                         <h3 className="t-h4 font-medium text-white">
@@ -740,19 +745,34 @@ export default function TentangKami() {
     summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" },
   });
   const [loadingReview, setLoadingReview] = useState(true);
+  const [galeriItems, setGaleriItems] = useState<GalleryItem[]>([]);
 
   useEffect(() => {
     getReview()
       .then(setReviewData)
       .catch(() => {})
       .finally(() => setLoadingReview(false));
+
+    getGaleri()
+      .then((data: Gallery[]) =>
+        setGaleriItems(
+          data
+            .filter((item) => item.url)
+            .map((item) => ({
+              title: item.text,
+              image: item.url,
+              description: item.kategori,
+            })),
+        ),
+      )
+      .catch(() => {});
   }, []);
 
   return (
     <main className="min-h-screen bg-[#f2f0ed] text-[#3f3f3f]">
       <Navbar />
       <AboutIntroSection />
-      <GaleriSection />
+      <GaleriSection items={galeriItems} />
       <RatingSection reviewData={reviewData} loading={loadingReview} />
       <EmergencyCta />
       <Footer />

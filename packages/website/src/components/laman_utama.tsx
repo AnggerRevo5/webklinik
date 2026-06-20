@@ -882,14 +882,16 @@ function PromoSection({
   const promoList = React.useMemo(
     () =>
       homeData?.promo?.length
-        ? homeData.promo.map((promo, index) => ({
-            title: `Promo ${index + 1}`,
-            image: resolveAssetPath(promo.url, ""),
-            date: "Promo aktif",
-            description: "",
-          }))
+        ? homeData.promo
+            .filter((promo) => promo.url)
+            .map((promo, index) => ({
+              title: `Promo ${index + 1}`,
+              image: resolveAssetPath(promo.url, ""),
+              date: "Promo aktif",
+              description: "",
+            }))
         : [],
-    [homeData?.promo],
+    [homeData],
   );
 
   return (

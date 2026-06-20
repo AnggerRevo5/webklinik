@@ -16,6 +16,7 @@ import {
   Trash2,
   Users2,
 } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
   createGallery,
@@ -42,6 +43,7 @@ type GalleryItem = {
   gradientClassName: string;
   icon: LucideIcon;
   iconClassName: string;
+  url: string;
 };
 
 const galleryFilters = [
@@ -68,10 +70,22 @@ function GalleryCard({
       <div
         className={`relative aspect-square bg-gradient-to-br ${item.gradientClassName}`}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_45%)]" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Icon className={`h-10 w-10 ${item.iconClassName}`} />
-        </div>
+        {item.url ? (
+          <Image
+            src={item.url}
+            alt={item.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 50vw, 25vw"
+          />
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_45%)]" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Icon className={`h-10 w-10 ${item.iconClassName}`} />
+            </div>
+          </>
+        )}
         <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[9px] font-semibold shadow-sm">
           <span className={item.badgeClassName}>{item.badge}</span>
         </div>
@@ -154,8 +168,9 @@ export default function GaleriArtikelAdmin() {
 
   const galleryItems: GalleryItem[] = gallery.map((item, index) => ({
     id: item.id,
-    title: item.text || item.url || `Galeri ${index + 1}`,
+    title: item.text || `Galeri ${index + 1}`,
     badge: item.kategori || "Galeri",
+    url: item.url,
     badgeClassName:
       index % 3 === 0
         ? "bg-emerald-50 text-emerald-600"

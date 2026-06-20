@@ -19,6 +19,7 @@ func main() {
 	if err != nil {
 		log.Fatal("gagal konek nih ke database awowkwkwk:", err)
 	}
+	db.AutoMigrate(&models.Promo{})
 	db.AutoMigrate(&models.DokterFoto{})
 	db.AutoMigrate(&models.MediaLibrary{})
 	db.AutoMigrate(&models.Review{})
