@@ -19,13 +19,16 @@ func main() {
 	if err != nil {
 		log.Fatal("gagal konek nih ke database awowkwkwk:", err)
 	}
-	db.AutoMigrate(&models.Promo{})
-	db.AutoMigrate(&models.DokterFoto{})
-	db.AutoMigrate(&models.MediaLibrary{})
-	db.AutoMigrate(&models.Review{})
-	db.AutoMigrate(&models.KlinikInfo{})
-	db.AutoMigrate(&models.Artikel{})
-	db.AutoMigrate(&models.SocialIconClick{})
+	db.AutoMigrate(
+		&models.Promo{},
+		&models.Galeri{},
+		&models.DokterFoto{},
+		&models.MediaLibrary{},
+		&models.Review{},
+		&models.KlinikInfo{},
+		&models.Artikel{},
+		&models.SocialIconClick{},
+	)
 
 	dbKhanza := database.ConnectKhanza()
 	if dbKhanza == nil {

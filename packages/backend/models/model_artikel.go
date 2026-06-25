@@ -11,9 +11,9 @@ type Artikel struct {
 	Kategori    string     `gorm:"column:kategori;default:Tips Kesehatan" json:"kategori"`
 	FotoURL     string     `gorm:"column:foto_url"                        json:"foto_url"`
 	Penulis     string     `gorm:"column:penulis;default:Tim Medis"       json:"penulis"`
-	Status      string     `gorm:"column:status;default:draft"            json:"status"`
+	Status      string     `gorm:"column:status;default:draft;index"      json:"status"`
 	PublishedAt *time.Time `gorm:"column:published_at"                    json:"published_at"`
-	Urutan      int        `gorm:"column:urutan;default:0"                json:"urutan"`
+	Urutan      int        `gorm:"column:urutan;default:0;index"          json:"urutan"`
 	CreatedAt   time.Time  `gorm:"column:created_at;autoCreateTime"       json:"created_at"`
 	UpdatedAt   time.Time  `gorm:"column:updated_at;autoUpdateTime"       json:"updated_at"`
 }

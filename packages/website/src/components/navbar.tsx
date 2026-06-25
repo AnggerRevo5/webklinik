@@ -80,10 +80,10 @@ export default function Navbar() {
     if (hash && pathname === "/") {
       const el = document.getElementById(hash);
       if (el) {
-        setTimeout(
-          () => el.scrollIntoView({ behavior: "smooth", block: "start" }),
-          50,
-        );
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          history.replaceState(null, "", "/");
+        }, 50);
       }
     }
   }, [pathname]);

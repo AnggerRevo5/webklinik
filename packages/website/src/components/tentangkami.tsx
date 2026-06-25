@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/src/UiKecil/card";
 import { Section, SectionHeader } from "@/src/UiKecil/section";
 import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";
-import { getGaleri, getReview, type Gallery, type ReviewAdminData } from "@/src/lib/api";
+import { getGaleri, getGaleriPreview, getReview, type Gallery, type GaleriPreview, type ReviewAdminData } from "@/src/lib/api";
 
 /* ─── Types ─── */
 
@@ -232,6 +232,101 @@ function ProgressBar({
   );
 }
 
+/* ─── Galeri Preview ─── */
+
+const PREVIEW_CATEGORIES: { key: keyof GaleriPreview; label: string }[] = [
+  { key: "kegiatan", label: "Kegiatan" },
+  { key: "layanan", label: "Layanan" },
+  { key: "fasilitas", label: "Fasilitas" },
+  { key: "poli", label: "Poli" },
+];
+
+function GaleriPreviewSection() {
+  const [preview, setPreview] = useState<GaleriPreview | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getGaleriPreview()
+      .then(setPreview)
+      .catch(() => setPreview(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const categories = preview
+    ? PREVIEW_CATEGORIES.filter((c) => preview[c.key].length > 0)
+    : [];
+
+  if (!loading && categories.length === 0) return null;
+
+  return (
+    <Section id="galeri-preview">
+      <div className="section-header">
+        <div className="mb-3 flex items-center gap-2">
+          <Star className="h-5 w-5 fill-[#00b4d8] text-[#00b4d8]" />
+          <span className="t-overline text-[#00b4d8]">GALERI KLINIK</span>
+        </div>
+        <h2 className="t-h2 font-bold text-[#3f3f3f]">
+          Foto <span className="italic text-[#00b4d8]">klinik</span> kami
+        </h2>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-video animate-pulse rounded-xl bg-[#e7e7e7]"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          {categories.map((cat) => (
+            <div key={cat.key}>
+              <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[#9a9a9a]">
+                {cat.label}
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {preview![cat.key].map((item) => (
+                  <div
+                    key={item.id}
+                    className="group relative aspect-video overflow-hidden card-radius"
+                  >
+                    <Image
+                      src={item.url}
+                      alt={item.text || cat.label}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                    />
+                    {item.text && (
+                      <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <p className="absolute bottom-2 left-2 right-2 text-[10px] font-medium text-white">
+                          {item.text}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-8 flex justify-center">
+        <Link
+          href="/galeri"
+          className="inline-flex items-center gap-2 rounded-full bg-[#00b4d8] px-6 py-3 t-body font-semibold text-white transition-colors hover:bg-[#0099b8]"
+        >
+          Lihat Semua Foto
+          <span aria-hidden>→</span>
+        </Link>
+      </div>
+    </Section>
+  );
+}
+
 /* ─── About intro ─── */
 
 function AboutIntroSection() {
@@ -375,6 +470,13 @@ function GaleriSection({ items }: { items: GalleryItem[] }) {
             kami
           </h2>
         </div>
+        <Link
+          href="/galeri"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#00b4d8] px-5 py-2.5 t-body-sm font-semibold text-white transition-colors hover:bg-[#0099b8]"
+        >
+          Lihat Semua Foto
+          <span aria-hidden>→</span>
+        </Link>
       </div>
 
       <div className="overflow-hidden">
@@ -442,6 +544,7 @@ function GaleriSection({ items }: { items: GalleryItem[] }) {
           </Card>
         ))}
       </div>
+
     </Section>
   );
 }
@@ -753,7 +856,7 @@ export default function TentangKami() {
       .catch(() => {})
       .finally(() => setLoadingReview(false));
 
-    getGaleri()
+    getGaleri("Kegiatan")
       .then((data: Gallery[]) =>
         setGaleriItems(
           data
@@ -772,6 +875,7 @@ export default function TentangKami() {
     <main className="min-h-screen bg-[#f2f0ed] text-[#3f3f3f]">
       <Navbar />
       <AboutIntroSection />
+      <GaleriPreviewSection />
       <GaleriSection items={galeriItems} />
       <RatingSection reviewData={reviewData} loading={loadingReview} />
       <EmergencyCta />

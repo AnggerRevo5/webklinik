@@ -66,7 +66,7 @@ func UploadMediaHandler(db *gorm.DB, cldSvc *services.CloudinaryService) gin.Han
 		if !services.ValidFolders[folder] {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"error":   "Folder tidak valid. Pilih: dokter/layanan/promo/galeri/artikel/logo",
+				"error":   "Folder tidak valid. Pilih: dokter/layanan/promo/galeri/artikel/logo/staff",
 			})
 			return
 		}
@@ -173,9 +173,20 @@ func DeleteMediaHandler(db *gorm.DB, cldSvc *services.CloudinaryService) gin.Han
 		}
 
 		if cldSvc != nil {
-			// Abaikan error hapus Cloudinary — mungkin sudah dihapus manual
 			_ = cldSvc.Delete(media.PublicID)
 		}
+
+		url := media.URL
+
+		// Hapus record galeri yang memakai URL ini (galeri tanpa foto tidak berguna)
+		db.Where("url = ?", url).Delete(&models.Galeri{})
+
+		// Kosongkan URL di tabel lain — jangan hapus record-nya
+		db.Model(&models.Promo{}).Where("url = ?", url).Update("url", "")
+		db.Model(&models.DokterFoto{}).Where("foto_url = ?", url).Update("foto_url", "")
+		db.Model(&models.Artikel{}).Where("foto_url = ?", url).Update("foto_url", "")
+		db.Model(&models.Layanan{}).Where("url = ?", url).Update("url", "")
+		db.Model(&models.Banner{}).Where("url = ?", url).Update("url", "")
 
 		db.Delete(&media)
 

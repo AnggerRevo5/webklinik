@@ -21,6 +21,7 @@ const FOLDERS: { value: MediaFolder | ""; label: string }[] = [
   { value: "galeri", label: "Galeri" },
   { value: "artikel", label: "Artikel" },
   { value: "logo", label: "Logo" },
+  { value: "staff", label: "Staff" },
 ];
 
 interface Props {

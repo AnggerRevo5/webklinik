@@ -39,6 +39,7 @@ var ValidFolders = map[string]bool{
 	"galeri":  true,
 	"artikel": true,
 	"logo":    true,
+	"staff":   true,
 }
 
 var ValidMimeTypes = map[string]bool{

@@ -8,6 +8,7 @@ import (
 )
 
 func RegisterGaleriRoutes(r *gin.Engine, db *gorm.DB) {
+	r.GET("/api/galeri/preview", handlers.GetGaleriPreviewHandler(db))
 	r.GET("/api/galeri", handlers.GetGaleriHandler(db))
 	r.POST("/api/galeri", handlers.CreateGaleriHandler(db))
 	r.PUT("/api/galeri/:id", handlers.UpdateGaleriHandler(db))

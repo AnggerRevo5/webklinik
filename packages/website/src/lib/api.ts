@@ -1,6 +1,17 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
+// Semua request admin diproxy melalui Next.js (/api/backend/...)
+// agar ADMIN_API_KEY tidak pernah terekspos ke browser.
+async function adminFetch(url: string | URL, init: RequestInit = {}): Promise<Response> {
+  const urlStr = url.toString();
+  // Ganti base URL Go backend dengan path proxy Next.js
+  const proxyPath = urlStr.startsWith(API_BASE_URL)
+    ? "/api/backend" + urlStr.slice(API_BASE_URL.length)
+    : urlStr;
+  return fetch(proxyPath, init);
+}
+
 export type ApiEnvelope<T> = {
   message?: string;
   data: T;
@@ -107,21 +118,23 @@ export type KlinikInfo = {
 };
 
 export type HomeData = {
+  // Field yang dikembalikan oleh /api/home (HomePublikData)
   banner: Banner[];
   layanan: Service[];
-  dokter: Doctor[];
   promo: Promo[];
-  galeri: Gallery[];
-  event: unknown[];
-  visitor_sessions: unknown[];
-  social_media_engagement: unknown[];
-  social_media_stats: unknown[];
-  gbp_interactions: unknown[];
-  google_reviews: GoogleReview[];
+  klinik_info?: KlinikInfo;
+  // Field lama — opsional agar tidak crash jika tidak dikembalikan backend
+  dokter?: Doctor[];
+  galeri?: Gallery[];
+  event?: unknown[];
+  visitor_sessions?: unknown[];
+  social_media_engagement?: unknown[];
+  social_media_stats?: unknown[];
+  gbp_interactions?: unknown[];
+  google_reviews?: GoogleReview[];
   site_settings?: SiteSetting[];
   operational_hours?: OperationalHour[];
   social_links?: SocialLink[];
-  klinik_info?: KlinikInfo;
 };
 
 export type ContactMessagePayload = {
@@ -140,7 +153,8 @@ export type MediaFolder =
   | "promo"
   | "galeri"
   | "artikel"
-  | "logo";
+  | "logo"
+  | "staff";
 
 export type MediaItem = {
   id: number;
@@ -169,7 +183,7 @@ export async function getMedia(
 ): Promise<{ data: MediaItem[]; pagination: MediaPagination }> {
   const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
   if (folder) params.set("folder", folder);
-  const res = await fetch(`${API_BASE_URL}/media?${params}`, {
+  const res = await adminFetch(`${API_BASE_URL}/media?${params}`, {
     cache: "no-store",
     headers: { Accept: "application/json" },
   });
@@ -188,7 +202,7 @@ export async function uploadMedia(
   formData.append("file", file);
   formData.append("folder", folder);
   // JANGAN set Content-Type — browser set multipart/form-data dengan boundary
-  const res = await fetch(`${API_BASE_URL}/media/upload`, {
+  const res = await adminFetch(`${API_BASE_URL}/media/upload`, {
     method: "POST",
     body: formData,
   });
@@ -198,7 +212,7 @@ export async function uploadMedia(
 export async function deleteMedia(
   id: number,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/media/${id}`, {
+  const res = await adminFetch(`${API_BASE_URL}/media/${id}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
@@ -212,7 +226,7 @@ export async function syncCloudinaryMedia(): Promise<{
   skipped?: number;
   error?: string;
 }> {
-  const res = await fetch(`${API_BASE_URL}/admin/media/sync-cloudinary`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/media/sync-cloudinary`, {
     method: "POST",
     headers: { Accept: "application/json" },
   });
@@ -262,7 +276,7 @@ export type ReviewAdminData = {
 
 export async function getReview(): Promise<ReviewAdminData> {
   try {
-    const res = await fetch(`${API_BASE_URL}/review`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/review`, { cache: "no-store" });
     const json = await res.json();
     return json.data ?? { reviews: [], summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
   } catch {
@@ -272,7 +286,7 @@ export async function getReview(): Promise<ReviewAdminData> {
 
 export async function adminGetReview(): Promise<ReviewAdminData> {
   try {
-    const res = await fetch(`${API_BASE_URL}/admin/review`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/admin/review`, { cache: "no-store" });
     const json = await res.json();
     return { reviews: json.reviews ?? [], summary: json.summary ?? { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
   } catch {
@@ -283,7 +297,7 @@ export async function adminGetReview(): Promise<ReviewAdminData> {
 export async function adminCreateReview(
   data: Omit<Review, "id" | "created_at" | "updated_at">,
 ): Promise<{ success: boolean; data?: Review; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/review`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/review`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -296,7 +310,7 @@ export async function adminUpdateReview(
   id: number,
   data: Omit<Review, "id" | "created_at" | "updated_at">,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/review/${id}`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/review/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -308,7 +322,7 @@ export async function adminUpdateReview(
 export async function adminToggleTampil(
   id: number,
 ): Promise<{ success: boolean; tampil: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/admin/review/${id}/toggle-tampil`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/review/${id}/toggle-tampil`, {
     method: "PATCH",
     cache: "no-store",
   });
@@ -318,7 +332,7 @@ export async function adminToggleTampil(
 export async function adminToggleFeatured(
   id: number,
 ): Promise<{ success: boolean; featured: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/admin/review/${id}/toggle-featured`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/review/${id}/toggle-featured`, {
     method: "PATCH",
     cache: "no-store",
   });
@@ -328,7 +342,7 @@ export async function adminToggleFeatured(
 export async function adminDeleteReview(
   id: number,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/review/${id}`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/review/${id}`, {
     method: "DELETE",
     cache: "no-store",
   });
@@ -338,7 +352,7 @@ export async function adminDeleteReview(
 export async function adminUpdateReviewSummary(
   data: ReviewSummary,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/review/summary`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/review/summary`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -413,7 +427,7 @@ export async function adminGetArtikel(
   try {
     const params = new URLSearchParams({ page: String(page) });
     if (status && status !== "all") params.set("status", status);
-    const res = await fetch(`${API_BASE_URL}/admin/artikel?${params}`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/admin/artikel?${params}`, { cache: "no-store" });
     return res.json();
   } catch {
     return { data: [], pagination: { page: 1, per_page: 20, total: 0, total_pages: 0 } };
@@ -422,7 +436,7 @@ export async function adminGetArtikel(
 
 // Admin — detail (termasuk konten penuh)
 export async function adminGetArtikelDetail(id: number): Promise<{ success: boolean; data?: Artikel }> {
-  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}`, { cache: "no-store" });
+  const res = await adminFetch(`${API_BASE_URL}/admin/artikel/${id}`, { cache: "no-store" });
   return res.json();
 }
 
@@ -430,7 +444,7 @@ export async function adminGetArtikelDetail(id: number): Promise<{ success: bool
 export async function adminCreateArtikel(
   data: ArtikelPayload,
 ): Promise<{ success: boolean; data?: Artikel; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/artikel`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/artikel`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -444,7 +458,7 @@ export async function adminUpdateArtikel(
   id: number,
   data: ArtikelPayload,
 ): Promise<{ success: boolean; data?: Artikel; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/artikel/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -455,7 +469,7 @@ export async function adminUpdateArtikel(
 
 // Admin — publish
 export async function adminPublishArtikel(id: number): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}/publish`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/artikel/${id}/publish`, {
     method: "PATCH",
     cache: "no-store",
   });
@@ -464,7 +478,7 @@ export async function adminPublishArtikel(id: number): Promise<{ success: boolea
 
 // Admin — tarik ke draft
 export async function adminDraftArtikel(id: number): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}/draft`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/artikel/${id}/draft`, {
     method: "PATCH",
     cache: "no-store",
   });
@@ -473,7 +487,7 @@ export async function adminDraftArtikel(id: number): Promise<{ success: boolean 
 
 // Admin — hapus
 export async function adminDeleteArtikel(id: number): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/admin/artikel/${id}`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/artikel/${id}`, {
     method: "DELETE",
     cache: "no-store",
   });
@@ -530,7 +544,7 @@ export async function adminGetDokter(): Promise<DokterAdmin[]> {
 export async function adminToggleTampilDokter(
   kdDokter: string,
 ): Promise<{ success: boolean; tampil_website: boolean }> {
-  const res = await fetch(
+  const res = await adminFetch(
     `${API_BASE_URL}/admin/dokter/${encodeURIComponent(kdDokter)}/toggle-tampil`,
     { method: "PATCH", cache: "no-store", headers: { Accept: "application/json" } },
   );
@@ -541,7 +555,7 @@ export async function updateDokterFoto(
   kdDokter: string,
   fotoUrl: string,
 ): Promise<{ success: boolean; data?: { kd_dokter: string; foto_url: string }; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/dokter-foto/${encodeURIComponent(kdDokter)}`, {
+  const res = await adminFetch(`${API_BASE_URL}/dokter-foto/${encodeURIComponent(kdDokter)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ foto_url: fotoUrl }),
@@ -566,7 +580,7 @@ export type KhanzaJadwal = {
 
 export async function adminGetJadwalDokter(kdDokter: string): Promise<KhanzaJadwal[]> {
   try {
-    const res = await fetch(
+    const res = await adminFetch(
       `${API_BASE_URL}/jadwal-dokter?kd_dokter=${encodeURIComponent(kdDokter)}`,
       { cache: "no-store", headers: { Accept: "application/json" } },
     );
@@ -579,7 +593,7 @@ export async function adminGetJadwalDokter(kdDokter: string): Promise<KhanzaJadw
 export async function adminCreateJadwalDokter(
   data: KhanzaJadwal,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/jadwal-dokter`, {
+  const res = await adminFetch(`${API_BASE_URL}/jadwal-dokter`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -591,7 +605,7 @@ export async function adminCreateJadwalDokter(
 export async function adminUpdateJadwalDokter(
   data: KhanzaJadwal & { old_hari_kerja: string; old_jam_mulai: string },
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/jadwal-dokter`, {
+  const res = await adminFetch(`${API_BASE_URL}/jadwal-dokter`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -605,7 +619,7 @@ export async function adminDeleteJadwalDokter(
   hariKerja: string,
   jamMulai: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/jadwal-dokter`, {
+  const res = await adminFetch(`${API_BASE_URL}/jadwal-dokter`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ kd_dokter: kdDokter, hari_kerja: hariKerja, jam_mulai: jamMulai }),
@@ -649,7 +663,7 @@ export async function adminGetSpesialis(): Promise<KhanzaSpesialis[]> {
 export async function adminCreateKhanzaDokter(
   input: KhanzaDokterInput,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/khanza/dokter`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/khanza/dokter`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(input),
@@ -662,7 +676,7 @@ export async function adminUpdateKhanzaDokter(
   kdDokter: string,
   input: Omit<KhanzaDokterInput, "kd_dokter">,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(
+  const res = await adminFetch(
     `${API_BASE_URL}/admin/khanza/dokter/${encodeURIComponent(kdDokter)}`,
     {
       method: "PUT",
@@ -677,7 +691,7 @@ export async function adminUpdateKhanzaDokter(
 export async function adminDeleteKhanzaDokter(
   kdDokter: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(
+  const res = await adminFetch(
     `${API_BASE_URL}/admin/khanza/dokter/${encodeURIComponent(kdDokter)}`,
     {
       method: "DELETE",
@@ -844,7 +858,7 @@ export function getHariKhanza(date: Date): string {
 }
 
 export async function cekPasienByNIK(nik: string): Promise<CekPasienResponse> {
-  const res = await fetch(
+  const res = await adminFetch(
     `${API_BASE_URL}/pendaftaran/cek-pasien?nik=${encodeURIComponent(nik)}`,
     { cache: "no-store", headers: { Accept: "application/json" } },
   );
@@ -869,7 +883,7 @@ export async function cekKuota(
   kdDokter: string,
   tanggal: string,
 ): Promise<KuotaResponse> {
-  const res = await fetch(
+  const res = await adminFetch(
     `${API_BASE_URL}/pendaftaran/kuota?kd_dokter=${encodeURIComponent(kdDokter)}&tanggal=${encodeURIComponent(tanggal)}`,
     { cache: "no-store", headers: { Accept: "application/json" } },
   );
@@ -883,7 +897,7 @@ export async function getPenjamin(): Promise<PenjabKhanza[]> {
 export async function submitPendaftaran(
   data: PendaftaranPayload,
 ): Promise<SubmitPendaftaranResponse> {
-  const res = await fetch(`${API_BASE_URL}/pendaftaran`, {
+  const res = await adminFetch(`${API_BASE_URL}/pendaftaran`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(data),
@@ -926,14 +940,14 @@ export type VisitorSessionItem = {
 
 export async function adminGetVisitorStats(): Promise<VisitorStats | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/admin/stats/visitor`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/admin/stats/visitor`, { cache: "no-store" });
     return res.json();
   } catch { return null; }
 }
 
 export async function adminGetSocialClickStats(): Promise<SocialClickStats | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/admin/stats/social-clicks`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/admin/stats/social-clicks`, { cache: "no-store" });
     return res.json();
   } catch { return null; }
 }
@@ -949,7 +963,7 @@ export async function adminGetVisitorSessions(
   if (source) params.set("source", source);
   if (browser) params.set("browser", browser);
   try {
-    const res = await fetch(`${API_BASE_URL}/admin/visitor-sessions?${params}`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/admin/visitor-sessions?${params}`, { cache: "no-store" });
     const json = await res.json();
     return {
       data: json.data ?? [],
@@ -990,7 +1004,7 @@ export type GBPInteractionItem = {
 // --- Social Media Stats ---
 export async function adminGetSocialMediaStats(): Promise<SocialMediaStatsItem[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/admin/social-media-stats`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/admin/social-media-stats`, { cache: "no-store" });
     const json = await res.json();
     return json.data ?? json ?? [];
   } catch { return []; }
@@ -999,7 +1013,7 @@ export async function adminGetSocialMediaStats(): Promise<SocialMediaStatsItem[]
 export async function adminCreateSocialMediaStats(
   data: Omit<SocialMediaStatsItem, "id">,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/social-media-stats`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/social-media-stats`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -1011,7 +1025,7 @@ export async function adminUpdateSocialMediaStats(
   id: number,
   data: Omit<SocialMediaStatsItem, "id">,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/social-media-stats/${id}`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/social-media-stats/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -1020,14 +1034,14 @@ export async function adminUpdateSocialMediaStats(
 }
 
 export async function adminDeleteSocialMediaStats(id: number): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/admin/social-media-stats/${id}`, { method: "DELETE" });
+  const res = await adminFetch(`${API_BASE_URL}/admin/social-media-stats/${id}`, { method: "DELETE" });
   return res.json();
 }
 
 // --- Social Media Engagement ---
 export async function adminGetSocialMediaEngagement(): Promise<SocialMediaEngagementItem[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/admin/social-media-engagement`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/admin/social-media-engagement`, { cache: "no-store" });
     const json = await res.json();
     return json.data ?? json ?? [];
   } catch { return []; }
@@ -1036,7 +1050,7 @@ export async function adminGetSocialMediaEngagement(): Promise<SocialMediaEngage
 export async function adminCreateSocialMediaEngagement(
   data: Omit<SocialMediaEngagementItem, "id">,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/social-media-engagement`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/social-media-engagement`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -1048,7 +1062,7 @@ export async function adminUpdateSocialMediaEngagement(
   id: number,
   data: Omit<SocialMediaEngagementItem, "id">,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/social-media-engagement/${id}`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/social-media-engagement/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -1057,14 +1071,14 @@ export async function adminUpdateSocialMediaEngagement(
 }
 
 export async function adminDeleteSocialMediaEngagement(id: number): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/admin/social-media-engagement/${id}`, { method: "DELETE" });
+  const res = await adminFetch(`${API_BASE_URL}/admin/social-media-engagement/${id}`, { method: "DELETE" });
   return res.json();
 }
 
 // --- GBP Interaction ---
 export async function adminGetGBPInteraction(): Promise<GBPInteractionItem[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/admin/gbp-interaction`, { cache: "no-store" });
+    const res = await adminFetch(`${API_BASE_URL}/admin/gbp-interaction`, { cache: "no-store" });
     const json = await res.json();
     return json.data ?? json ?? [];
   } catch { return []; }
@@ -1073,7 +1087,7 @@ export async function adminGetGBPInteraction(): Promise<GBPInteractionItem[]> {
 export async function adminCreateGBPInteraction(
   data: Omit<GBPInteractionItem, "id">,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/gbp-interaction`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/gbp-interaction`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -1085,7 +1099,7 @@ export async function adminUpdateGBPInteraction(
   id: number,
   data: Omit<GBPInteractionItem, "id">,
 ): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${API_BASE_URL}/admin/gbp-interaction/${id}`, {
+  const res = await adminFetch(`${API_BASE_URL}/admin/gbp-interaction/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -1094,12 +1108,12 @@ export async function adminUpdateGBPInteraction(
 }
 
 export async function adminDeleteGBPInteraction(id: number): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/admin/gbp-interaction/${id}`, { method: "DELETE" });
+  const res = await adminFetch(`${API_BASE_URL}/admin/gbp-interaction/${id}`, { method: "DELETE" });
   return res.json();
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await adminFetch(`${API_BASE_URL}${path}`, {
     cache: "no-store",
     headers: {
       Accept: "application/json",
@@ -1246,8 +1260,22 @@ export async function deleteGallery(id: number) {
   });
 }
 
-export async function getGaleri() {
-  return requestJson<Gallery[]>("/galeri");
+export async function getGaleri(kategori?: string): Promise<Gallery[]> {
+  const path = kategori
+    ? `/galeri?kategori=${encodeURIComponent(kategori)}`
+    : "/galeri";
+  return requestJson<Gallery[]>(path);
+}
+
+export type GaleriPreview = {
+  kegiatan: Gallery[];
+  layanan: Gallery[];
+  fasilitas: Gallery[];
+  poli: Gallery[];
+};
+
+export async function getGaleriPreview(): Promise<GaleriPreview> {
+  return requestJson<GaleriPreview>("/galeri/preview");
 }
 
 export async function fetchSiteSettings() {

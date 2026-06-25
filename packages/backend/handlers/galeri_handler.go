@@ -12,12 +12,24 @@ import (
 
 func GetGaleriHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		galeri, err := services.Galeri(db)
+		kategori := c.Query("kategori")
+		galeri, err := services.GaleriFiltered(db, kategori)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, galeri)
+	}
+}
+
+func GetGaleriPreviewHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		preview, err := services.GaleriPreview(db)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, preview)
 	}
 }
 

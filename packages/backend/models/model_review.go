@@ -9,9 +9,9 @@ type Review struct {
 	Komentar  string    `gorm:"column:komentar"                   json:"komentar"`
 	Tanggal   string    `gorm:"column:tanggal"                    json:"tanggal"`
 	Tag       string    `gorm:"column:tag"                        json:"tag"`
-	Featured  bool      `gorm:"column:featured;default:0"         json:"featured"`
-	Tampil    bool      `gorm:"column:tampil;default:1"           json:"tampil"`
-	Urutan    int       `gorm:"column:urutan;default:0"           json:"urutan"`
+	Featured  bool      `gorm:"column:featured;default:0;index"   json:"featured"`
+	Tampil    bool      `gorm:"column:tampil;default:1;index"     json:"tampil"`
+	Urutan    int       `gorm:"column:urutan;default:0;index"     json:"urutan"`
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"  json:"created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"  json:"updated_at"`
 }

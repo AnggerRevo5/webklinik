@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export type SidebarKey =
   | "dashboard"
@@ -118,6 +119,13 @@ export default function SidebarAdmin({
   activeKey?: SidebarKey;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/auth", { method: "DELETE" });
+    router.push("/admin_login_page");
+    router.refresh();
+  }
 
   function renderItem(item: SidebarItem, index: number) {
     const isActive = activeKey != null && item.key === activeKey;
@@ -180,7 +188,7 @@ export default function SidebarAdmin({
         aria-hidden="true"
       />
 
-      <aside className="hidden w-full flex-col border-b border-slate-200 bg-white lg:flex lg:w-[220px] lg:border-b-0 lg:border-r">
+      <aside className="hidden w-full flex-col border-b border-slate-200 bg-white lg:flex lg:w-55 lg:border-b-0 lg:border-r">
         <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5">
           <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-8 w-8 shrink-0" />
           <div className="min-w-0">
@@ -201,7 +209,7 @@ export default function SidebarAdmin({
               <p className="truncate text-xs font-medium text-slate-900">Admin</p>
               <p className="text-[10px] text-slate-400">Super Admin</p>
             </div>
-            <button type="button" title="Logout" className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
+            <button type="button" title="Logout" onClick={handleLogout} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500">
               <LogOut className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -209,7 +217,7 @@ export default function SidebarAdmin({
       </aside>
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-dvh w-[85vw] max-w-[280px] flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-[85vw] max-w-70 flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-hidden={!menuOpen}
       >
         <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5">
@@ -232,6 +240,9 @@ export default function SidebarAdmin({
               <p className="truncate text-xs font-medium text-slate-900">Admin</p>
               <p className="text-[10px] text-slate-400">Super Admin</p>
             </div>
+            <button type="button" title="Logout" onClick={handleLogout} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500">
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </aside>

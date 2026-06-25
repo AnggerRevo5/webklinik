@@ -80,12 +80,6 @@ type ArticleItem = {
   slug?: string;
 };
 
-type SocialItem = {
-  label: string;
-  href: string;
-  icon: string;
-};
-
 /* ─── Site constants ─── */
 
 const CLINIC_PHONE = "0812-2556-6055";
@@ -132,32 +126,6 @@ const SOCIAL_LINK_ITEMS = [
 
 /* ─── Section data ─── */
 
-const articleTabs = [
-  "Semua",
-  "Tips kesehatan",
-  "Edukasi",
-  "Berita klinik",
-  "Ibu & anak",
-];
-
-const socialCards: SocialItem[] = [
-  { label: "Instagram", href: "#", icon: ASSETS.icons.instagram },
-  { label: "Facebook", href: "#", icon: ASSETS.icons.facebook },
-  { label: "Tiktok", href: "#", icon: ASSETS.icons.tiktok },
-  {
-    label: "Email",
-    href: "mailto:info@ampelgadingmedical.com",
-    icon: ASSETS.icons.email,
-  },
-];
-
-const socialIconMap: Record<string, string> = {
-  instagram: ASSETS.icons.instagram,
-  facebook: ASSETS.icons.facebook,
-  tiktok: ASSETS.icons.tiktok,
-  email: ASSETS.icons.email,
-  whatsapp: ASSETS.icons.whatsapp,
-};
 
 function resolveAssetPath(url: string | undefined, fallback: string) {
   if (!url) return fallback;
@@ -310,7 +278,7 @@ function DoctorProfileModal({
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#00b4d8] via-[#4200ff] to-[#e8861e]" />
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-linear-to-r from-[#00b4d8] via-[#4200ff] to-[#e8861e]" />
         <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#00b4d8]/10 blur-3xl" />
         <div className="absolute -left-16 bottom-0 h-44 w-44 rounded-full bg-[#4200ff]/10 blur-3xl" />
 
@@ -328,7 +296,7 @@ function DoctorProfileModal({
         </button>
 
         <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="relative min-h-[280px] overflow-hidden bg-gradient-to-br from-[#082f49] via-[#0f4c81] to-[#00b4d8] p-5 sm:p-7 lg:min-h-[520px]">
+          <div className="relative min-h-70 overflow-hidden bg-linear-to-br from-[#082f49] via-[#0f4c81] to-[#00b4d8] p-5 sm:p-7 lg:min-h-130">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.14),transparent_28%)]" />
             <div className="relative flex h-full flex-col justify-between gap-6 text-white">
               <div className="flex items-center justify-between gap-4">
@@ -341,9 +309,9 @@ function DoctorProfileModal({
                 </span>
               </div>
 
-              <div className="mx-auto flex w-full max-w-[300px] flex-1 items-center justify-center py-2 sm:max-w-[340px]">
+              <div className="mx-auto flex w-full max-w-75 flex-1 items-center justify-center py-2 sm:max-w-85">
                 <div className="relative w-full overflow-hidden rounded-[30px] border border-white/20 bg-white/10 p-3 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.85)] backdrop-blur-sm">
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-[24px] bg-white/15">
+                  <div className="relative aspect-4/5 overflow-hidden rounded-3xl bg-white/15">
                     {doctorImage ? (
                       <>
                         <Image
@@ -353,7 +321,7 @@ function DoctorProfileModal({
                           className="object-cover"
                           sizes="(max-width: 1024px) 100vw, 380px"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-slate-950/35 via-transparent to-transparent" />
                       </>
                     ) : (
                       <div className="flex h-full items-center justify-center">
@@ -631,7 +599,7 @@ function CardSlider({ children }: { children: React.ReactNode }) {
       </div>
       <div
         ref={trackRef}
-        className="slider-track flex gap-[var(--gap-cards)] overflow-x-auto scroll-smooth pb-2"
+        className="slider-track flex gap-(--gap-cards) overflow-x-auto scroll-smooth pb-2"
         onTouchStart={(e) => {
           touchStartX.current = e.touches[0].clientX;
         }}
@@ -692,16 +660,16 @@ function DoctorCard({
   return (
     <div
       className={cn(
-        "group relative flex h-[184px] overflow-hidden rounded-2xl bg-white",
+        "group relative flex h-46 overflow-hidden rounded-2xl bg-white",
         "transition-all duration-300 hover:-translate-y-1",
         "shadow-[0px_3.43px_20.59px_-0.86px_#00000033] hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.18)]",
       )}
     >
       {/* Teal accent line — slides in from bottom on hover */}
-      <div className="absolute bottom-0 left-0 top-0 z-10 w-[3px] origin-bottom scale-y-0 bg-[#00b4d8] transition-transform duration-300 group-hover:origin-top group-hover:scale-y-100" />
+      <div className="absolute bottom-0 left-0 top-0 z-10 w-0.75 origin-bottom scale-y-0 bg-[#00b4d8] transition-transform duration-300 group-hover:origin-top group-hover:scale-y-100" />
 
       {/* Photo panel */}
-      <div className="relative w-[130px] shrink-0 overflow-hidden">
+      <div className="relative w-32.5 shrink-0 overflow-hidden">
         {doctor.image ? (
           <>
             <Image
@@ -711,13 +679,13 @@ function DoctorCard({
               className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
               sizes="130px"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/10" />
+            <div className="absolute inset-0 bg-linear-to-r from-transparent to-black/10" />
           </>
         ) : (
           <div
             className={cn(
               "absolute inset-0 flex items-center justify-center text-3xl font-bold text-white",
-              `bg-gradient-to-br ${doctor.gradient}`,
+              `bg-linear-to-br ${doctor.gradient}`,
             )}
           >
             {doctor.initials}
@@ -763,61 +731,6 @@ function DoctorCard({
   );
 }
 
-function SocialLinkCard({ item }: { item: SocialItem }) {
-  return (
-    <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-      <CardContent className="card-base flex flex-col items-center justify-center gap-3">
-        <a
-          href={item.href}
-          target={item.href.startsWith("http") ? "_blank" : undefined}
-          rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-          className="transition-transform hover:scale-105"
-          aria-label={item.label}
-        >
-          <AssetIcon src={item.icon} alt={item.label} size={40} />
-        </a>
-        <div className="t-body text-center font-bold text-[#3f3f3f]">
-          {item.label}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ContactCard({
-  title,
-  value,
-  description,
-  icon,
-  action,
-}: {
-  title: string;
-  value: React.ReactNode;
-  description?: string;
-  icon: React.ReactNode;
-  action: React.ReactNode;
-}) {
-  return (
-    <Card className={cn("card-radius border-0 bg-white", cardShadowMd)}>
-      <CardContent className="card-base flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex h-[60px] w-12 items-center justify-center card-radius-sm bg-[#d9d9d9] md:w-[60px]">
-            {icon}
-          </div>
-          <div>
-            <div className="t-body-sm text-[#3f3f3f]">{title}</div>
-            <div className="t-body mt-1 font-bold text-[#3f3f3f]">{value}</div>
-            {description ? (
-              <div className="t-body-sm mt-1 text-[#3f3f3f]">{description}</div>
-            ) : null}
-          </div>
-        </div>
-        {action}
-      </CardContent>
-    </Card>
-  );
-}
-
 /* Kartu promo — desain voucher/kupon. */
 function PromoCard({ promo }: { promo: PromoItem }) {
   return (
@@ -840,7 +753,7 @@ function PromoCard({ promo }: { promo: PromoItem }) {
           className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
           sizes="360px"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/25 to-transparent" />
         <span className="absolute right-3 top-3 rounded-full bg-[#e8861e] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white shadow">
           PROMO
         </span>
@@ -953,7 +866,7 @@ function ArticleFeaturedCard({ article }: { article: ArticleItem }) {
           className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
           sizes="(max-width: 1024px) 100vw, 55vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/30 to-transparent" />
         <span className="absolute left-4 top-4 rounded-full bg-[#00b4d8] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow">
           Tips Kesehatan
         </span>
@@ -1001,7 +914,7 @@ function ArticleCompactCard({ article }: { article: ArticleItem }) {
       )}
     >
       {/* Accent line hover */}
-      <div className="absolute bottom-0 left-0 top-0 z-10 w-[3px] origin-bottom scale-y-0 bg-[#00b4d8] transition-transform duration-300 group-hover:origin-top group-hover:scale-y-100" />
+      <div className="absolute bottom-0 left-0 top-0 z-10 w-0.75 origin-bottom scale-y-0 bg-[#00b4d8] transition-transform duration-300 group-hover:origin-top group-hover:scale-y-100" />
 
       {/* Foto */}
       <div className="relative w-[150px] shrink-0 overflow-hidden">
@@ -1047,7 +960,7 @@ function ArticleTextCard({ article }: { article: ArticleItem }) {
     <div
       className={cn(
         "group relative flex flex-1 flex-col justify-between overflow-hidden rounded-2xl",
-        "bg-gradient-to-br from-[#071e38] to-[#0c3a68] p-5",
+        "bg-linear-to-br from-[#071e38] to-[#0c3a68] p-5",
         "shadow-[0_2px_16px_-4px_rgba(0,0,0,0.22)] transition-all duration-300",
         "hover:-translate-y-0.5 hover:shadow-[0_10px_32px_-6px_rgba(0,100,200,0.28)]",
         "min-h-[160px]",
@@ -1465,7 +1378,7 @@ function LayananSection({
             image: resolveAssetPath(item.url, ""),
           }))
         : [],
-    [homeData?.layanan],
+    [homeData],
   );
 
   return (

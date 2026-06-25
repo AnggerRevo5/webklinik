@@ -4,15 +4,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   Ambulance,
   Building2,
-  Edit3,
-  Eye,
   HeartPulse,
   HouseHeart,
-  ImagePlus,
-  ListFilter,
   PencilLine,
   Plus,
-  Syringe,
   Trash2,
   Users2,
 } from "lucide-react";
@@ -21,11 +16,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   createGallery,
   deleteGallery,
+  getGaleri,
   type CreateGalleryPayload,
   type Gallery,
   updateGallery,
 } from "@/src/lib/api";
-import { useHomeData } from "@/src/lib/hooks";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
 import {
@@ -52,7 +47,11 @@ const galleryFilters = [
   "Fasilitas",
   "Layanan",
   "Poli",
+  "Staff",
 ] as const;
+
+// Kategori resmi yang tersedia di database — staff hanya boleh pilih dari sini
+const KATEGORI_OPTIONS = galleryFilters.filter((f) => f !== "Semua");
 
 function GalleryCard({
   item,
@@ -68,7 +67,7 @@ function GalleryCard({
   return (
     <article className="group relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
       <div
-        className={`relative aspect-square bg-gradient-to-br ${item.gradientClassName}`}
+        className={`relative aspect-square bg-linear-to-br ${item.gradientClassName}`}
       >
         {item.url ? (
           <Image
@@ -89,7 +88,7 @@ function GalleryCard({
         <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[9px] font-semibold shadow-sm">
           <span className={item.badgeClassName}>{item.badge}</span>
         </div>
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/75 to-transparent p-3 opacity-0 transition group-hover:opacity-100">
+        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950/75 to-transparent p-3 opacity-0 transition group-hover:opacity-100">
           <div className="text-[11px] font-medium text-white">{item.title}</div>
           <div className="mt-2 flex items-center gap-2">
             <button
@@ -123,33 +122,31 @@ function GalleryCard({
 }
 
 export default function GaleriArtikelAdmin() {
-  const { data } = useHomeData();
   const [gallery, setGallery] = useState<Gallery[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedGalleryId, setSelectedGalleryId] = useState<number | null>(
     null,
   );
   const [activeFilter, setActiveFilter] =
     useState<(typeof galleryFilters)[number]>("Semua");
   const [form, setForm] = useState<CreateGalleryPayload>({
-    kategori: "",
+    kategori: KATEGORI_OPTIONS[0],
     text: "",
     url: "",
   });
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const { toasts, showToast, dismissToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   useEffect(() => {
-    if (data?.galeri) {
-      setGallery(data.galeri);
-      if (selectedGalleryId == null && data.galeri[0]) {
-        setSelectedGalleryId(data.galeri[0].id);
-      }
-    }
-  }, [data?.galeri, selectedGalleryId]);
+    getGaleri().then((items) => {
+      setGallery(items);
+      if (items[0]) setSelectedGalleryId(items[0].id);
+      setIsLoading(false);
+    }).catch(() => setIsLoading(false));
+  }, []);
 
   const selectedGallery = useMemo(
     () => gallery.find((item) => item.id === selectedGalleryId) ?? null,
@@ -203,7 +200,7 @@ export default function GaleriArtikelAdmin() {
           item.badge.toLowerCase().includes(activeFilter.toLowerCase()),
         );
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: { preventDefault(): void }) {
     event.preventDefault();
     setSubmitError(null);
     setActionError(null);
@@ -303,7 +300,7 @@ export default function GaleriArtikelAdmin() {
                 </span>
               </div>
               <div className="grid gap-2 md:grid-cols-3">
-                <input
+                <select
                   value={form.kategori}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -312,8 +309,13 @@ export default function GaleriArtikelAdmin() {
                     }))
                   }
                   className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] outline-none"
-                  placeholder="Kategori"
-                />
+                >
+                  {KATEGORI_OPTIONS.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
                 <input
                   value={form.text}
                   onChange={(event) =>
@@ -369,7 +371,7 @@ export default function GaleriArtikelAdmin() {
             </form>
 
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              {galleryFilters.map((filter, index) => (
+              {galleryFilters.map((filter) => (
                 <button
                   key={filter}
                   type="button"
@@ -386,7 +388,11 @@ export default function GaleriArtikelAdmin() {
 
             <section>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {visibleGalleryItems.length > 0 ? (
+                {isLoading ? (
+                  <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-[10px] text-slate-500 shadow-sm">
+                    Memuat galeri...
+                  </div>
+                ) : visibleGalleryItems.length > 0 ? (
                   visibleGalleryItems.map((item) => (
                     <GalleryCard
                       key={item.id}

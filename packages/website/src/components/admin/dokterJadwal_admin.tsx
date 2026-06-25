@@ -552,6 +552,8 @@ function DokterFormModal({
   );
 }
 
+const PAGE_SIZE = 10;
+
 export default function DokterJadwalAdmin() {
   const [doctors, setDoctors] = useState<DokterAdmin[]>([]);
   const [spesialis, setSpesialis] = useState<KhanzaSpesialis[]>([]);
@@ -565,6 +567,7 @@ export default function DokterJadwalAdmin() {
   const [formModal, setFormModal] = useState<FormModal | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDialogState>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [hiddenPage, setHiddenPage] = useState(1);
   const { toasts, showToast, dismissToast } = useToast();
 
   const loadDokter = useCallback(() => {
@@ -689,6 +692,10 @@ export default function DokterJadwalAdmin() {
   const selectedDoctor = doctors.find((d) => d.kd_dokter === selectedKd) ?? null;
   const totalTampil = doctors.filter((d) => d.tampil_website).length;
 
+  useEffect(() => {
+    setHiddenPage(1);
+  }, [searchQuery]);
+
   function matchSearch(dok: DokterAdmin) {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -697,6 +704,8 @@ export default function DokterJadwalAdmin() {
 
   const filteredActive = doctors.filter((d) => d.tampil_website && matchSearch(d));
   const filteredInactive = doctors.filter((d) => !d.tampil_website && matchSearch(d));
+  const totalHiddenPages = Math.max(1, Math.ceil(filteredInactive.length / PAGE_SIZE));
+  const pagedInactive = filteredInactive.slice((hiddenPage - 1) * PAGE_SIZE, hiddenPage * PAGE_SIZE);
 
   function renderDokterCard(dok: DokterAdmin) {
     const isSelected = dok.kd_dokter === selectedKd;
@@ -919,8 +928,44 @@ export default function DokterJadwalAdmin() {
                       <div className="h-px flex-1 bg-slate-200" />
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      {filteredInactive.map((dok) => renderDokterCard(dok))}
+                      {pagedInactive.map((dok) => renderDokterCard(dok))}
                     </div>
+
+                    {/* Pagination */}
+                    {totalHiddenPages > 1 && (
+                      <div className="mt-4 flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setHiddenPage((p) => Math.max(1, p - 1))}
+                          disabled={hiddenPage === 1}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-medium text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+                        >
+                          ← Prev
+                        </button>
+                        {Array.from({ length: totalHiddenPages }, (_, i) => i + 1).map((page) => (
+                          <button
+                            key={page}
+                            type="button"
+                            onClick={() => setHiddenPage(page)}
+                            className={`rounded-lg border px-3 py-1.5 text-[9px] font-medium transition-colors ${
+                              page === hiddenPage
+                                ? "border-sky-500 bg-sky-500 text-white"
+                                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setHiddenPage((p) => Math.min(totalHiddenPages, p + 1))}
+                          disabled={hiddenPage === totalHiddenPages}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-medium text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
