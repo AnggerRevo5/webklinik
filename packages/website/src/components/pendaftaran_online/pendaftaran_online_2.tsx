@@ -9,16 +9,22 @@ import {
   Check,
   ClipboardList,
   Loader2,
-  MessageCircle,
-  Phone,
   Stethoscope,
 } from "lucide-react";
 import { Button } from "@/src/UiKecil/button";
-import { Card, CardContent } from "@/src/UiKecil/card";
 import { Input } from "@/src/UiKecil/input";
 import { Separator } from "@/src/UiKecil/separator";
 import Link from "next/link";
-import Navbar from "@/src/components/navbar";
+import { cn } from "@/src/lib/utils";
+import { Reveal } from "@/src/components/motion";
+import {
+  RegistrationShell,
+  HelpCard,
+  fieldClass,
+  selectFieldClass,
+  fieldLabelClass,
+  softCardClass,
+} from "@/src/components/pendaftaran_online/registration_shell";
 import {
   getDokterKhanza,
   getPenjamin,
@@ -31,8 +37,7 @@ import {
   type PoliKhanza,
 } from "@/src/lib/api";
 
-const selectClass =
-  "h-12 w-full rounded-full border border-[#8f8f8f] bg-[#f7f5f2] px-4 t-body text-black focus:outline-none cursor-pointer appearance-none";
+const selectClass = selectFieldClass;
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -144,54 +149,17 @@ export default function FormulirKunjungan() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#f7f5f2]">
-      <Navbar />
-
-      <div className="section-wrap">
-        <section className="card-radius border border-black/5 bg-[#e7e7e752] shadow-[inset_0px_4px_4px_#0000001a]">
-          <div className="card-base">
-            <div className="mx-auto flex max-w-[1360px] flex-col items-center">
-              {/* Judul */}
-              <div className="mb-2 flex items-center gap-3">
-                <CalendarDays className="h-10 w-10 text-[#87a8d9]" />
-                <h1 className="t-h2 text-center font-medium uppercase tracking-wide text-[#00b4d8]">
-                  Pendaftaran Online
-                </h1>
-              </div>
-              <p className="mb-8 text-center t-body-lg font-medium text-black">
-                Pilih penjamin dan jadwal kunjungan
-              </p>
-
-              {/* Step indicator */}
-              <div className="mb-11 flex flex-wrap items-center justify-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#008000]">
-                    <Check className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="t-body-sm font-medium text-[#008000]">Data diri</span>
-                </div>
-                <div className="hidden h-px w-[74px] bg-[#77b36c] sm:block" />
-                <div className="flex items-center gap-3">
-                  <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#1d19ff] text-white">
-                    <span className="t-body-sm font-medium">2</span>
-                  </div>
-                  <span className="t-body-sm font-medium text-[#0000ff]">Kunjungan</span>
-                </div>
-                <div className="hidden h-px w-[74px] bg-[#9a9a9a] sm:block" />
-                <div className="flex items-center gap-3">
-                  <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#b4b4b4] text-[#494949]">
-                    <span className="t-body-sm font-medium">3</span>
-                  </div>
-                  <span className="t-body-sm font-medium text-[#a4a4a4]">Konfirmasi</span>
-                </div>
-              </div>
-
-              <div
-                className="grid w-full max-w-[1370px] grid-cols-1 lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]"
-                style={{ gap: "var(--gap-cards)" }}
-              >
-                {/* ── Form Area ── */}
-                <section>
+    <RegistrationShell
+      current={2}
+      subtitle="Pilih jenis penjamin dan jadwal kunjungan Anda"
+    >
+      <Reveal direction="up">
+        <div
+          className="grid w-full grid-cols-1 lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]"
+          style={{ gap: "var(--gap-cards)" }}
+        >
+          {/* ── Form Area ── */}
+          <section className={cn(softCardClass, "p-5 sm:p-6")}>
                   {/* PENJAMIN */}
                   <div className="mb-6 space-y-3">
                     <div className="flex items-center gap-2 mb-2">
@@ -214,31 +182,29 @@ export default function FormulirKunjungan() {
                               onClick={() => { setKdPj(pj.kd_pj); setNoPeserta(""); }}
                               className="text-left"
                             >
-                              <Card
-                                className={`card-radius border shadow-none ${
+                              <div
+                                className={`flex min-h-[56px] items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-200 ${
                                   isSelected
-                                    ? "border-[#5d5dff] bg-[#0000ff33]"
-                                    : "border-black bg-[#f7f5f2]"
+                                    ? "border-[#00b4d8] bg-[#00b4d8]/8 shadow-sm shadow-[#00b4d8]/20"
+                                    : "border-slate-200 bg-white hover:border-[#00b4d8]/50"
                                 }`}
                               >
-                                <CardContent className="flex min-h-[56px] items-center gap-3 px-4 py-3">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="t-body font-bold text-black leading-tight">
-                                      {pj.png_jawab}
-                                    </p>
-                                    <p className="t-body-sm font-medium text-black/40">
-                                      {pj.kd_pj}
-                                    </p>
-                                  </div>
-                                  <div
-                                    className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-black ${
-                                      isSelected ? "bg-[#0000ff]" : "bg-[#d9d9d9]"
-                                    }`}
-                                  >
-                                    {isSelected && <Check className="h-3.5 w-3.5 text-white" />}
-                                  </div>
-                                </CardContent>
-                              </Card>
+                                <div className="min-w-0 flex-1">
+                                  <p className="t-body font-bold leading-tight text-slate-900">
+                                    {pj.png_jawab}
+                                  </p>
+                                  <p className="t-body-sm font-medium text-slate-400">
+                                    {pj.kd_pj}
+                                  </p>
+                                </div>
+                                <div
+                                  className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                                    isSelected ? "border-[#00b4d8] bg-[#00b4d8]" : "border-slate-300 bg-white"
+                                  }`}
+                                >
+                                  {isSelected && <Check className="h-3.5 w-3.5 text-white" />}
+                                </div>
+                              </div>
                             </button>
                           );
                         })}
@@ -248,14 +214,14 @@ export default function FormulirKunjungan() {
                     {/* No peserta BPJS */}
                     {kdPj === "BPJ" && (
                       <div className="mt-3 space-y-2">
-                        <label className="t-body-sm font-bold uppercase tracking-wide text-black">
+                        <label className={fieldLabelClass}>
                           No. Peserta BPJS
                         </label>
                         <Input
                           value={noPeserta}
                           onChange={(e) => setNoPeserta(e.target.value)}
                           placeholder="Nomor peserta BPJS Kesehatan"
-                          className="h-12 rounded-full border border-[#8f8f8f] bg-[#f7f5f2] px-4 t-body text-black placeholder:text-[#b3b3b3] focus-visible:ring-0"
+                          className={fieldClass}
                         />
                       </div>
                     )}
@@ -274,7 +240,7 @@ export default function FormulirKunjungan() {
 
                     {/* Pilih poli */}
                     <div className="space-y-2">
-                      <label className="t-body-sm font-bold uppercase tracking-wide text-black">
+                      <label className={fieldLabelClass}>
                         Pilih Poliklinik
                       </label>
                       <select
@@ -294,7 +260,7 @@ export default function FormulirKunjungan() {
 
                     {/* Pilih tanggal */}
                     <div className="space-y-2">
-                      <label className="t-body-sm font-bold uppercase tracking-wide text-black">
+                      <label className={fieldLabelClass}>
                         Tanggal Kunjungan
                       </label>
                       <Input
@@ -303,7 +269,7 @@ export default function FormulirKunjungan() {
                         min={today}
                         onChange={(e) => setTanggalPeriksa(e.target.value)}
                         disabled={!kdPoli}
-                        className="h-12 rounded-full border border-[#8f8f8f] bg-[#f7f5f2] px-4 t-body text-black focus-visible:ring-0 disabled:opacity-50"
+                        className={cn(fieldClass, "disabled:opacity-50")}
                       />
                       {!kdPoli && (
                         <p className="t-caption font-medium text-[#b3b3b3]">
@@ -345,49 +311,47 @@ export default function FormulirKunjungan() {
                                   disabled={kuotaHabis}
                                   className="block w-full text-left disabled:opacity-50"
                                 >
-                                  <Card
-                                    className={`card-radius border shadow-none ${
+                                  <div
+                                    className={`flex min-h-[84px] items-center gap-3 rounded-xl border px-4 py-4 transition-all duration-200 ${
                                       isSelected
-                                        ? "border-[#5d5dff] bg-[#0000ff33]"
-                                        : "border-black bg-[#f7f5f2]"
+                                        ? "border-[#00b4d8] bg-[#00b4d8]/8 shadow-sm shadow-[#00b4d8]/20"
+                                        : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-[#00b4d8]/50"
                                     }`}
                                   >
-                                    <CardContent className="flex min-h-[84px] items-center gap-3 px-4 py-4">
-                                      <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-[#87a8d9] t-body-sm font-medium text-white">
-                                        {d.nm_dokter.charAt(0)}
+                                    <div className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0f4c81] to-[#00b4d8] t-body font-bold text-white">
+                                      {d.nm_dokter.charAt(0)}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <h3 className="t-h4 font-bold leading-tight text-slate-900">
+                                        {d.nm_dokter}
+                                      </h3>
+                                      <div className="t-body-sm font-medium text-slate-500">
+                                        {d.jam_mulai} – {d.jam_selesai}
                                       </div>
-                                      <div className="min-w-0 flex-1">
-                                        <h3 className="t-h4 font-bold leading-tight text-black">
-                                          {d.nm_dokter}
-                                        </h3>
-                                        <div className="t-body-sm font-medium text-black/50">
-                                          {d.jam_mulai} – {d.jam_selesai}
+                                      {d.kuota > 0 && (
+                                        <div
+                                          className={`t-caption font-semibold ${
+                                            kuotaHabis
+                                              ? "text-red-500"
+                                              : "text-emerald-600"
+                                          }`}
+                                        >
+                                          {kuotaHabis
+                                            ? "Kuota penuh"
+                                            : `Sisa kuota: ${d.sisa_kuota}`}
                                         </div>
-                                        {d.kuota > 0 && (
-                                          <div
-                                            className={`t-caption font-medium ${
-                                              kuotaHabis
-                                                ? "text-red-500"
-                                                : "text-green-600"
-                                            }`}
-                                          >
-                                            {kuotaHabis
-                                              ? "Kuota penuh"
-                                              : `Sisa kuota: ${d.sisa_kuota}`}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div
-                                        className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-black ${
-                                          isSelected ? "bg-[#0000ff]" : "bg-[#d9d9d9]"
-                                        }`}
-                                      >
-                                        {isSelected && (
-                                          <Check className="h-3.5 w-3.5 text-white" />
-                                        )}
-                                      </div>
-                                    </CardContent>
-                                  </Card>
+                                      )}
+                                    </div>
+                                    <div
+                                      className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                                        isSelected ? "border-[#00b4d8] bg-[#00b4d8]" : "border-slate-300 bg-white"
+                                      }`}
+                                    >
+                                      {isSelected && (
+                                        <Check className="h-3.5 w-3.5 text-white" />
+                                      )}
+                                    </div>
+                                  </div>
                                 </button>
                               );
                             })}
@@ -417,7 +381,7 @@ export default function FormulirKunjungan() {
                   <div className="mt-6 flex flex-wrap items-center gap-3">
                     <Button
                       variant="outline"
-                      className="h-12 rounded-full border-2 border-black bg-[#f7f5f2] px-6 t-body font-medium text-black shadow-[0px_4px_33px_6px_#4a445d29] hover:bg-[#f2efea]"
+                      className="h-12 rounded-full border border-slate-300 bg-white px-6 t-body font-medium text-slate-700 transition-transform hover:-translate-y-0.5 hover:bg-slate-50"
                       asChild
                     >
                       <Link href="/pendaftaran_online_1">
@@ -428,7 +392,7 @@ export default function FormulirKunjungan() {
                     <Button
                       type="button"
                       onClick={handleLanjut}
-                      className="h-12 rounded-full bg-[#00b4d8] px-6 t-body font-medium text-white shadow-[0px_4px_33px_6px_#4a445d29] hover:bg-[#05abce]"
+                      className="btn-shine h-12 rounded-full bg-[#00b4d8] px-6 t-body font-medium text-white shadow-lg shadow-[#00b4d8]/25 transition-transform hover:-translate-y-0.5 hover:bg-[#05abce]"
                     >
                       Lanjut konfirmasi
                       <ArrowRight className="ml-2 h-5 w-5" />
@@ -436,75 +400,49 @@ export default function FormulirKunjungan() {
                   </div>
                 </section>
 
-                {/* ── Sidebar ── */}
-                <aside className="hidden flex-col gap-5 lg:flex">
-                  <Card className="card-radius border border-black bg-[#f7f5f2] shadow-none">
-                    <CardContent className="card-base">
-                      <div className="mb-3 flex items-center gap-3">
-                        <ClipboardList className="h-6 w-6 text-[#87a8d9]" />
-                        <h3 className="t-h3 font-bold text-black">Ringkasan data diri</h3>
-                      </div>
-                      <div>
-                        {summaryRows.map((row, index) => (
-                          <div key={row.label}>
-                            <div className="grid grid-cols-[140px_1fr] items-center gap-4 py-2 t-body">
-                              <div className="font-medium text-[#b3b3b3]">{row.label}</div>
-                              <div className="text-right text-black">{row.value}</div>
-                            </div>
-                            {index < summaryRows.length - 1 && (
-                              <Separator className="bg-black/20" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="card-radius border-0 bg-[#00b4d8] text-white shadow-[0px_4px_33px_6px_#4a445d29]">
-                    <CardContent className="card-base">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Phone className="h-5 w-5" />
-                        <h3 className="t-h3 font-medium">Butuh bantuan?</h3>
-                      </div>
-                      <p className="mb-5 max-w-[430px] t-body font-medium text-white">
-                        Tim kami siap membantu memilih layanan yang tepat
-                      </p>
-                      <Button
-                        className="h-12 rounded-full bg-[#0d8f1f] px-5 t-body font-medium text-white shadow-[0px_4px_33px_6px_#4a445d29] hover:bg-[#0b831b]"
-                        asChild
-                      >
-                        <Link
-                          href="https://wa.me/6281225566055"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <MessageCircle className="mr-2 h-5 w-5 fill-white text-white" />
-                          Chat Whatsapp
-                        </Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </aside>
-
-                {/* Mobile accordion */}
-                <details className="rounded-2xl border border-black/20 bg-[#f7f5f2] p-4 lg:hidden">
-                  <summary className="cursor-pointer t-body font-semibold text-black">
-                    Lihat ringkasan data
-                  </summary>
-                  <div className="mt-3 space-y-2 t-body-sm text-[#5f5f5f]">
-                    {summaryRows.slice(0, 3).map((row) => (
-                      <div key={row.label} className="flex justify-between gap-3">
-                        <span>{row.label}</span>
-                        <span className="font-medium text-black">{row.value}</span>
-                      </div>
-                    ))}
+          {/* ── Sidebar ── */}
+          <aside className="hidden flex-col gap-4 lg:sticky lg:top-6 lg:flex lg:self-start">
+            <div className={cn(softCardClass, "p-5")}>
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#00b4d8]/10">
+                  <ClipboardList className="h-5 w-5 text-[#0f4c81]" />
+                </div>
+                <h3 className="t-h4 font-bold text-slate-900">Ringkasan data diri</h3>
+              </div>
+              <div>
+                {summaryRows.map((row, index) => (
+                  <div key={row.label}>
+                    <div className="grid grid-cols-[120px_1fr] items-center gap-4 py-2.5 t-body-sm">
+                      <div className="font-medium text-slate-400">{row.label}</div>
+                      <div className="text-right font-medium text-slate-900">{row.value}</div>
+                    </div>
+                    {index < summaryRows.length - 1 && (
+                      <Separator className="bg-slate-100" />
+                    )}
                   </div>
-                </details>
+                ))}
               </div>
             </div>
-          </div>
-        </section>
-      </div>
-    </main>
+
+            <HelpCard />
+          </aside>
+
+          {/* Mobile accordion */}
+          <details className={cn(softCardClass, "p-4 lg:hidden")}>
+            <summary className="cursor-pointer t-body font-semibold text-slate-900">
+              Lihat ringkasan data
+            </summary>
+            <div className="mt-3 space-y-2 t-body-sm text-slate-500">
+              {summaryRows.slice(0, 3).map((row) => (
+                <div key={row.label} className="flex justify-between gap-3">
+                  <span>{row.label}</span>
+                  <span className="font-medium text-slate-900">{row.value}</span>
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      </Reveal>
+    </RegistrationShell>
   );
 }

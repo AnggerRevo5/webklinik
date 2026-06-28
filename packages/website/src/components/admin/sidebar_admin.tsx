@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   MessageCircle,
+  Settings,
   Stethoscope,
   Tag,
   Users,
@@ -29,7 +30,8 @@ export type SidebarKey =
   | "review"
   | "artikel"
   | "pengunjung"
-  | "sosmed";
+  | "sosmed"
+  | "pengaturan";
 
 type SidebarItem = {
   label: string;
@@ -110,6 +112,13 @@ const sidebarItems: SidebarItem[] = [
     key: "sosmed",
     icon: BarChart2,
   },
+  {
+    label: "Pengaturan",
+    description: "Konten & kontak",
+    href: "/admin_pengaturan",
+    key: "pengaturan",
+    icon: Settings,
+  },
 ];
 
 export default function SidebarAdmin({
@@ -122,10 +131,10 @@ export default function SidebarAdmin({
   function renderItem(item: SidebarItem, index: number) {
     const isActive = activeKey != null && item.key === activeKey;
     const Icon = item.icon;
-    const baseClassName = `group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-all duration-200 ease-out ${
+    const baseClassName = `group relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-200 ease-out ${
       isActive
-        ? "bg-sky-600 text-white border-sky-500/40 shadow-sm"
-        : "bg-transparent text-slate-700 border-transparent hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+        ? "bg-gradient-to-r from-sky-600 to-cyan-500 text-white shadow-md shadow-sky-600/25"
+        : "bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
     }`;
 
     return (
@@ -136,16 +145,20 @@ export default function SidebarAdmin({
         aria-label={item.label}
         onClick={() => setMenuOpen(false)}
       >
+        {/* Indikator aktif di sisi kiri */}
+        {isActive && (
+          <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-white/80" />
+        )}
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
-          isActive ? "bg-white/20" : "bg-slate-100 group-hover:bg-slate-200"
+          isActive ? "bg-white/20" : "bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600"
         }`}>
-          <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-600"}`} />
+          <Icon className={`h-4 w-4 ${isActive ? "text-white" : ""}`} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold leading-tight">
             {item.label}
           </div>
-          <div className={`mt-0.5 max-w-full truncate text-[10px] leading-none ${isActive ? "text-white/70" : "text-slate-400"}`}>
+          <div className={`mt-0.5 max-w-full truncate text-[10px] leading-none ${isActive ? "text-white/75" : "text-slate-400"}`}>
             {item.description}
           </div>
         </div>
@@ -181,11 +194,13 @@ export default function SidebarAdmin({
       />
 
       <aside className="hidden w-full flex-col border-b border-slate-200 bg-white lg:flex lg:w-[220px] lg:border-b-0 lg:border-r">
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5">
-          <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-8 w-8 shrink-0" />
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#0D1B2A] to-[#13314f] px-5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+            <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-7 w-7" />
+          </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold leading-tight text-slate-900">KRI AMC</p>
-            <p className="mt-0.5 text-[10px] leading-none text-slate-400">Admin Panel</p>
+            <p className="text-sm font-bold leading-tight text-white">KRI AMC</p>
+            <p className="mt-0.5 text-[10px] leading-none text-sky-200/70">Admin Panel</p>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
@@ -194,16 +209,16 @@ export default function SidebarAdmin({
         </div>
         <div className="shrink-0 border-t border-slate-100 p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-600 to-cyan-500 text-xs font-bold text-white shadow-sm">
               A
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-slate-900">Admin</p>
+              <p className="truncate text-xs font-semibold text-slate-900">Admin</p>
               <p className="text-[10px] text-slate-400">Super Admin</p>
             </div>
-            <button type="button" title="Logout" className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
+            <Link href="/admin_login_page" title="Logout" aria-label="Logout" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500">
               <LogOut className="h-3.5 w-3.5" />
-            </button>
+            </Link>
           </div>
         </div>
       </aside>
@@ -212,11 +227,13 @@ export default function SidebarAdmin({
         className={`fixed left-0 top-0 z-50 flex h-dvh w-[85vw] max-w-[280px] flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-hidden={!menuOpen}
       >
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5">
-          <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-8 w-8 shrink-0" />
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#0D1B2A] to-[#13314f] px-5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+            <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-7 w-7" />
+          </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold leading-tight text-slate-900">KRI AMC</p>
-            <p className="mt-0.5 text-[10px] leading-none text-slate-400">Admin Panel</p>
+            <p className="text-sm font-bold leading-tight text-white">KRI AMC</p>
+            <p className="mt-0.5 text-[10px] leading-none text-sky-200/70">Admin Panel</p>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4">

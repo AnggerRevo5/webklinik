@@ -54,17 +54,18 @@ export function SectionHeader({
       {label && (
         <div
           className={cn(
-            "mb-3 flex items-center gap-2",
-            align === "center" && "justify-center",
+            "mb-3 flex w-fit items-center gap-2 rounded-full border border-[#00b4d8]/20 bg-[#00b4d8]/8 px-3 py-1",
+            align === "center" && "mx-auto justify-center",
           )}
         >
-          <Star className="h-5 w-5 fill-[#00b4d8] text-[#00b4d8]" aria-hidden />
+          <Star className="h-4 w-4 fill-[#00b4d8] text-[#00b4d8]" aria-hidden />
           <span className="t-overline text-[#00b4d8]">{label}</span>
         </div>
       )}
       <HeadingTag
         className={cn(
-          "t-h2 font-bold text-[#3f3f3f]",
+          "t-h2 accent-underline inline-block font-bold text-[#3f3f3f]",
+          align === "center" && "after:left-1/2 after:-translate-x-1/2",
           titleClassName,
         )}
       >
@@ -73,7 +74,7 @@ export function SectionHeader({
       {subtitle && (
         <p
           className={cn(
-            "t-body mt-3 max-w-[640px] text-[#6b7280]",
+            "t-body mt-6 max-w-[640px] text-[#6b7280]",
             align === "center" && "mx-auto",
           )}
         >

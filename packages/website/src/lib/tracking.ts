@@ -1,7 +1,7 @@
 // Utilitas tracking sesi pengunjung — dipakai di client components saja.
 // Semua fungsi guard terhadap SSR dengan pengecekan typeof window.
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://172.20.10.2:8080/api";
 const SESSION_KEY = "vsk"; // visitor session key
 
 function detectSource(): string {

@@ -26,6 +26,8 @@ import {
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import {
+  AdminHeader,
+  adminPrimaryBtn,
   ConfirmDialog,
   ToastContainer,
   useToast,
@@ -218,30 +220,24 @@ export default function AdminReviewPesan() {
         <SidebarAdmin activeKey="review" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-900">Review & Testimoni</div>
-              <div className="text-[10px] text-slate-500">Input manual dari Google Maps — data tersimpan di database</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={openAdd}
-                className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-amber-600"
-              >
-                <Plus className="h-3 w-3" />
-                Tambah Review
-              </button>
-              <button
-                type="button"
-                onClick={loadData}
-                className="inline-flex items-center gap-1 text-[10px] text-slate-500 transition-all hover:-translate-y-0.5 hover:text-slate-700"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Refresh
-              </button>
-            </div>
-          </header>
+          <AdminHeader
+            icon={<Star className="h-5 w-5" />}
+            title="Review & Testimoni"
+            subtitle="Input manual dari Google Maps — data tersimpan di database"
+          >
+            <button
+              type="button"
+              onClick={loadData}
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-[11px] text-slate-500 transition-all hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refresh
+            </button>
+            <button type="button" onClick={openAdd} className={adminPrimaryBtn}>
+              <Plus className="h-3 w-3" />
+              Tambah Review
+            </button>
+          </AdminHeader>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-4">
             {/* Summary card */}

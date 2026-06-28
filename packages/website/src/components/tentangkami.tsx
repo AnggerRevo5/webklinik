@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, MessageSquare, Siren, Star } from "lucide-react";
+import { ExternalLink, Images, MessageSquare, Siren, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
@@ -12,7 +12,9 @@ import { Card, CardContent } from "@/src/UiKecil/card";
 import { Section, SectionHeader } from "@/src/UiKecil/section";
 import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";
-import { getGaleri, getReview, type Gallery, type ReviewAdminData } from "@/src/lib/api";
+import { Reveal, Parallax, Tilt, ScrollProgress, WordReveal, ClipReveal } from "@/src/components/motion";
+import { getGaleri, getReview, parseTimeline, type Gallery, type ReviewAdminData } from "@/src/lib/api";
+import { useSiteSettings } from "@/src/lib/hooks";
 
 /* ─── Types ─── */
 
@@ -57,8 +59,7 @@ const ASSETS = {
   },
 } as const;
 
-const CLINIC_PHONE = "0812-2556-6055";
-const WHATSAPP_URL = "https://wa.me/6281225566055";
+/* Nomor kontak diambil dinamis via useSiteSettings() di tiap komponen. */
 
 const cardShadowSoft =
   "shadow-[0px_2.87px_17.25px_-0.72px_#00000033] transition-shadow duration-300 hover:shadow-[0px_4px_24px_-2px_#00000040]";
@@ -87,37 +88,7 @@ const visionMission: VisionMissionItem[] = [
   },
 ];
 
-const timelineItems: TimelineItem[] = [
-  {
-    year: "2011",
-    title: "Awal mula",
-    description: "praktik mandiri dr. Nikma Fitriasari, MMRS",
-    yearClass: "text-[#00b4d8]",
-    titleClass: "text-[#3f3f3f]",
-  },
-  {
-    year: "2021",
-    title: "Klinik rawat inap",
-    description:
-      "Resmi menjadi KRI Ampelgading Medical Centre dan beroperasi 24 jam dengan izin klinik pratama",
-    yearClass: "text-[#3f3f3f]",
-    titleClass: "text-[#00b4d8]",
-  },
-  {
-    year: "2023",
-    title: "Menerima BPJS",
-    description: "Melayani pasien BPJS Kesehatan & umum",
-    yearClass: "text-[#00b4d8]",
-    titleClass: "text-[#3f3f3f]",
-  },
-  {
-    year: "2026",
-    title: "Terus berkembang",
-    description: "Layanan SIAP DOK, homevisit, rating 4.8",
-    yearClass: "text-[#3f3f3f]",
-    titleClass: "text-[#00b4d8]",
-  },
-];
+/* Timeline kini diambil dari pengaturan (settings.timeline) via AboutIntroSection. */
 
 const galeriKlinik: GalleryItem[] = [
   {
@@ -235,124 +206,153 @@ function ProgressBar({
 /* ─── About intro ─── */
 
 function AboutIntroSection() {
+  const settings = useSiteSettings();
+  const visiMisi = visionMission.map((item) => ({
+    ...item,
+    content: item.title === "Visi" ? settings.visi : settings.misi,
+  }));
+  const timeline = parseTimeline(settings.timeline);
   return (
-    <Section id="tentang">
-      <div className="text-center">
-        <div className="mb-3 flex items-center justify-center gap-2">
-          <Star className="h-5 w-5 fill-[#00b4d8] text-[#00b4d8]" />
-          <span className="t-overline text-[#00b4d8]">TENTANG KAMI</span>
-        </div>
-        <h1 className="t-h1 font-bold text-[#3f3f3f]">Mengenal lebih dekat</h1>
-      </div>
-
-      <div
-        className="mt-8 grid w-full lg:grid-cols-[530px_1fr]"
-        style={{ gap: "var(--gap-cards)" }}
-      >
-        <div className="relative h-[280px] w-full overflow-hidden card-radius sm:h-[340px] lg:h-[398px]">
-          <Image
-            src={ASSETS.aboutHero}
-            alt="Kegiatan klinik Ampelgading Medical Centre"
-            fill
-            className="object-cover"
-            priority
-            sizes="(max-width: 1024px) 100vw, 530px"
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <h2 className="t-h2 font-bold text-[#3f3f3f]">
-            Melayani dengan <span className="text-[#00b4d8]">sepenuh hati</span>{" "}
-            untuk kesehatan masyarakat Ampelgading
-          </h2>
-          <p className="mt-4 t-body-lg font-medium text-[#9a9a9a]">
-            KRI Ampelgading Medical Centre adalah klinik rawat inap yang
-            berlokasi di Desa Tirtomarto, Kec. Ampelgading, Kab. Malang.
-            Didukung tenaga medis profesional, kami melayani UGD 24 jam, rawat
-            inap, rawat jalan, persalinan, dan laboratorium
-          </p>
-
-          <div
-            className="mt-6 grid sm:grid-cols-2"
-            style={{ gap: "var(--gap-cards)" }}
-          >
-            {highlights.map((item) => (
-              <Card
-                key={item.label}
-                className={cn(
-                  "card-radius border-0 bg-[#e7e7e7] backdrop-blur-[14.37px]",
-                  cardShadowSoft,
-                )}
-              >
-                <CardContent className="card-base flex flex-col items-center justify-center text-center">
-                  <div className="t-h2 font-bold text-[#00b4d8]">
-                    {item.value}
-                  </div>
-                  <div className="t-body mt-2 text-black">{item.label}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="mt-8 grid lg:grid-cols-2"
-        style={{ gap: "var(--gap-cards)" }}
-      >
-        {visionMission.map((item) => (
-          <Card
-            key={item.title}
-            className={cn(
-              "card-radius border-0 bg-[#e7e7e7] backdrop-blur-[14.37px]",
-              cardShadowSoft,
-            )}
-          >
-            <CardContent className="card-base">
-              <div className="mb-4 flex items-center gap-3">
-                <AssetIcon src={item.icon} alt={item.title} size={32} />
-                <h3 className="t-h3 font-bold text-[#3f3f3f]">{item.title}</h3>
-              </div>
-              <p className="t-body font-medium text-[#3f3f3f]">
-                {item.content}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="mt-8 w-full">
+    <section id="tentang" className="relative overflow-hidden bg-grid-soft">
+      {/* Aurora background */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
         <div
-          className="grid grid-cols-2 md:grid-cols-4"
-          style={{ gap: "var(--gap-cards)" }}
-        >
-          {timelineItems.map((item) => (
-            <div key={item.year} className="text-center">
-              <div className={cn("t-h3 font-bold", item.yearClass)}>
-                {item.year}
-              </div>
-              <div className={cn("t-body mt-1 font-medium", item.titleClass)}>
-                {item.title}
-              </div>
+          className="aurora-blob bg-[#00b4d8]/35"
+          style={{ top: "-10%", left: "-8%", width: "42vw", height: "42vw", ["--orb-dur" as string]: "17s" } as React.CSSProperties}
+        />
+        <div
+          className="aurora-blob bg-[#e8861e]/20"
+          style={{ bottom: "-10%", right: "-6%", width: "36vw", height: "36vw", ["--orb-dur" as string]: "21s", ["--orb-delay" as string]: "2s" } as React.CSSProperties}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#f2f0ed]/10 via-[#f2f0ed]/40 to-[#f2f0ed]" />
+      </div>
+
+      <div className="section-wrap">
+        <div className="text-center">
+          <Reveal direction="up">
+            <div className="mb-3 inline-flex items-center justify-center gap-2 rounded-full border border-[#00b4d8]/20 bg-[#00b4d8]/8 px-3 py-1">
+              <Star className="h-4 w-4 fill-[#00b4d8] text-[#00b4d8]" />
+              <span className="t-overline text-[#00b4d8]">TENTANG KAMI</span>
             </div>
-          ))}
+          </Reveal>
+          <h1 className="t-h1 font-bold leading-[1.14]">
+            <WordReveal
+              as="span"
+              text="Mengenal lebih"
+              className="text-[#3f3f3f]"
+              delay={120}
+              step={70}
+            />{" "}
+            <WordReveal
+              as="span"
+              text="dekat"
+              wordClassName="text-gradient-brand"
+              delay={320}
+              step={70}
+            />
+          </h1>
         </div>
-        <Separator className="mt-4 bg-[#bcbcbc]" />
+
         <div
-          className="grid grid-cols-2 pt-3 md:grid-cols-4"
+          className="mt-10 grid w-full lg:grid-cols-[530px_1fr]"
           style={{ gap: "var(--gap-cards)" }}
         >
-          {timelineItems.map((item) => (
+          <Parallax speed={0.06}>
+            <Tilt max={5}>
+              <ClipReveal duration={1100} className="relative h-[280px] w-full overflow-hidden card-radius shadow-[0_30px_70px_-30px_rgba(15,76,129,0.5)] sm:h-[340px] lg:h-[398px]">
+                <Image
+                  src={ASSETS.aboutHero}
+                  alt="Kegiatan klinik Ampelgading Medical Centre"
+                  fill
+                  className="object-cover"
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 530px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#071e38]/30 via-transparent to-transparent" />
+              </ClipReveal>
+            </Tilt>
+          </Parallax>
+
+          <Reveal direction="left" delay={120} className="flex flex-col">
+            <h2 className="t-h2 font-bold text-[#3f3f3f]">
+              Melayani dengan <span className="text-[#00b4d8]">sepenuh hati</span>{" "}
+              untuk kesehatan masyarakat Ampelgading
+            </h2>
+            <p className="mt-4 t-body-lg font-medium text-[#7a8088]">
+              {settings.about_text}
+            </p>
+
             <div
-              key={`${item.year}-desc`}
-              className="t-caption text-center font-medium text-[#a6a6a6]"
+              className="mt-6 grid sm:grid-cols-2"
+              style={{ gap: "var(--gap-cards)" }}
             >
-              {item.description}
+              {highlights.map((item) => (
+                <div
+                  key={item.label}
+                  className="ring-gradient card-radius border border-white/60 bg-white/70 p-5 text-center shadow-[0px_2.87px_17.25px_-0.72px_#00000020] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_18px_40px_-16px_rgba(0,180,216,0.4)]"
+                >
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="t-h2 font-bold text-[#00b4d8]">
+                      {item.value}
+                    </div>
+                    <div className="t-body mt-2 text-black">{item.label}</div>
+                  </div>
+                </div>
+              ))}
             </div>
+          </Reveal>
+        </div>
+
+        <div
+          className="mt-8 grid lg:grid-cols-2"
+          style={{ gap: "var(--gap-cards)" }}
+        >
+          {visiMisi.map((item, i) => (
+            <Reveal key={item.title} direction="up" delay={i * 120}>
+              <div className="ring-gradient card-radius h-full border border-white/60 bg-white/75 p-7 shadow-[0px_2.87px_17.25px_-0.72px_#00000020] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_44px_-18px_rgba(0,180,216,0.35)]">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#00b4d8]/10">
+                    <AssetIcon src={item.icon} alt={item.title} size={28} />
+                  </div>
+                  <h3 className="t-h3 font-bold text-[#3f3f3f]">{item.title}</h3>
+                </div>
+                <p className="t-body font-medium text-[#3f3f3f]">
+                  {item.content}
+                </p>
+              </div>
+            </Reveal>
           ))}
         </div>
+
+        {/* Timeline — desain garis horizontal dengan titik */}
+        <Reveal direction="up" className="mt-12 w-full">
+          <div className="relative">
+            <div className="absolute left-0 right-0 top-[14px] hidden h-0.5 bg-gradient-to-r from-[#00b4d8]/30 via-[#00b4d8]/40 to-[#e8861e]/30 md:block" />
+            <div
+              className="grid grid-cols-2 md:grid-cols-4"
+              style={{ gap: "var(--gap-cards)" }}
+            >
+              {timeline.map((item, i) => (
+                <div key={`${item.year}-${i}`} className="relative text-center">
+                  <span className="mx-auto mb-4 hidden h-7 w-7 items-center justify-center rounded-full border-2 border-[#00b4d8] bg-white md:flex">
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#00b4d8]" style={i % 2 ? { background: "#e8861e" } : undefined} />
+                  </span>
+                  <div className={cn("t-h3 font-bold", i % 2 === 0 ? "text-[#00b4d8]" : "text-[#3f3f3f]")}>
+                    {item.year}
+                  </div>
+                  <div className={cn("t-body mt-1 font-medium", i % 2 === 0 ? "text-[#3f3f3f]" : "text-[#00b4d8]")}>
+                    {item.title}
+                  </div>
+                  <div className="t-caption mt-1 font-medium text-[#a6a6a6]">
+                    {item.description}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Reveal>
       </div>
-    </Section>
+    </section>
   );
 }
 
@@ -375,6 +375,13 @@ function GaleriSection({ items }: { items: GalleryItem[] }) {
             kami
           </h2>
         </div>
+        <Link
+          href="/galeri"
+          className="btn-shine inline-flex w-fit items-center gap-2 rounded-full bg-[#00b4d8] px-5 py-2.5 t-body-sm font-semibold text-white shadow-lg shadow-[#00b4d8]/25 transition-transform hover:-translate-y-0.5 hover:bg-[#00a3c5]"
+        >
+          <Images className="h-4 w-4" />
+          Lihat semua foto
+        </Link>
       </div>
 
       <div className="overflow-hidden">
@@ -431,15 +438,17 @@ function GaleriSection({ items }: { items: GalleryItem[] }) {
         className="mt-8 grid md:grid-cols-3"
         style={{ gap: "var(--gap-cards)" }}
       >
-        {stats.map((item) => (
-          <Card key={item.label} className="card-radius border-0 bg-[#e7e7e7]">
-            <CardContent className="card-base flex flex-col items-center justify-center">
-              <div className="t-h2 font-bold text-[#00b4d8]">{item.value}</div>
-              <div className="t-body mt-2 text-center font-bold text-[#808080]">
-                {item.label}
+        {stats.map((item, i) => (
+          <Reveal key={item.label} direction="up" delay={i * 100}>
+            <div className="ring-gradient card-radius h-full border border-white/60 bg-white/75 p-6 shadow-[0px_2.87px_17.25px_-0.72px_#00000020] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-16px_rgba(0,180,216,0.35)]">
+              <div className="flex flex-col items-center justify-center">
+                <div className="t-h2 font-bold text-[#00b4d8]">{item.value}</div>
+                <div className="t-body mt-2 text-center font-bold text-[#808080]">
+                  {item.label}
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Reveal>
         ))}
       </div>
     </Section>
@@ -596,9 +605,9 @@ function RatingSection({
           </div>
         ) : (
           reviews.map((review, index) => (
+            <Reveal key={review.id ?? index} direction="up" delay={Math.min(index, 5) * 80}>
             <Card
-              key={review.id ?? index}
-              className={cn("card-radius border-0 bg-white", cardShadowMd)}
+              className={cn("card-radius h-full border-0 bg-white", cardShadowMd)}
             >
               <CardContent className="card-base flex flex-col gap-3">
                 {/* Header: avatar + name */}
@@ -643,6 +652,7 @@ function RatingSection({
                 </p>
               </CardContent>
             </Card>
+            </Reveal>
           ))
         )}
       </div>
@@ -681,25 +691,32 @@ function RatingSection({
 }
 
 function EmergencyCta() {
+  const settings = useSiteSettings();
+  const CLINIC_PHONE = settings.telepon;
   return (
-    <section className="bg-[#1a5fa0]">
-      <div className="section-container flex flex-col gap-6 py-8 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full bg-[#2d7dd2] md:h-[104px] md:w-[104px]">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#0f4c81] via-[#1a5fa0] to-[#2d7dd2]">
+      <div className="pointer-events-none absolute inset-0 bg-grid-soft opacity-40" />
+      <div className="pointer-events-none absolute -right-10 -top-16 h-64 w-64 rounded-full bg-[#5fd0e8]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-[#e8861e]/20 blur-3xl" />
+
+      <div className="relative section-container flex flex-col gap-6 py-9 lg:flex-row lg:items-center lg:justify-between">
+        <Reveal direction="right" className="flex items-center gap-4">
+          <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full bg-[#2d7dd2] md:h-[104px] md:w-[104px]">
+            <span className="absolute inset-0 rounded-full ring-2 ring-white/30" style={{ animation: "soft-pulse 2.2s ease-out infinite" }} />
             <Siren className="h-9 w-9 text-white md:h-12 md:w-12" />
           </div>
           <div>
             <div className="t-h4 font-bold text-white">
               Butuh bantuan segera?
             </div>
-            <div className="t-body mt-1 text-white">UGD kami buka 24 jam</div>
-            <div className="t-body text-white">hubungi kami</div>
+            <div className="t-body mt-1 text-white/90">UGD kami buka 24 jam</div>
+            <div className="t-body text-white/90">hubungi kami</div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-4">
+        </Reveal>
+        <Reveal direction="left" delay={120} className="flex flex-wrap gap-4">
           <Button
             className={cn(
-              "h-12 rounded-full bg-[#008000] px-6 t-body text-white hover:bg-[#067006]",
+              "btn-shine h-12 rounded-full bg-[#008000] px-6 t-body text-white shadow-lg shadow-emerald-900/30 transition-transform hover:-translate-y-0.5 hover:bg-[#067006]",
             )}
             asChild
           >
@@ -717,7 +734,7 @@ function EmergencyCta() {
           </Button>
           <Button
             className={cn(
-              "h-12 rounded-full bg-[#e8861e] px-6 t-body text-white hover:bg-[#d77a18]",
+              "btn-shine h-12 rounded-full bg-[#e8861e] px-6 t-body text-white shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5 hover:bg-[#d77a18]",
             )}
             asChild
           >
@@ -731,7 +748,7 @@ function EmergencyCta() {
               {CLINIC_PHONE}
             </a>
           </Button>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -770,6 +787,7 @@ export default function TentangKami() {
 
   return (
     <main className="min-h-screen bg-[#f2f0ed] text-[#3f3f3f]">
+      <ScrollProgress />
       <Navbar />
       <AboutIntroSection />
       <GaleriSection items={galeriItems} />

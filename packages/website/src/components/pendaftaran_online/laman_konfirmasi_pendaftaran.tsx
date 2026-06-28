@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Home, MessageCircle } from "lucide-react";
+import { CalendarDays, Check, Clock3, Home, MessageCircle, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/src/UiKecil/button";
-import { Card, CardContent } from "@/src/UiKecil/card";
 import Navbar from "@/src/components/navbar";
+import { Reveal } from "@/src/components/motion";
 import {
   clearPendaftaranSession,
   loadPendaftaranSession,
@@ -45,151 +45,128 @@ export default function LamanKonfirmasiPendaftaran() {
     ? waktu.split(" ")[1]?.slice(0, 5)
     : waktu.slice(0, 5);
 
+  const detailItems = [
+    { icon: Stethoscope, label: "Poliklinik", value: nmPoli },
+    { icon: Stethoscope, label: "Dokter", value: nmDokter },
+    { icon: CalendarDays, label: "Tanggal Periksa", value: formatTanggalKunjungan(tanggal) },
+    { icon: Clock3, label: "Waktu", value: `${waktuRingkas} WIB` },
+  ];
+
   return (
-    <main className="min-h-screen bg-[#f7f5f2]">
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f5f2] text-slate-900">
       <Navbar />
 
+      {/* Latar aurora */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="aurora-blob bg-emerald-400/25"
+          style={{ top: "-6%", left: "-6%", width: "38vw", height: "38vw", ["--orb-dur"]: "18s" } as React.CSSProperties}
+        />
+        <div
+          className="aurora-blob bg-[#00b4d8]/25"
+          style={{ bottom: "-8%", right: "-6%", width: "34vw", height: "34vw", ["--orb-dur"]: "22s", ["--orb-delay"]: "2s" } as React.CSSProperties}
+        />
+        <div className="absolute inset-0 bg-grid-soft opacity-50" />
+      </div>
+
       <div className="section-wrap">
-        <Card className="relative mx-auto w-full max-w-[920px] card-radius border border-[#e6e6e6] bg-[#f7f5f2] shadow-[0px_1px_4px_#0000000d]">
-          <CardContent className="card-base">
-            <section
-              className="relative min-h-[560px] w-full overflow-hidden"
-              aria-label="Laman konfirmasi pendaftaran"
-            >
-              {/* Background blur: ringkasan data */}
-              <div className="relative w-full card-radius border border-black/10 bg-[#f7f5f2] px-5 py-5 opacity-40 shadow-sm">
-                <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2 t-body-sm text-[#7f7f7f]">
-                  <div>
-                    <p className="font-medium">Nama</p>
-                    <p className="text-black">{step1?.nm_pasien ?? "—"}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium">Poliklinik</p>
-                    <p className="text-black">{nmPoli}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium">Dokter</p>
-                    <p className="text-black">{nmDokter}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium">Tanggal</p>
-                    <p className="text-black">{formatTanggalKunjungan(tanggal)}</p>
-                  </div>
-                </div>
+        <Reveal direction="up">
+          <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/90 p-7 text-center shadow-[0_40px_90px_-40px_rgba(15,76,129,0.5)] backdrop-blur sm:p-10">
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-emerald-400 via-[#00b4d8] to-[#e8861e]" />
+
+            {/* Success badge */}
+            <div className="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center">
+              <span className="absolute inset-0 rounded-full bg-emerald-400/20" style={{ animation: "soft-pulse 2.2s ease-out infinite" }} />
+              <span className="absolute inset-2 rounded-full bg-emerald-400/30" style={{ animation: "soft-pulse 2.2s ease-out 0.3s infinite" }} />
+              <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-500/40">
+                <Check className="h-10 w-10 text-white" strokeWidth={2.5} />
+              </span>
+            </div>
+
+            <h1 className="t-h2 font-bold text-slate-900">Pendaftaran berhasil!</h1>
+            <p className="mx-auto mt-3 max-w-[520px] t-body-lg text-slate-500">
+              Terima kasih telah mendaftar di KRI Ampelgading Medical Centre
+            </p>
+
+            {/* Nomor registrasi */}
+            <div className="mt-6 inline-flex flex-col items-center rounded-2xl border border-[#00b4d8]/20 bg-[#00b4d8]/8 px-7 py-3">
+              <span className="t-caption font-semibold uppercase tracking-wider text-[#0f4c81]">
+                Nomor Registrasi
+              </span>
+              <span className="t-h3 font-bold tracking-wide text-[#0f4c81]">{noReg}</span>
+            </div>
+
+            {/* Detail grid */}
+            <div className="mx-auto mt-7 grid w-full max-w-[560px] grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left sm:col-span-2">
+                <p className="t-caption font-medium uppercase tracking-wider text-slate-400">No. Rekam Medis</p>
+                <p className="mt-0.5 t-body font-bold text-slate-900">{noRkm}</p>
               </div>
-
-              {/* Main success info */}
-              <section className="relative w-full pt-10">
-                <div className="mx-auto max-w-[1253px]">
-                  <Card className="card-radius border-0 bg-white shadow-[0px_4.07px_24.45px_-1.02px_#0000001c] backdrop-blur-[20.37px] backdrop-brightness-[100%]">
-                    <CardContent className="card-base flex flex-col items-center text-center">
-                      <div className="mb-6 flex h-[102px] w-[102px] items-center justify-center rounded-full bg-[#d9d9d9] sm:h-[120px] sm:w-[120px]">
-                        <Check
-                          className="h-10 w-10 text-[#6f8e42] sm:h-[50px] sm:w-[50px]"
-                          strokeWidth={2.25}
-                        />
-                      </div>
-
-                      <header className="flex flex-col items-center">
-                        <h2 className="t-h2 font-normal text-black">Pendaftaran berhasil!</h2>
-                        <p className="mt-4 max-w-[663px] t-body-lg font-normal text-[#6b6b6b]">
-                          Terima kasih telah mendaftar di KRI Ampelgading Medical Centre
-                        </p>
-                      </header>
-
-                      {/* Nomor registrasi */}
-                      <div className="mt-6 inline-flex items-center justify-center rounded-[50px] bg-[#d7c6ff] px-6 py-3">
-                        <span className="t-body-lg font-medium text-[#1e00a7]">
-                          No. Registrasi: {noReg}
-                        </span>
-                      </div>
-
-                      {/* Detail */}
-                      <div className="mt-6 w-full max-w-[500px] rounded-[20px] border border-black/10 bg-[#f7f5f2] p-4 text-left">
-                        <div className="grid grid-cols-1 gap-3 t-body-sm sm:grid-cols-2">
-                          <div>
-                            <p className="font-medium text-[#9b9b9b]">No. Rekam Medis</p>
-                            <p className="font-semibold text-black">{noRkm}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-[#9b9b9b]">Poliklinik</p>
-                            <p className="font-semibold text-black">{nmPoli}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-[#9b9b9b]">Dokter</p>
-                            <p className="font-semibold text-black">{nmDokter}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-[#9b9b9b]">Tanggal Periksa</p>
-                            <p className="font-semibold text-black">
-                              {formatTanggalKunjungan(tanggal)}
-                            </p>
-                          </div>
-                          <div className="sm:col-span-2">
-                            <p className="font-medium text-[#9b9b9b]">Waktu</p>
-                            <p className="font-semibold text-black">{waktuRingkas} WIB</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="mt-5 max-w-[1190px] t-body font-normal text-[#6b6b6b]">
-                        Harap datang{" "}
-                        <span className="font-bold">15 menit sebelum</span> waktu
-                        kunjungan. Tunjukkan nomor registrasi{" "}
-                        <span className="font-bold">{noReg}</span> kepada petugas.
-                      </p>
-
-                      <p className="mt-3 max-w-[585px] t-body font-normal text-[#6b6b6b]">
-                        Tim kami akan menghubungi Anda di{" "}
-                        <span className="font-bold">{noTlp}</span> untuk konfirmasi
-                        kunjungan.
-                        <br />
-                        <span className="t-body-sm text-amber-600">
-                          Status: Menunggu konfirmasi petugas klinik.
-                        </span>
-                      </p>
-
-                      <nav
-                        className="mt-8 grid w-full max-w-[930px] grid-cols-1 sm:grid-cols-2"
-                        style={{ gap: "var(--gap-cards)" }}
-                      >
-                        <Button
-                          type="button"
-                          asChild
-                          onClick={clearPendaftaranSession}
-                          className="h-12 w-full rounded-full px-6 t-body font-medium bg-[#00b4d8] text-white hover:bg-[#00a7c9]"
-                        >
-                          <Link href="/">
-                            <span className="flex items-center justify-center gap-3">
-                              <Home className="h-5 w-5" />
-                              <span>Ke beranda</span>
-                            </span>
-                          </Link>
-                        </Button>
-                        <Button
-                          type="button"
-                          asChild
-                          className="h-12 w-full rounded-full px-6 t-body font-medium bg-[#008000] text-white hover:bg-[#0a720a]"
-                        >
-                          <Link
-                            href="https://wa.me/6281225566055"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <span className="flex items-center justify-center gap-3">
-                              <MessageCircle className="h-5 w-5" />
-                              <span>Whatsapp</span>
-                            </span>
-                          </Link>
-                        </Button>
-                      </nav>
-                    </CardContent>
-                  </Card>
+              {detailItems.map((item) => (
+                <div key={item.label} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#00b4d8]/10 text-[#00b4d8]">
+                    <item.icon className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="t-caption font-medium uppercase tracking-wider text-slate-400">{item.label}</p>
+                    <p className="mt-0.5 t-body-sm font-bold text-slate-900">{item.value}</p>
+                  </div>
                 </div>
-              </section>
-            </section>
-          </CardContent>
-        </Card>
+              ))}
+            </div>
+
+            {/* Info */}
+            <div className="mx-auto mt-6 max-w-[560px] space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left">
+              <p className="t-body-sm text-amber-900">
+                Harap datang <span className="font-bold">15 menit sebelum</span> waktu
+                kunjungan. Tunjukkan nomor registrasi{" "}
+                <span className="font-bold">{noReg}</span> kepada petugas.
+              </p>
+              <p className="t-body-sm text-amber-900">
+                Tim kami akan menghubungi Anda di{" "}
+                <span className="font-bold">{noTlp}</span> untuk konfirmasi kunjungan.
+                <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                  Status: Menunggu konfirmasi
+                </span>
+              </p>
+            </div>
+
+            <nav
+              className="mx-auto mt-8 grid w-full max-w-[560px] grid-cols-1 sm:grid-cols-2"
+              style={{ gap: "var(--gap-cards)" }}
+            >
+              <Button
+                type="button"
+                asChild
+                onClick={clearPendaftaranSession}
+                className="btn-shine h-12 w-full rounded-full bg-[#00b4d8] px-6 t-body font-medium text-white shadow-lg shadow-[#00b4d8]/25 transition-transform hover:-translate-y-0.5 hover:bg-[#00a7c9]"
+              >
+                <Link href="/">
+                  <span className="flex items-center justify-center gap-3">
+                    <Home className="h-5 w-5" />
+                    <span>Ke beranda</span>
+                  </span>
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                asChild
+                className="btn-shine h-12 w-full rounded-full bg-[#008000] px-6 t-body font-medium text-white shadow-lg shadow-emerald-900/20 transition-transform hover:-translate-y-0.5 hover:bg-[#0a720a]"
+              >
+                <Link
+                  href="https://wa.me/6281225566055"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="flex items-center justify-center gap-3">
+                    <MessageCircle className="h-5 w-5" />
+                    <span>Whatsapp</span>
+                  </span>
+                </Link>
+              </Button>
+            </nav>
+          </div>
+        </Reveal>
       </div>
     </main>
   );

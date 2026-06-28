@@ -139,6 +139,8 @@ export type MediaFolder =
   | "layanan"
   | "promo"
   | "galeri"
+  | "kegiatan"
+  | "staff"
   | "artikel"
   | "logo";
 
@@ -1252,6 +1254,73 @@ export async function getGaleri() {
 
 export async function fetchSiteSettings() {
   return requestJson<SiteSetting[]>("/site-settings");
+}
+
+/* ─── Site settings (konten editable) ─── */
+
+export type TimelineEntry = {
+  year: string;
+  title: string;
+  description: string;
+};
+
+/* Nilai default — disamakan dengan seed backend, dipakai sebagai fallback
+   agar halaman publik tetap tampil walau API belum termuat. */
+export const SITE_DEFAULTS: Record<string, string> = {
+  telepon: "0812-2556-6055",
+  whatsapp: "6281225566055",
+  hero_subtitle:
+    "Pelayanan kesehatan terpadu untuk masyarakat Ampelgading dan sekitarnya. UGD 24 jam, rawat inap, persalinan, laboratorium, dan apotek. Menerima BPJS dan pasien umum.",
+  about_text:
+    "KRI Ampelgading Medical Centre adalah klinik rawat inap yang berlokasi di Desa Tirtomarto, Kec. Ampelgading, Kab. Malang. Didukung tenaga medis profesional, kami melayani UGD 24 jam, rawat inap, rawat jalan, persalinan, dan laboratorium",
+  visi: "Terwujudnya Klinik Rawat Inap Ampelgading Medical Centre yang Berkualitas, Profesional, dan Terpercaya dalam Pelayanan Kesehatan di Kecamatan Ampelgading dan Sekitarnya.",
+  misi: "Memberikan pelayanan bermutu dengan mengutamakan keselamatan pasien dan program 7S. Memanfaatkan teknologi, meningkatkan fasilitas dan kompetensi karyawan, serta membangun kemitraan dengan pihak profesional medis dan masyarakat.",
+  timeline:
+    '[{"year":"2011","title":"Awal mula","description":"praktik mandiri dr. Nikma Fitriasari, MMRS"},{"year":"2021","title":"Klinik rawat inap","description":"Resmi menjadi KRI Ampelgading Medical Centre dan beroperasi 24 jam dengan izin klinik pratama"},{"year":"2023","title":"Menerima BPJS","description":"Melayani pasien BPJS Kesehatan & umum"},{"year":"2026","title":"Terus berkembang","description":"Layanan SIAP DOK, homevisit, rating 4.8"}]',
+};
+
+export function settingsToMap(list: SiteSetting[]): Record<string, string> {
+  const map: Record<string, string> = { ...SITE_DEFAULTS };
+  for (const s of list) {
+    if (s.setting_value !== undefined && s.setting_value !== null) {
+      map[s.setting_key] = s.setting_value;
+    }
+  }
+  return map;
+}
+
+export function parseTimeline(value: string | undefined): TimelineEntry[] {
+  if (!value) return [];
+  try {
+    const arr = JSON.parse(value);
+    return Array.isArray(arr) ? (arr as TimelineEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function adminGetSiteSettings(): Promise<SiteSetting[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/site-settings`, {
+      cache: "no-store",
+    });
+    const json = await res.json();
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function adminUpdateSiteSettings(
+  items: { setting_key: string; setting_value: string; setting_group?: string }[],
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/site-settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(items),
+    cache: "no-store",
+  });
+  return res.json();
 }
 
 export async function fetchOperationalHours() {

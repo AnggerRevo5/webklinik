@@ -24,6 +24,8 @@ import {
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
 import {
+  AdminHeader,
+  adminPrimaryBtn,
   ConfirmDialog,
   ToastContainer,
   useToast,
@@ -243,22 +245,16 @@ export default function AdminPromoPage() {
       <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-[#F0F4FA] shadow-[0_20px_50px_rgba(15,23,42,0.08)] lg:grid-cols-[240px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="promo" />
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-900">Promo</div>
-              <div className="text-[10px] text-slate-500">
-                Promo dengan status Aktif dan dalam rentang tanggal akan tampil di website
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={startNewPromo}
-              className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-amber-600"
-            >
+          <AdminHeader
+            icon={<Tag className="h-5 w-5" />}
+            title="Promo"
+            subtitle="Promo dengan status Aktif dan dalam rentang tanggal akan tampil di website"
+          >
+            <button type="button" onClick={startNewPromo} className={adminPrimaryBtn}>
               <Plus className="h-3 w-3" />
               Buat promo baru
             </button>
-          </header>
+          </AdminHeader>
 
           <div className="grid flex-1 gap-4 overflow-y-auto p-4 xl:grid-cols-[minmax(0,1fr)_380px] lg:p-5">
             <section className="space-y-3">
@@ -452,8 +448,8 @@ export default function AdminPromoPage() {
             </section>
 
             {/* Panel edit */}
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm self-start">
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm self-start sticky top-4">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                 <div className="flex items-center gap-2 text-[13px] font-semibold text-slate-900">
                   <Tag className="h-4 w-4 text-amber-500" />
                   Edit promo
@@ -467,11 +463,20 @@ export default function AdminPromoPage() {
               <form onSubmit={handleUpdatePromo} className="space-y-3 p-4 text-[10px]">
                 {selectedPromo ? (
                   <>
-                    {/* Preview gambar */}
-                    {selectedPromo.url ? (
+                    {/* Preview live dari editForm.url */}
+                    {editForm.url ? (
                       <div className="relative h-28 overflow-hidden rounded-xl bg-slate-100">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={selectedPromo.url} alt="Preview promo" className="h-full w-full object-cover" />
+                        <img src={editForm.url} alt="Preview promo" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => previewPromo(editForm.url)}
+                          title="Buka gambar di tab baru"
+                          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/50 px-2 py-1 text-[8px] font-medium text-white backdrop-blur-sm hover:bg-black/70"
+                        >
+                          <Eye className="h-2.5 w-2.5" />
+                          Buka
+                        </button>
                       </div>
                     ) : null}
 
@@ -479,7 +484,7 @@ export default function AdminPromoPage() {
                       value={editForm.url}
                       onChange={(url) => setEditForm((f) => ({ ...f, url }))}
                       folder="promo"
-                      label="URL Gambar Promo"
+                      label="Gambar Promo"
                     />
 
                     {/* Toggle tampil */}
@@ -499,37 +504,41 @@ export default function AdminPromoPage() {
                       </button>
                     </div>
 
-                    {/* Tanggal */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-                        Tanggal Mulai (opsional)
-                      </label>
-                      <input
-                        type="date"
-                        value={editForm.tanggal_mulai ?? ""}
-                        onChange={(e) => setEditForm((f) => ({ ...f, tanggal_mulai: e.target.value || null }))}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-700 focus:border-sky-400 focus:outline-none"
-                      />
-                      <div className="text-[8px] text-slate-400">Kosongkan agar promo langsung tampil</div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-                        Tanggal Selesai (opsional)
-                      </label>
-                      <input
-                        type="date"
-                        value={editForm.tanggal_selesai ?? ""}
-                        onChange={(e) => setEditForm((f) => ({ ...f, tanggal_selesai: e.target.value || null }))}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-700 focus:border-sky-400 focus:outline-none"
-                      />
-                      <div className="text-[8px] text-slate-400">Kosongkan agar promo tampil tanpa batas waktu</div>
+                    {/* Tanggal side by side */}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <label htmlFor="edit-tanggal-mulai" className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                          Tanggal Mulai
+                        </label>
+                        <input
+                          id="edit-tanggal-mulai"
+                          type="date"
+                          value={editForm.tanggal_mulai ?? ""}
+                          onChange={(e) => setEditForm((f) => ({ ...f, tanggal_mulai: e.target.value || null }))}
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-700 focus:border-sky-400 focus:outline-none"
+                        />
+                        <div className="text-[8px] text-slate-400">Kosongkan = langsung tampil</div>
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="edit-tanggal-selesai" className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                          Tanggal Selesai
+                        </label>
+                        <input
+                          id="edit-tanggal-selesai"
+                          type="date"
+                          value={editForm.tanggal_selesai ?? ""}
+                          onChange={(e) => setEditForm((f) => ({ ...f, tanggal_selesai: e.target.value || null }))}
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-700 focus:border-sky-400 focus:outline-none"
+                        />
+                        <div className="text-[8px] text-slate-400">Kosongkan = tanpa batas</div>
+                      </div>
                     </div>
 
                     {actionError ? (
                       <div className="rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">{actionError}</div>
                     ) : null}
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 border-t border-slate-100 pt-3">
                       <button
                         type="button"
                         onClick={() =>
@@ -540,43 +549,26 @@ export default function AdminPromoPage() {
                             tanggal_selesai: toInputDate(selectedPromo.tanggal_selesai),
                           })
                         }
-                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-medium text-slate-500 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100"
+                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-medium text-slate-500 hover:bg-slate-100"
                       >
                         Batal
                       </button>
                       <button
                         type="submit"
                         disabled={isSaving}
-                        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white disabled:opacity-60 transition-all duration-300 hover:-translate-y-0.5 hover:bg-sky-700"
+                        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white disabled:opacity-60 hover:bg-sky-700"
                       >
                         <Save className="h-3.5 w-3.5" />
-                        {isSaving ? "Menyimpan..." : "Simpan"}
+                        {isSaving ? "Menyimpan..." : "Simpan perubahan"}
                       </button>
                     </div>
                   </>
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-[10px] text-slate-500">
-                    Pilih promo dari daftar untuk diedit, atau tambah promo baru.
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-[10px] text-slate-500">
+                    Pilih promo dari daftar untuk diedit.
                   </div>
                 )}
               </form>
-              <div className="flex gap-2 border-t border-slate-100 px-4 py-3">
-                <button
-                  type="button"
-                  onClick={startNewPromo}
-                  className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-medium text-slate-500 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => previewPromo(selectedPromo?.url)}
-                  className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-[10px] font-medium text-emerald-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-100"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  Lihat Gambar
-                </button>
-              </div>
             </section>
           </div>
         </section>

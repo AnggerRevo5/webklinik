@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+import { AdminHeader } from "@/src/UiKecil/admin_ui";
 import {
   adminGetSocialMediaStats,
   adminCreateSocialMediaStats,
@@ -589,11 +590,11 @@ export default function SosmedSnapshot() {
         <SidebarAdmin activeKey="sosmed" />
 
         <section className="flex min-w-0 flex-col">
-          <header className="flex flex-col gap-2 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-900">Snapshot Sosial Media & GBP</div>
-              <div className="text-[10px] text-slate-400">Input manual data sosmed dan Google Business Profile untuk laporan</div>
-            </div>
+          <AdminHeader
+            icon={<BarChart2 className="h-5 w-5" />}
+            title="Snapshot Sosial Media & GBP"
+            subtitle="Input manual data sosmed dan Google Business Profile untuk laporan"
+          >
             <div className="flex rounded-lg bg-slate-100 p-0.5">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -614,7 +615,7 @@ export default function SosmedSnapshot() {
                 );
               })}
             </div>
-          </header>
+          </AdminHeader>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-5">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

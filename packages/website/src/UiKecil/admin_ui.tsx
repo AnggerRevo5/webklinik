@@ -1,6 +1,77 @@
 "use client";
 import { AlertTriangle, CheckCircle, Info, Trash2, X, XCircle } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
+
+// ─── Shared admin style tokens ──────────────────────────────────────────────
+
+/** Tombol aksi utama (gradien brand + shine). */
+export const adminPrimaryBtn =
+  "btn-shine inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-cyan-500 px-3.5 py-2 text-[11px] font-semibold text-white shadow-sm shadow-sky-600/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60 disabled:hover:translate-y-0";
+
+/** Tombol sekunder netral. */
+export const adminGhostBtn =
+  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3.5 py-2 text-[11px] font-medium text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-200";
+
+/** Kartu standar. */
+export const adminCard =
+  "rounded-xl border border-slate-200 bg-white shadow-sm";
+
+// ─── AdminHeader ────────────────────────────────────────────────────────────
+
+/** Header halaman admin yang konsisten: ikon brand + judul + aksi di kanan. */
+export function AdminHeader({
+  icon,
+  title,
+  subtitle,
+  children,
+}: {
+  icon?: ReactNode;
+  title: string;
+  subtitle?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex items-center gap-3">
+        {icon ? (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-600 to-cyan-500 text-white shadow-sm">
+            {icon}
+          </div>
+        ) : null}
+        <div>
+          <div className="text-[15px] font-semibold text-slate-900">{title}</div>
+          {subtitle ? (
+            <div className="text-[10px] text-slate-400">{subtitle}</div>
+          ) : null}
+        </div>
+      </div>
+      {children ? (
+        <div className="flex flex-wrap items-center gap-2">{children}</div>
+      ) : null}
+    </header>
+  );
+}
+
+/** Badge statistik kecil untuk header/toolbar admin. */
+export function AdminStatPill({
+  label,
+  value,
+  accent = "text-sky-600 bg-sky-50",
+}: {
+  label: string;
+  value: ReactNode;
+  accent?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5">
+      <span className={`rounded-md px-1.5 py-0.5 text-[12px] font-bold ${accent}`}>
+        {value}
+      </span>
+      <span className="text-[10px] font-medium text-slate-500">{label}</span>
+    </div>
+  );
+}
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 

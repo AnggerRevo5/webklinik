@@ -10,8 +10,12 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { Button } from "@/src/UiKecil/button";
-import { Card, CardContent } from "@/src/UiKecil/card";
-import Navbar from "@/src/components/navbar";
+import { cn } from "@/src/lib/utils";
+import { Reveal } from "@/src/components/motion";
+import {
+  RegistrationShell,
+  softCardClass,
+} from "@/src/components/pendaftaran_online/registration_shell";
 import {
   loadPendaftaranSession,
   savePendaftaranSession,
@@ -128,85 +132,20 @@ export default function PendaftaranOnlineKonfirmasiSection() {
   };
 
   return (
-    <section
-      id="step-3"
-      className="section-wrap card-radius bg-[#e7e7e752] shadow-[inset_0px_4px_4px_#0000001a]"
+    <RegistrationShell
+      current={3}
+      subtitle="Periksa kembali data Anda sebelum mengirim pendaftaran"
     >
-      <Navbar />
-
-      <div className="card-base">
-        {/* Judul */}
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-3">
-            <CalendarDays className="h-10 w-10 text-[#8da9c9]" />
-            <h1 className="t-h2 font-medium uppercase tracking-wide text-[#00b4d8]">
-              PENDAFTARAN ONLINE
-            </h1>
-          </div>
-          <p className="mt-4 text-center t-body-lg font-medium text-black">
-            Konfirmasi pendaftaran
-            <br />
-            Periksa kembali data Anda sebelum mengirim
-          </p>
-
-          {/* Step indicator */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            {[
-              { number: 1, label: "Data diri", done: true },
-              { number: 2, label: "Kunjungan", done: true },
-              { number: 3, label: "Konfirmasi", done: false },
-            ].map((step, index) => (
-              <div key={step.label} className="flex items-center">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-[30px] w-[30px] items-center justify-center rounded-full ${
-                      step.done
-                        ? "bg-[#008000]"
-                        : step.number === 3
-                          ? "bg-[#1d19ff] text-white"
-                          : "bg-[#b4b4b4] text-[#494949]"
-                    }`}
-                  >
-                    {step.done ? (
-                      <Check className="h-4 w-4 text-white" />
-                    ) : (
-                      <span className="t-body-sm font-medium">{step.number}</span>
-                    )}
-                  </div>
-                  <span
-                    className={`t-body-sm font-medium max-[639px]:hidden ${
-                      step.done
-                        ? "text-[#008000]"
-                        : step.number === 3
-                          ? "text-[#0000ff]"
-                          : "text-[#a4a4a4]"
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-                {index < 2 && (
-                  <div
-                    className={`mx-5 hidden h-px w-[80px] md:block ${
-                      index === 0 ? "bg-[#7aa66e]" : "bg-[#9a9a9a]"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
+      <Reveal direction="up">
         {/* Ringkasan */}
-        <div className="mt-10 space-y-4">
+        <div className="space-y-4">
           {/* Data Pasien */}
-          <Card className="w-full card-radius border border-black bg-[#f7f5f2] shadow-none">
-            <CardContent className="card-base">
+          <div className={cn(softCardClass, "w-full p-5 sm:p-6")}>
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-[4px] bg-[#d9d9d9]">
-                  <Check className="h-[18px] w-[18px] text-[#8f9aa3]" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00b4d8]/10 text-[#00b4d8]">
+                  <Check className="h-5 w-5" />
                 </div>
-                <h2 className="t-h3 font-bold leading-none text-black">Data Pasien</h2>
+                <h2 className="t-h3 font-bold leading-none text-slate-900">Data Pasien</h2>
               </div>
 
               <div className="grid grid-cols-1 gap-x-10 gap-y-4 md:grid-cols-2">
@@ -246,17 +185,15 @@ export default function PendaftaranOnlineKonfirmasiSection() {
                   <dd className="t-body font-normal text-black">{step1.alamat}</dd>
                 </dl>
               )}
-            </CardContent>
-          </Card>
+          </div>
 
           {/* Detail Kunjungan */}
-          <Card className="w-full card-radius border border-black bg-[#f7f5f2] shadow-none">
-            <CardContent className="card-base">
+          <div className={cn(softCardClass, "w-full p-5 sm:p-6")}>
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-[10px] bg-[#ffc4c4]">
-                  <CalendarDays className="h-7 w-7 text-[#d25555]" />
+                <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-xl bg-[#e8861e]/10">
+                  <CalendarDays className="h-7 w-7 text-[#e8861e]" />
                 </div>
-                <h2 className="t-h3 font-bold leading-snug text-black">Detail Kunjungan</h2>
+                <h2 className="t-h3 font-bold leading-snug text-slate-900">Detail Kunjungan</h2>
               </div>
 
               <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
@@ -287,74 +224,71 @@ export default function PendaftaranOnlineKonfirmasiSection() {
                   <dd className="t-body-lg font-normal text-black">{step2?.png_jawab ?? "—"}</dd>
                 </dl>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Persetujuan */}
-        <div className="mt-6 flex items-start gap-3">
-          <button
-            type="button"
-            onClick={() => setConsent((c) => !c)}
-            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-              consent
-                ? "border-[#13c6f3] bg-[#13c6f3]"
-                : "border-[#d9d9d9] bg-white"
-            }`}
-          >
-            {consent && <Check className="h-3 w-3 text-white" />}
-          </button>
-          <div className="t-body text-black">
-            <span className="font-bold">Saya menyatakan data yang diisi sudah benar</span>
-            <span className="font-medium">
-              {" "}dan bersedia dihubungi oleh tim Klinik Rawat Inap Ampelgading
-              Medical Centre untuk konfirmasi kunjungan.
-            </span>
           </div>
-        </div>
 
-        {submitError && (
-          <p className="mt-4 t-body-sm font-medium text-red-500">{submitError}</p>
-        )}
+          {/* Persetujuan */}
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setConsent((c) => !c)}
+              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                consent
+                  ? "border-[#00b4d8] bg-[#00b4d8]"
+                  : "border-slate-300 bg-white"
+              }`}
+            >
+              {consent && <Check className="h-3 w-3 text-white" />}
+            </button>
+            <div className="t-body-sm text-slate-700" onClick={() => setConsent((c) => !c)}>
+              <span className="font-bold text-slate-900">Saya menyatakan data yang diisi sudah benar</span>
+              <span>
+                {" "}dan bersedia dihubungi oleh tim Klinik Rawat Inap Ampelgading
+                Medical Centre untuk konfirmasi kunjungan.
+              </span>
+            </div>
+          </label>
 
-        {/* Tombol */}
-        <div className="mt-8 flex flex-col items-center justify-between gap-6 lg:flex-row">
-          <div className="order-2 w-full lg:order-1 lg:w-auto">
-            <p className="text-center t-body font-medium text-[#b3b3b3] lg:text-left">
+          {submitError && (
+            <p className="t-body-sm font-medium text-red-500">{submitError}</p>
+          )}
+
+          {/* Tombol */}
+          <div className="flex flex-col items-center justify-between gap-6 lg:flex-row">
+            <p className="order-2 text-center t-body-sm text-slate-400 lg:order-1 lg:text-left">
               Data Anda aman dan hanya digunakan untuk keperluan administrasi klinik
             </p>
-          </div>
-          <div className="order-1 flex w-full flex-col gap-4 sm:flex-row sm:justify-end lg:order-2 lg:w-auto">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 rounded-full border-2 border-black bg-transparent px-6 t-body font-medium text-black shadow-[0px_4px_33px_6px_#4a445d29] hover:bg-transparent"
-              onClick={() => router.push("/pendaftaran_online_2")}
-            >
-              <ArrowLeft className="mr-2 h-5 w-5" />
-              Kembali
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="h-12 rounded-full bg-[#00b4d8] px-6 t-body font-medium text-white shadow-[0px_4px_33px_6px_#4a445d29] hover:bg-[#00b4d8]/90 disabled:opacity-60"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Mendaftarkan...
-                </>
-              ) : (
-                <>
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Kirim Pendaftaran ✓
-                </>
-              )}
-            </Button>
+            <div className="order-1 flex w-full flex-col gap-3 sm:flex-row sm:justify-end lg:order-2 lg:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 rounded-full border border-slate-300 bg-white px-6 t-body font-medium text-slate-700 transition-transform hover:-translate-y-0.5 hover:bg-slate-50"
+                onClick={() => router.push("/pendaftaran_online_2")}
+              >
+                <ArrowLeft className="mr-2 h-5 w-5" />
+                Kembali
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="btn-shine h-12 rounded-full bg-[#00b4d8] px-6 t-body font-medium text-white shadow-lg shadow-[#00b4d8]/25 transition-transform hover:-translate-y-0.5 hover:bg-[#05abce] disabled:opacity-60 disabled:hover:translate-y-0"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Mendaftarkan...
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Kirim Pendaftaran ✓
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </Reveal>
+    </RegistrationShell>
   );
 }

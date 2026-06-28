@@ -20,6 +20,7 @@ type HomeData struct {
 	GBPInteractions       []models.GBPInteraction        `json:"gbp_interactions"`
 	GoogleReviews         []models.GoogleReview          `json:"google_reviews"`
 	KlinikInfo            *models.KlinikInfo             `json:"klinik_info,omitempty"`
+	SiteSettings          []models.SiteSetting           `json:"site_settings"`
 }
 
 func Home(db *gorm.DB) (HomeData, error) {
@@ -55,6 +56,8 @@ func Home(db *gorm.DB) (HomeData, error) {
 	if err := db.First(&klinikInfo).Error; err == nil {
 		data.KlinikInfo = &klinikInfo
 	}
+
+	db.Where("is_active = ?", true).Find(&data.SiteSettings)
 
 	return data, nil
 }

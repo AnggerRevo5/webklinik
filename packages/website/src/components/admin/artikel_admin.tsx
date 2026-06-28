@@ -17,6 +17,7 @@ import {
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
+import { AdminHeader, adminPrimaryBtn } from "@/src/UiKecil/admin_ui";
 
 // Tiptap tidak bisa di-SSR
 const ArtikelEditor = dynamic(() => import("@/src/components/admin/artikel_editor"), { ssr: false });
@@ -289,20 +290,16 @@ export default function ArtikelAdmin() {
         <SidebarAdmin activeKey="artikel" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-900">Artikel</div>
-              <div className="text-[9px] text-slate-400">Kelola artikel untuk website publik</div>
-            </div>
-            <button
-              type="button"
-              onClick={handleNew}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-sky-600 px-4 py-2 text-[11px] font-semibold text-white hover:bg-sky-700"
-            >
+          <AdminHeader
+            icon={<FileText className="h-5 w-5" />}
+            title="Artikel"
+            subtitle="Kelola artikel untuk website publik"
+          >
+            <button type="button" onClick={handleNew} className={adminPrimaryBtn}>
               <Plus className="h-3.5 w-3.5" />
               Tulis Artikel Baru
             </button>
-          </header>
+          </AdminHeader>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-5">
             {/* Filter tabs */}

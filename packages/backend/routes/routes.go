@@ -25,6 +25,7 @@ func registerRoutes(r *gin.Engine, db *gorm.DB, dbKhanza *gorm.DB, cldSvc *servi
 	RegisterEventRoutes(r, db)
 	RegisterArtikelRoutes(r, db)
 	RegisterReviewRoutes(r, db)
+	RegisterSiteSettingsRoutes(r, db)
 	RegisterMediaRoutes(r, db, cldSvc)
 	RegisterDokterFotoRoutes(r, db)
 	RegisterDokterPublikRoutes(r, db, dbKhanza)

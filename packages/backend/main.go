@@ -5,6 +5,7 @@ import (
 	"os"
 
 	database "backend/Database"
+	"backend/handlers"
 	"backend/models"
 	"backend/routes"
 	"backend/services"
@@ -26,6 +27,8 @@ func main() {
 	db.AutoMigrate(&models.KlinikInfo{})
 	db.AutoMigrate(&models.Artikel{})
 	db.AutoMigrate(&models.SocialIconClick{})
+	db.AutoMigrate(&models.SiteSetting{})
+	handlers.SeedSiteSettings(db)
 
 	dbKhanza := database.ConnectKhanza()
 	if dbKhanza == nil {

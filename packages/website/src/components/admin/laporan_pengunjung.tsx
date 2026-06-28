@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+import { AdminHeader } from "@/src/UiKecil/admin_ui";
 import {
   adminGetVisitorStats,
   adminGetVisitorSessions,
@@ -100,12 +101,11 @@ export default function LaporanPengunjung() {
 
         <section className="flex min-w-0 flex-col">
           {/* Header */}
-          <header className="flex flex-col gap-2 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-900">Laporan Pengunjung</div>
-              <div className="text-[10px] text-slate-400">Sesi & trafik website KRI AMC</div>
-            </div>
-          </header>
+          <AdminHeader
+            icon={<Users className="h-5 w-5" />}
+            title="Laporan Pengunjung"
+            subtitle="Sesi & trafik website KRI AMC"
+          />
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-4">
             {/* Stats bar */}

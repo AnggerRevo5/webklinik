@@ -22,7 +22,7 @@ import {
   getDokterPublik,
   getArtikel,
 } from "@/src/lib/api";
-import { useHomeData } from "@/src/lib/hooks";
+import { useHomeData, useSiteSettings } from "@/src/lib/hooks";
 import { Button } from "@/src/UiKecil/button";
 import { Card, CardContent } from "@/src/UiKecil/card";
 import { Input } from "@/src/UiKecil/input";
@@ -36,6 +36,7 @@ import {
 } from "@/src/lib/utils";
 import Footer from "@/src/components/footer";
 import Navbar from "@/src/components/navbar";
+import { Reveal, Parallax, Tilt, ScrollProgress, WordReveal, Marquee, Magnetic, ClipReveal } from "@/src/components/motion";
 
 type HeroStat = {
   icon: React.ComponentType<{ className?: string }>;
@@ -88,8 +89,8 @@ type SocialItem = {
 
 /* ─── Site constants ─── */
 
-const CLINIC_PHONE = "0812-2556-6055";
-const WHATSAPP_URL = "https://wa.me/6281225566055";
+/* Nomor kontak default — dipakai bila setting belum termuat. Nilai aktual
+   diambil dinamis per-komponen via useSiteSettings(). */
 
 const ASSETS = {
   logo: "/assets/logo/LOGO.svg",
@@ -652,13 +653,13 @@ function HeroStatCard({ item }: { item: HeroStat }) {
   const Icon = item.icon;
 
   return (
-    <Card className={cn("card-radius border-0 bg-white", cardShadowSoft)}>
-      <CardContent className="card-base flex flex-col items-center gap-2 text-center">
-        <Icon className="h-8 w-8 text-[#00b4d8] lg:h-10 lg:w-10" />
-        <div className="t-h3 font-bold text-[#3f3f3f]">{item.title}</div>
-        <div className="t-caption text-[#00b4d8]">{item.subtitle}</div>
-      </CardContent>
-    </Card>
+    <div className="ring-gradient group flex flex-col items-center gap-2 rounded-2xl border border-white/60 bg-white/70 p-4 text-center shadow-[0px_2.87px_17.25px_-0.72px_#00000020] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_16px_36px_-14px_rgba(0,180,216,0.4)]">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#00b4d8]/10 text-[#00b4d8] transition-colors group-hover:bg-[#00b4d8] group-hover:text-white">
+        <Icon className="h-5 w-5 lg:h-6 lg:w-6" />
+      </div>
+      <div className="t-h3 font-bold text-[#3f3f3f]">{item.title}</div>
+      <div className="t-caption text-[#00b4d8]">{item.subtitle}</div>
+    </div>
   );
 }
 
@@ -922,7 +923,9 @@ function PromoSection({
                 className="w-[80vw] shrink-0 sm:w-[46vw] lg:w-[28vw]"
                 style={{ maxWidth: 360 }}
               >
-                <PromoCard promo={promo} />
+                <Reveal direction="up" delay={Math.min(idx, 4) * 80} className="h-full">
+                  <PromoCard promo={promo} />
+                </Reveal>
               </div>
             ))}
           </CardSlider>
@@ -1145,20 +1148,25 @@ function ArtikelSection() {
         /* Bento: featured kiri, 2 kartu kanan */
         <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
           {/* Kiri — featured besar */}
-          <div
+          <Reveal
+            direction="up"
             className={
               artikelList.length === 1 ? "w-full" : "lg:w-[55%] lg:shrink-0"
             }
           >
             <ArticleFeaturedCard article={toItem(artikelList[0])} />
-          </div>
+          </Reveal>
 
           {/* Kanan — compact + dark card (hanya jika ada artikel ke-2 atau ke-3) */}
           {artikelList.length >= 2 && (
             <div className="flex flex-col gap-4 lg:flex-1">
-              <ArticleCompactCard article={toItem(artikelList[1])} />
+              <Reveal direction="left" delay={120}>
+                <ArticleCompactCard article={toItem(artikelList[1])} />
+              </Reveal>
               {artikelList.length >= 3 && (
-                <ArticleTextCard article={toItem(artikelList[2])} />
+                <Reveal direction="left" delay={220} className="flex flex-1">
+                  <ArticleTextCard article={toItem(artikelList[2])} />
+                </Reveal>
               )}
             </div>
           )}
@@ -1171,6 +1179,9 @@ function ArtikelSection() {
 /* Section hubungi kami. */
 function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
   const data = homeData;
+  const settings = useSiteSettings();
+  const CLINIC_PHONE = settings.telepon;
+  const WHATSAPP_URL = `https://wa.me/${settings.whatsapp}`;
   const operationalHoursData = React.useMemo(
     () => formatOperationalHours(data?.operational_hours ?? []),
     [data?.operational_hours],
@@ -1202,7 +1213,7 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* ── Kolom kiri: peta + satu panel kontak ── */}
-        <div className="flex flex-col gap-4">
+        <Reveal direction="right" className="flex flex-col gap-4">
           {/* Peta */}
           <div className="overflow-hidden rounded-2xl shadow-[0_2px_16px_-4px_rgba(0,0,0,0.12)]">
             <iframe
@@ -1311,10 +1322,10 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
 
         {/* ── Kolom kanan: form + jam operasional ── */}
-        <div className="flex flex-col gap-4">
+        <Reveal direction="left" delay={120} className="flex flex-col gap-4">
           {/* Form pesan — disederhanakan */}
           <div className="rounded-2xl bg-[#f8f9fb] p-5 shadow-[inset_0px_2px_8px_rgba(0,0,0,0.06)]">
             <h3 className="mb-4 text-[15px] font-bold text-[#1a1a1a]">
@@ -1388,7 +1399,7 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
               </p>
             )}
           </div>
-        </div>
+        </Reveal>
       </div>
     </Section>
   );
@@ -1397,26 +1408,34 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
 /* ─── Emergency CTA ─── */
 
 function EmergencyCta() {
+  const settings = useSiteSettings();
+  const CLINIC_PHONE = settings.telepon;
   return (
-    <section className="bg-[#1a5fa0]">
-      <div className="section-container py-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full bg-[#2d7dd2] md:h-[104px] md:w-[104px]">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#0f4c81] via-[#1a5fa0] to-[#2d7dd2]">
+      {/* Dekorasi orb + grid */}
+      <div className="pointer-events-none absolute inset-0 bg-grid-soft opacity-40" />
+      <div className="pointer-events-none absolute -right-10 -top-16 h-64 w-64 rounded-full bg-[#5fd0e8]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-[#e8861e]/20 blur-3xl" />
+
+      <div className="relative section-container py-9 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <Reveal direction="right" className="flex items-center gap-4">
+          <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full bg-[#2d7dd2] md:h-[104px] md:w-[104px]">
+            <span className="absolute inset-0 rounded-full ring-2 ring-white/30" style={{ animation: "soft-pulse 2.2s ease-out infinite" }} />
             <Siren className="h-9 w-9 text-white md:h-12 md:w-12" />
           </div>
           <div>
             <div className="t-h4 font-bold text-white">
               Butuh bantuan segera?
             </div>
-            <div className="t-body mt-1 text-white">UGD kami buka 24 jam</div>
-            <div className="t-body text-white">hubungi kami</div>
+            <div className="t-body mt-1 text-white/90">UGD kami buka 24 jam</div>
+            <div className="t-body text-white/90">hubungi kami</div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-4">
+        </Reveal>
+        <Reveal direction="left" delay={120} className="flex flex-wrap gap-4">
           <Button
             className={cn(
               btnHeight,
-              "rounded-full bg-[#008000] px-6 t-body text-white hover:bg-[#067006]",
+              "btn-shine rounded-full bg-[#008000] px-6 t-body text-white shadow-lg shadow-emerald-900/30 transition-transform hover:-translate-y-0.5 hover:bg-[#067006]",
             )}
             asChild
           >
@@ -1432,7 +1451,7 @@ function EmergencyCta() {
               </>
             </Link>
           </Button>
-          <Button className={cn(btnAccent, btnHeight, "px-6 t-body")} asChild>
+          <Button className={cn(btnAccent, btnHeight, "btn-shine px-6 t-body shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5")} asChild>
             <a href={`tel:${CLINIC_PHONE.replace(/-/g, "")}`}>
               <AssetIcon
                 src={ASSETS.icons.phone}
@@ -1443,7 +1462,7 @@ function EmergencyCta() {
               {CLINIC_PHONE}
             </a>
           </Button>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -1505,7 +1524,9 @@ function LayananSection({
               className="w-[82vw] shrink-0 sm:w-[48vw] md:w-[38vw] lg:w-[27vw]"
               style={{ maxWidth: 340 }}
             >
-              <ServiceCard layanan={layanan} />
+              <Reveal direction="up" delay={Math.min(i, 4) * 80} className="h-full">
+                <ServiceCard layanan={layanan} />
+              </Reveal>
             </div>
           ))}
         </CardSlider>
@@ -1516,30 +1537,42 @@ function LayananSection({
 
 /* Banner WhatsApp. */
 function WhatsappBanner() {
+  const settings = useSiteSettings();
+  const CLINIC_PHONE = settings.telepon;
+  const WHATSAPP_URL = `https://wa.me/${settings.whatsapp}`;
   return (
-    <section className="bg-[#00b4d8]">
-      <div className="section-container py-8 md:py-10 flex flex-col items-center justify-between gap-6 lg:flex-row">
-        <p className="t-h3 max-w-[1003px] text-center font-medium leading-snug text-white lg:text-left">
-          Kini kami hadir lebih dekat dengan anda melalui{" "}
-          <span className="font-bold">Whatsapp</span>
-        </p>
-        <Button
-          className={cn(
-            "rounded-full bg-white px-6 t-h4 font-bold text-[#00b4d8] hover:bg-white/95",
-            btnHeight,
-          )}
-          asChild
-        >
-          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-            <AssetIcon
-              src={ASSETS.icons.whatsapp}
-              alt=""
-              size={24}
-              className="mr-2"
-            />
-            {CLINIC_PHONE}
-          </a>
-        </Button>
+    <section className="relative overflow-hidden bg-gradient-to-r from-[#00b4d8] via-[#1a9ec9] to-[#0f9bc0]">
+      {/* Dekorasi */}
+      <div className="pointer-events-none absolute inset-0 bg-grid-soft opacity-30" />
+      <div className="pointer-events-none absolute -left-10 top-0 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      <div className="pointer-events-none absolute -right-8 bottom-0 h-48 w-48 rounded-full bg-[#e8861e]/15 blur-3xl" />
+
+      <div className="relative section-container py-8 md:py-10 flex flex-col items-center justify-between gap-6 lg:flex-row">
+        <Reveal direction="right">
+          <p className="t-h3 max-w-[1003px] text-center font-medium leading-snug text-white lg:text-left">
+            Kini kami hadir lebih dekat dengan anda melalui{" "}
+            <span className="font-bold">Whatsapp</span>
+          </p>
+        </Reveal>
+        <Reveal direction="left" delay={120}>
+          <Button
+            className={cn(
+              "btn-shine rounded-full bg-white px-6 t-h4 font-bold text-[#00b4d8] shadow-xl shadow-[#0f4c81]/20 transition-transform hover:-translate-y-0.5 hover:bg-white/95",
+              btnHeight,
+            )}
+            asChild
+          >
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+              <AssetIcon
+                src={ASSETS.icons.whatsapp}
+                alt=""
+                size={24}
+                className="mr-2"
+              />
+              {CLINIC_PHONE}
+            </a>
+          </Button>
+        </Reveal>
       </div>
     </section>
   );
@@ -1629,13 +1662,15 @@ function DokterSection() {
         </p>
       ) : (
         <CardSlider>
-          {khanzaDokter.map((doctor) => (
+          {khanzaDokter.map((doctor, i) => (
             <div
               key={doctor.id}
               className="w-[88vw] shrink-0 sm:w-[54vw] lg:w-[36vw]"
               style={{ maxWidth: 460 }}
             >
-              <DoctorCard doctor={doctor} onOpenProfile={openDoctorModal} />
+              <Reveal direction="up" delay={Math.min(i, 4) * 80} className="h-full">
+                <DoctorCard doctor={doctor} onOpenProfile={openDoctorModal} />
+              </Reveal>
             </div>
           ))}
         </CardSlider>
@@ -1654,6 +1689,8 @@ function DokterSection() {
 
 /* Hero utama. */
 function HeroSection({ homeData }: { homeData?: HomeData | null }) {
+  const settings = useSiteSettings();
+  const WHATSAPP_URL = `https://wa.me/${settings.whatsapp}`;
   const heroImage = resolveAssetPath(homeData?.banner?.[0]?.url, ASSETS.hero);
   const klinikInfo = homeData?.klinik_info ?? null;
   const legacyReview = homeData?.google_reviews?.[0] ?? null;
@@ -1686,91 +1723,212 @@ function HeroSection({ homeData }: { homeData?: HomeData | null }) {
   );
 
   return (
-    <Section
+    <section
       id="beranda"
-      className="scroll-mt-[96px]"
-      innerClassName="pt-4 lg:pt-6"
+      className="relative scroll-mt-[96px] overflow-hidden bg-grid-soft"
     >
-      <div className="grid gap-8 lg:grid-cols-[52%_48%] lg:items-center lg:gap-10">
-        <div className="order-2 animate-fade-up lg:order-1">
-          <h1 className="max-w-[980px] t-h1 font-bold">
-            <span className="text-[#3f3f3f]">
-              Klinik Rawat Inap
-              <br />
-            </span>
-            <span className="text-[#00b4d8]">Ampelgading</span>
-            <span className="text-[#3f3f3f]"> Medical Centre</span>
-          </h1>
-          <p className="mt-6 max-w-[740px] t-body-lg text-[#3f3f3f]">
-            Pelayanan kesehatan terpadu untuk masyarakat Ampelgading dan
-            sekitarnya. UGD 24 jam, rawat inap, persalinan, laboratorium, dan
-            apotek. Menerima BPJS dan pasien umum.
-          </p>
+      {/* ── Aurora background ── */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="aurora-blob bg-[#00b4d8]/40"
+          style={{ top: "-8%", left: "-6%", width: "44vw", height: "44vw", ["--orb-dur" as string]: "16s" }}
+        />
+        <div
+          className="aurora-blob bg-[#e8861e]/25"
+          style={{ bottom: "-12%", right: "-4%", width: "38vw", height: "38vw", ["--orb-dur" as string]: "20s", ["--orb-delay" as string]: "2s" }}
+        />
+        <div
+          className="aurora-blob bg-[#1a5fa0]/20"
+          style={{ top: "30%", right: "24%", width: "26vw", height: "26vw", ["--orb-dur" as string]: "18s", ["--orb-delay" as string]: "1s" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#f7f5f2]/10 via-[#f7f5f2]/40 to-[#f7f5f2]" />
+      </div>
 
-          <div
-            className="mt-8 grid max-w-[760px] grid-cols-3"
-            style={{ gap: "var(--gap-cards)" }}
-          >
-            {heroStats.map((item) => (
-              <HeroStatCard key={item.title} item={item} />
-            ))}
-          </div>
+      <div className="section-container pb-10 pt-6 lg:pt-10">
+        <div className="grid gap-10 lg:grid-cols-[50%_50%] lg:items-center lg:gap-12">
+          {/* ── Kolom teks ── */}
+          <div className="order-2 lg:order-1">
+            <Reveal direction="up" delay={0}>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#00b4d8]/25 bg-white/70 px-4 py-1.5 text-[12px] font-semibold text-[#0f4c81] shadow-sm backdrop-blur">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" style={{ animation: "soft-pulse 1.8s ease-out infinite" }} />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                UGD 24 Jam · Menerima BPJS &amp; Umum
+              </span>
+            </Reveal>
 
-          <div className="mt-7 flex flex-wrap gap-3 lg:gap-4">
-            <Button
-              className={cn(btnPrimary, btnHeight, "px-6 t-body-sm")}
-              asChild
-            >
-              <Link href="/pendaftaran_online_1">
-                <>
-                  <AssetIcon
-                    src={ASSETS.icons.whatsapp}
-                    alt=""
-                    size={16}
-                    className="mr-2"
-                  />
-                  DAFTAR ONLINE
-                </>
-              </Link>
-            </Button>
-            <Button
-              variant="secondary"
-              className={cn(
-                btnSoft,
-                btnHeight,
-                "px-6 t-body-sm text-[#5f6f7a]",
-              )}
-              asChild
-            >
-              <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-                <AssetIcon
-                  src={ASSETS.icons.whatsapp}
-                  alt=""
-                  size={16}
-                  className="mr-2"
-                />
-                WHATSAPP
-              </a>
-            </Button>
-          </div>
-        </div>
-
-        <div className="order-1 w-full animate-fade-in lg:order-2 lg:justify-self-end">
-          <div className="card-radius bg-[#00b4d8] p-2">
-            <div className="relative h-[40vh] min-h-[260px] w-full overflow-hidden card-radius-sm md:h-[50vh] lg:h-auto lg:max-w-[760px] lg:aspect-[1.73]">
-              <Image
-                src={heroImage}
-                alt="Klinik Ampelgading Medical Centre"
-                fill
-                className="object-cover"
-                priority
-                sizes="(max-width: 1024px) 100vw, 820px"
+            <h1 className="mt-5 max-w-[980px] t-h1 font-bold tracking-tight leading-[1.14]">
+              <WordReveal
+                as="span"
+                text="Klinik Rawat Inap"
+                className="block text-[#3f3f3f]"
+                delay={120}
+                step={70}
               />
-            </div>
+              <span className="block">
+                <WordReveal
+                  as="span"
+                  text="Ampelgading"
+                  wordClassName="text-gradient-brand"
+                  delay={340}
+                  step={70}
+                />{" "}
+                <WordReveal
+                  as="span"
+                  text="Medical Centre"
+                  className="text-[#3f3f3f]"
+                  delay={440}
+                  step={70}
+                />
+              </span>
+            </h1>
+
+            <Reveal direction="up" delay={160}>
+              <p className="mt-6 max-w-[640px] t-body-lg text-[#52606a]">
+                {settings.hero_subtitle}
+              </p>
+            </Reveal>
+
+            <Reveal direction="up" delay={240}>
+              <div className="mt-8 flex flex-wrap gap-3 lg:gap-4">
+                <Magnetic strength={0.4}>
+                  <Button
+                    className={cn(btnPrimary, btnHeight, "btn-shine px-6 t-body-sm shadow-lg shadow-[#00b4d8]/25")}
+                    asChild
+                  >
+                    <Link href="/pendaftaran_online_1">
+                      <>
+                        <AssetIcon
+                          src={ASSETS.icons.whatsapp}
+                          alt=""
+                          size={16}
+                          className="mr-2"
+                        />
+                        DAFTAR ONLINE
+                      </>
+                    </Link>
+                  </Button>
+                </Magnetic>
+                <Magnetic strength={0.3}>
+                  <Button
+                    variant="secondary"
+                    className={cn(
+                      btnSoft,
+                      btnHeight,
+                      "px-6 t-body-sm text-[#5f6f7a]",
+                    )}
+                    asChild
+                  >
+                    <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                      <AssetIcon
+                        src={ASSETS.icons.whatsapp}
+                        alt=""
+                        size={16}
+                        className="mr-2"
+                      />
+                      WHATSAPP
+                    </a>
+                  </Button>
+                </Magnetic>
+              </div>
+            </Reveal>
+
+            <Reveal direction="up" delay={320}>
+              <div
+                className="mt-9 grid max-w-[640px] grid-cols-3"
+                style={{ gap: "var(--gap-cards)" }}
+              >
+                {heroStats.map((item) => (
+                  <HeroStatCard key={item.title} item={item} />
+                ))}
+              </div>
+            </Reveal>
+          </div>
+
+          {/* ── Kolom gambar (parallax + tilt + badge mengambang) ── */}
+          <div className="order-1 w-full lg:order-2 lg:justify-self-end">
+            <Reveal direction="left" delay={120} distance={40}>
+              <Parallax speed={0.08} className="relative">
+                {/* glow ring */}
+                <div className="pointer-events-none absolute -inset-3 -z-10 rounded-[34px] bg-gradient-to-tr from-[#00b4d8]/30 via-transparent to-[#e8861e]/25 blur-2xl" />
+                <Tilt max={6}>
+                  <div className="card-radius bg-gradient-to-br from-[#00b4d8] to-[#1a9ec9] p-2 shadow-[0_30px_80px_-30px_rgba(15,76,129,0.55)]">
+                    <ClipReveal duration={1100} className="relative h-[42vh] min-h-[280px] w-full overflow-hidden card-radius-sm md:h-[52vh] lg:h-auto lg:max-w-[760px] lg:aspect-[1.73]">
+                      <Image
+                        src={heroImage}
+                        alt="Klinik Ampelgading Medical Centre"
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="(max-width: 1024px) 100vw, 820px"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#071e38]/25 via-transparent to-transparent" />
+                    </ClipReveal>
+                  </div>
+                </Tilt>
+
+                {/* Badge mengambang — rating */}
+                <div className="absolute -left-3 bottom-6 hidden rounded-2xl border border-white/60 bg-white/90 px-4 py-3 shadow-xl backdrop-blur sm:block">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8861e]/15 text-[#e8861e]">
+                      <Star className="h-5 w-5 fill-[#e8861e]" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold leading-none text-[#1a1a1a]">
+                        {reviewRatingLabel}
+                      </div>
+                      <div className="mt-1 text-[11px] text-[#6b7280]">
+                        {totalUlasan > 0 ? `${totalUlasan} ulasan Google` : "Rating Google"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badge mengambang — 24 jam */}
+                <div className="absolute -right-2 top-5 hidden rounded-2xl border border-white/60 bg-[#0f4c81] px-4 py-3 text-white shadow-xl sm:block">
+                  <div className="flex items-center gap-3">
+                    <Clock3 className="h-5 w-5 text-[#5fd0e8]" />
+                    <div>
+                      <div className="text-sm font-bold leading-none">24 Jam</div>
+                      <div className="mt-1 text-[11px] text-white/70">Buka setiap hari</div>
+                    </div>
+                  </div>
+                </div>
+              </Parallax>
+            </Reveal>
           </div>
         </div>
       </div>
-    </Section>
+    </section>
+  );
+}
+
+/* Marquee band — strip kata kunci klinik ala Awwwards. */
+const MARQUEE_WORDS = [
+  "UGD 24 JAM",
+  "RAWAT INAP",
+  "PERSALINAN",
+  "LABORATORIUM",
+  "APOTEK",
+  "MENERIMA BPJS",
+  "HOMEVISIT",
+];
+
+function MarqueeBand() {
+  return (
+    <section className="overflow-hidden border-y border-white/10 bg-gradient-to-r from-[#0f4c81] via-[#1a5fa0] to-[#0f4c81] py-4">
+      <Marquee duration={26} itemClassName="gap-0">
+        {MARQUEE_WORDS.map((word) => (
+          <span key={word} className="flex items-center">
+            <span className="px-6 t-h4 font-bold uppercase tracking-[0.12em] text-white/90">
+              {word}
+            </span>
+            <Star className="h-4 w-4 shrink-0 fill-[#5fd0e8] text-[#5fd0e8]" />
+          </span>
+        ))}
+      </Marquee>
+    </section>
   );
 }
 
@@ -1780,8 +1938,10 @@ export default function LamanUtama() {
 
   return (
     <main className="min-h-screen bg-[#f7f5f2] text-[#3f3f3f]">
+      <ScrollProgress />
       <Navbar />
       <HeroSection homeData={data} />
+      <MarqueeBand />
       <LayananSection homeData={data} loading={loading} />
       <WhatsappBanner />
       <DokterSection />

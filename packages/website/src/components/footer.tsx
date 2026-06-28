@@ -2,8 +2,9 @@
 
 import { MapPin, Phone, Siren } from "lucide-react";
 import Image from "next/image";
-import { useHomeData } from "@/src/lib/hooks";
+import { useHomeData, useSiteSettings } from "@/src/lib/hooks";
 import { cn } from "@/src/lib/utils";
+import { Reveal } from "@/src/components/motion";
 
 const ASSETS = {
   logo: "/assets/logo/LOGO.svg",
@@ -31,6 +32,7 @@ const FALLBACK_SOCIALS = [
 
 export default function Footer() {
   const { data } = useHomeData();
+  const settings = useSiteSettings();
   const socialLinks = data?.social_links ?? [];
 
   const socials = socialLinks.length > 0
@@ -67,7 +69,7 @@ export default function Footer() {
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
 
           {/* ── Kiri: Brand ── */}
-          <div>
+          <Reveal direction="up">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#00b4d8]/20 bg-white shadow-sm">
                 <Image
@@ -118,10 +120,10 @@ export default function Footer() {
                 </a>
               ))}
             </div>
-          </div>
+          </Reveal>
 
           {/* ── Kanan: Kontak ── */}
-          <div className={cn("lg:border-l lg:border-[#00b4d8]/15 lg:pl-12")}>
+          <Reveal direction="up" delay={140} className={cn("lg:border-l lg:border-[#00b4d8]/15 lg:pl-12")}>
             <p className="mb-5 text-xs font-semibold uppercase tracking-widest text-[#00b4d8]/70">
               Hubungi Kami
             </p>
@@ -135,15 +137,15 @@ export default function Footer() {
             </div>
 
             <a
-              href="tel:081225566055"
+              href={`tel:${settings.telepon.replace(/[^0-9]/g, "")}`}
               className="mb-3 flex items-center gap-3 text-sm text-[#4a6a78] transition-colors hover:text-[#1a1a1a]"
             >
               <Phone className="h-4 w-4 shrink-0 text-[#00b4d8]" />
-              0812-2556-6055
+              {settings.telepon}
             </a>
 
             <a
-              href="https://wa.me/6281225566055"
+              href={`https://wa.me/${settings.whatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mb-6 flex items-center gap-3 text-sm text-[#4a6a78] transition-colors hover:text-[#16a34a]"
@@ -162,7 +164,7 @@ export default function Footer() {
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
               <span className="text-xs font-bold text-emerald-600">Buka 24 JAM</span>
             </div>
-          </div>
+          </Reveal>
         </div>
 
         {/* ── Bottom bar ── */}
