@@ -152,9 +152,10 @@ export type MediaFolder =
   | "layanan"
   | "promo"
   | "galeri"
+  | "kegiatan"
+  | "staff"
   | "artikel"
-  | "logo"
-  | "staff";
+  | "logo";
 
 export type MediaItem = {
   id: number;
@@ -1278,12 +1279,172 @@ export async function getGaleriPreview(): Promise<GaleriPreview> {
   return requestJson<GaleriPreview>("/galeri/preview");
 }
 
+/* ─── Staff / Tim Kami ─── */
+
+export type Staff = {
+  id: number;
+  nama: string;
+  jabatan: string;
+  foto_url: string;
+  urutan: number;
+  is_active: boolean;
+};
+
+export type CreateStaffPayload = {
+  nama: string;
+  jabatan: string;
+  foto_url: string;
+  urutan?: number;
+  is_active?: boolean;
+};
+
+// Publik — hanya staff aktif, sudah terurut.
+export async function getStaff(): Promise<Staff[]> {
+  return requestJson<Staff[]>("/staff?active=true");
+}
+
+// Admin — semua staff (termasuk yang nonaktif).
+export async function getAllStaff(): Promise<Staff[]> {
+  return requestJson<Staff[]>("/staff");
+}
+
+export async function createStaff(payload: CreateStaffPayload) {
+  return requestJson<Staff>("/staff", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateStaff(id: number, payload: CreateStaffPayload) {
+  return requestJson<Staff>(`/staff/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...payload }),
+  });
+}
+
+export async function deleteStaff(id: number) {
+  return requestJson<{ message: string }>(`/staff/${id}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+}
+
 export async function fetchSiteSettings() {
   return requestJson<SiteSetting[]>("/site-settings");
 }
 
-export async function fetchOperationalHours() {
+/* ─── Site settings (konten editable) ─── */
+
+export type TimelineEntry = {
+  year: string;
+  title: string;
+  description: string;
+};
+
+/* Nilai default — disamakan dengan seed backend, dipakai sebagai fallback
+   agar halaman publik tetap tampil walau API belum termuat. */
+export const SITE_DEFAULTS: Record<string, string> = {
+  telepon: "0812-2556-6055",
+  whatsapp: "6281225566055",
+  hero_subtitle:
+    "Pelayanan kesehatan terpadu untuk masyarakat Ampelgading dan sekitarnya. UGD 24 jam, rawat inap, persalinan, laboratorium, dan apotek. Menerima BPJS dan pasien umum.",
+  about_text:
+    "KRI Ampelgading Medical Centre adalah klinik rawat inap yang berlokasi di Desa Tirtomarto, Kec. Ampelgading, Kab. Malang. Didukung tenaga medis profesional, kami melayani UGD 24 jam, rawat inap, rawat jalan, persalinan, dan laboratorium",
+  visi: "Terwujudnya Klinik Rawat Inap Ampelgading Medical Centre yang Berkualitas, Profesional, dan Terpercaya dalam Pelayanan Kesehatan di Kecamatan Ampelgading dan Sekitarnya.",
+  misi: "Memberikan pelayanan bermutu dengan mengutamakan keselamatan pasien dan program 7S. Memanfaatkan teknologi, meningkatkan fasilitas dan kompetensi karyawan, serta membangun kemitraan dengan pihak profesional medis dan masyarakat.",
+  timeline:
+    '[{"year":"2011","title":"Awal mula","description":"praktik mandiri dr. Nikma Fitriasari, MMRS"},{"year":"2021","title":"Klinik rawat inap","description":"Resmi menjadi KRI Ampelgading Medical Centre dan beroperasi 24 jam dengan izin klinik pratama"},{"year":"2023","title":"Menerima BPJS","description":"Melayani pasien BPJS Kesehatan & umum"},{"year":"2026","title":"Terus berkembang","description":"Layanan SIAP DOK, homevisit, rating 4.8"}]',
+  hero_image: "/assets/banner/Banner.svg",
+  about_image: "/assets/about/about-1.png",
+};
+
+export function settingsToMap(list: SiteSetting[]): Record<string, string> {
+  const map: Record<string, string> = { ...SITE_DEFAULTS };
+  for (const s of list) {
+    if (s.setting_value !== undefined && s.setting_value !== null) {
+      map[s.setting_key] = s.setting_value;
+    }
+  }
+  return map;
+}
+
+export function parseTimeline(value: string | undefined): TimelineEntry[] {
+  if (!value) return [];
+  try {
+    const arr = JSON.parse(value);
+    return Array.isArray(arr) ? (arr as TimelineEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function adminGetSiteSettings(): Promise<SiteSetting[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/site-settings`, {
+      cache: "no-store",
+    });
+    const json = await res.json();
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function adminUpdateSiteSettings(
+  items: { setting_key: string; setting_value: string; setting_group?: string }[],
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/site-settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(items),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+/* ─── Jam operasional ─── */
+
+export type CreateOperationalHourPayload = {
+  day_label: string;
+  open_time?: string | null;
+  close_time?: string | null;
+  is_24_hours?: boolean;
+  note?: string;
+  sort_order?: number;
+};
+
+export async function getOperationalHours(): Promise<OperationalHour[]> {
   return requestJson<OperationalHour[]>("/operational-hours");
+}
+
+export async function createOperationalHour(payload: CreateOperationalHourPayload) {
+  return requestJson<OperationalHour>("/operational-hours", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateOperationalHour(
+  id: number,
+  payload: CreateOperationalHourPayload,
+) {
+  return requestJson<OperationalHour>(`/operational-hours/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...payload }),
+  });
+}
+
+export async function deleteOperationalHour(id: number) {
+  return requestJson<{ message: string }>(`/operational-hours/${id}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
 }
 
 export async function fetchSocialLinks() {

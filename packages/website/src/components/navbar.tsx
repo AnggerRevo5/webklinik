@@ -5,13 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
-import { useHomeData } from "@/src/lib/hooks";
+import { useHomeData, useSiteSettings } from "@/src/lib/hooks";
 import { Button } from "@/src/UiKecil/button";
 import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";
 
-
-const WHATSAPP_URL = "https://wa.me/6281225566055";
 
 const ASSETS = {
   logo: "/assets/logo/LOGO.svg",
@@ -70,6 +68,8 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const { data } = useHomeData();
+  const settings = useSiteSettings();
+  const WHATSAPP_URL = `https://wa.me/${settings.whatsapp}`;
 
   const getSocialUrl = (key: string) =>
     data?.social_links?.find((s) => s.label.toLowerCase() === key)?.url ?? "#";
@@ -127,7 +127,7 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <p className="t-body-sm text-[#e03c31] font-semibold">UGD 24 JAM</p>
               <span className="text-[#1a1a1a]/30">|</span>
-              <p className="t-body-sm text-[#1a1a1a] font-semibold">0812-2556-6055</p>
+              <p className="t-body-sm text-[#1a1a1a] font-semibold">{settings.telepon}</p>
             </div>
           </div>
 
@@ -220,29 +220,37 @@ export default function Navbar() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-5 lg:flex">
+          <nav className="hidden items-center gap-6 lg:flex">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "t-body-sm transition-all duration-300 hover:opacity-80",
-                  scrolled ? "text-[#1a1a1a]" : "text-white",
+                  "group relative t-body-sm transition-colors duration-300",
+                  scrolled
+                    ? "text-[#1a1a1a] hover:text-[#00b4d8]"
+                    : "text-white hover:text-white",
                 )}
                 onClick={(e) =>
                   item.isSection && handleSectionClick(e as any, item.id)
                 }
               >
                 {item.label}
+                <span
+                  className={cn(
+                    "absolute -bottom-1.5 left-0 h-0.5 w-full origin-left scale-x-0 rounded-full transition-transform duration-300 group-hover:scale-x-100",
+                    scrolled ? "bg-[#00b4d8]" : "bg-white",
+                  )}
+                />
               </Link>
             ))}
           </nav>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <Button className={cn(btnPrimary, "h-11 px-5 t-body-sm")} asChild>
+            <Button className={cn(btnPrimary, "btn-shine h-11 px-5 t-body-sm shadow-md shadow-[#00b4d8]/30 transition-transform hover:-translate-y-0.5")} asChild>
               <Link href="/pendaftaran_online_1">Daftar Online</Link>
             </Button>
-            <Button className={cn(btnAccent, "h-11 px-5 t-body-sm")}>
+            <Button className={cn(btnAccent, "h-11 px-5 t-body-sm transition-transform hover:-translate-y-0.5")}>
               Sign up/in
             </Button>
           </div>
@@ -328,7 +336,7 @@ export default function Navbar() {
             </Button>
           </div>
 
-          <div className="mt-auto t-body text-slate-300">0812-2556-6055</div>
+          <div className="mt-auto t-body text-slate-300">{settings.telepon}</div>
         </div>
       </div>
     </header>

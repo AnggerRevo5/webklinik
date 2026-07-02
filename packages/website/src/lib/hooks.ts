@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchHomeData, type HomeData } from "@/src/lib/api";
+import {
+  fetchHomeData,
+  fetchSiteSettings,
+  settingsToMap,
+  SITE_DEFAULTS,
+  type HomeData,
+} from "@/src/lib/api";
 
 export function useHomeData() {
   const [data, setData] = useState<HomeData | null>(null);
@@ -43,4 +49,27 @@ export function useHomeData() {
   }, []);
 
   return { data, loading, error };
+}
+
+/* Mengambil konten situs yang bisa diedit admin (nomor telepon, teks hero,
+   Tentang Kami, dll). Selalu mengembalikan map lengkap karena di-merge dengan
+   SITE_DEFAULTS, jadi komponen tidak pernah mendapat nilai undefined. */
+export function useSiteSettings() {
+  const [settings, setSettings] = useState<Record<string, string>>({
+    ...SITE_DEFAULTS,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSiteSettings()
+      .then((list) => {
+        if (!cancelled) setSettings(settingsToMap(list));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return settings;
 }

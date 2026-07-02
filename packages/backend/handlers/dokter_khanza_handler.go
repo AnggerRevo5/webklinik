@@ -16,6 +16,17 @@ func nilIfEmpty(s string) interface{} {
 	return s
 }
 
+// dateOnly mengambil bagian tanggal (YYYY-MM-DD) dari string tanggal,
+// termasuk bila berformat RFC3339 seperti "1981-08-03T00:00:00+07:00"
+// (terjadi ketika driver MySQL membaca kolom date dengan parseTime).
+func dateOnly(s string) string {
+	s = strings.TrimSpace(s)
+	if i := strings.IndexByte(s, 'T'); i > 0 {
+		return s[:i]
+	}
+	return s
+}
+
 // GET /api/admin/spesialis — daftar spesialis dari sik untuk dropdown form
 func AdminGetSpesialisHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -81,7 +92,7 @@ func AdminCreateKhanzaDokterHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 			"almt_tgl":       input.AlmtTgl,
 			"no_telp":        input.NoTelp,
 			"email":          input.Email,
-			"stts_nikah":     input.SttsNikah,
+			"stts_nikah":     nilIfEmpty(input.SttsNikah),
 			"kd_sps":         nilIfEmpty(input.KdSps),
 			"alumni":         input.Alumni,
 			"no_ijn_praktek": input.NoIjnPraktek,
@@ -128,19 +139,20 @@ func AdminUpdateKhanzaDokterHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 		if tglLahir == "" {
 			tglLahir = existing.TglLahir
 		}
+		tglLahir = dateOnly(tglLahir)
 
 		// kd_sps kosong → NULL agar tidak melanggar FK constraint
 		updates := map[string]interface{}{
 			"nm_dokter":      input.NmDokter,
 			"jk":             input.Jk,
 			"tmp_lahir":      input.TmpLahir,
-			"tgl_lahir":      tglLahir,
+			"tgl_lahir":      nilIfEmpty(tglLahir),
 			"gol_drh":        input.GolDrh,
 			"agama":          input.Agama,
 			"almt_tgl":       input.AlmtTgl,
 			"no_telp":        input.NoTelp,
 			"email":          input.Email,
-			"stts_nikah":     input.SttsNikah,
+			"stts_nikah":     nilIfEmpty(input.SttsNikah),
 			"kd_sps":         nilIfEmpty(input.KdSps),
 			"alumni":         input.Alumni,
 			"no_ijn_praktek": input.NoIjnPraktek,

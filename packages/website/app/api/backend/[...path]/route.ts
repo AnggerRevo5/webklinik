@@ -8,6 +8,19 @@ const GO_BACKEND = (
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY ?? "";
 
+const SESSION_COOKIE = "admin_session";
+
+// Path mutasi yang boleh diakses publik tanpa sesi admin (disamakan dengan
+// publicPOSTPrefixes di backend middleware/auth.go). Relatif terhadap path
+// proxy (tanpa awalan "/api/").
+const PUBLIC_MUTATION_PREFIXES = ["pendaftaran", "track/", "kontak"];
+
+function isPublicMutation(path: string): boolean {
+  return PUBLIC_MUTATION_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(prefix),
+  );
+}
+
 async function proxy(
   req: NextRequest,
   pathParts: string[],
@@ -15,6 +28,19 @@ async function proxy(
   const path = pathParts.join("/");
   const search = req.nextUrl.search;
   const targetUrl = `${GO_BACKEND}/api/${path}${search}`;
+
+  // Gerbang autentikasi: request mutasi (selain path publik) wajib membawa
+  // cookie sesi admin yang valid. Tanpa ini, proxy akan menyuntikkan
+  // ADMIN_API_KEY untuk siapa pun → bypass auth backend.
+  const method = req.method;
+  const isRead = method === "GET" || method === "HEAD" || method === "OPTIONS";
+  if (!isRead && !isPublicMutation(path)) {
+    const session = req.cookies.get(SESSION_COOKIE)?.value;
+    const expected = process.env.ADMIN_SESSION_TOKEN;
+    if (!expected || !session || session !== expected) {
+      return NextResponse.json({ error: "Tidak diizinkan" }, { status: 401 });
+    }
+  }
 
   const forwardHeaders: Record<string, string> = {};
   const contentType = req.headers.get("content-type");

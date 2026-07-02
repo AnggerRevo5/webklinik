@@ -5,6 +5,7 @@ import (
 	"os"
 
 	database "backend/Database"
+	"backend/handlers"
 	"backend/models"
 	"backend/routes"
 	"backend/services"
@@ -28,7 +29,11 @@ func main() {
 		&models.KlinikInfo{},
 		&models.Artikel{},
 		&models.SocialIconClick{},
+		&models.SiteSetting{},
+		&models.Staff{},
+		&models.OperationalHour{},
 	)
+	handlers.SeedSiteSettings(db)
 
 	dbKhanza := database.ConnectKhanza()
 	if dbKhanza == nil {

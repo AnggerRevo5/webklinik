@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+import { AdminHeader, adminPrimaryBtn } from "@/src/UiKecil/admin_ui";
 import {
   deleteMedia,
   formatFileSize,
@@ -34,9 +35,10 @@ const FOLDERS: { value: MediaFolder | ""; label: string }[] = [
   { value: "layanan", label: "Layanan" },
   { value: "promo", label: "Promo" },
   { value: "galeri", label: "Galeri" },
+  { value: "kegiatan", label: "Kegiatan" },
+  { value: "staff", label: "Staff" },
   { value: "artikel", label: "Artikel" },
   { value: "logo", label: "Logo" },
-  { value: "staff", label: "Staff" },
 ];
 
 export default function MediaAdminPage() {
@@ -223,43 +225,39 @@ export default function MediaAdminPage() {
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
           {/* Page header */}
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-900">Media Library</div>
-              <div className="text-[9px] text-slate-500">
-                Gambar tersimpan di Cloudinary · {pagination.total} file
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSync}
-                disabled={syncing || uploading}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-medium text-slate-600 transition-all hover:-translate-y-0.5 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-60"
-              >
-                {syncing ? (
-                  <><Loader2 className="h-3 w-3 animate-spin" /> Menyinkronkan...</>
-                ) : (
-                  <><RefreshCw className="h-3 w-3" /> Sync Cloudinary</>
-                )}
-              </button>
-              <label className={`inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-amber-600 ${uploading ? "pointer-events-none opacity-60" : ""}`}>
-                {uploading ? (
-                  <><Loader2 className="h-3 w-3 animate-spin" /> Mengupload...</>
-                ) : (
-                  <><Plus className="h-3 w-3" /> Upload Gambar</>
-                )}
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={handleUpload}
-                  disabled={uploading}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          </header>
+          <AdminHeader
+            icon={<FileImage className="h-5 w-5" />}
+            title="Media Library"
+            subtitle={`Gambar tersimpan di Cloudinary · ${pagination.total} file`}
+          >
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={syncing || uploading}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[11px] font-medium text-slate-600 transition-all hover:-translate-y-0.5 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-60"
+            >
+              {syncing ? (
+                <><Loader2 className="h-3 w-3 animate-spin" /> Menyinkronkan...</>
+              ) : (
+                <><RefreshCw className="h-3 w-3" /> Sync Cloudinary</>
+              )}
+            </button>
+            <label className={`${adminPrimaryBtn} cursor-pointer ${uploading ? "pointer-events-none opacity-60" : ""}`}>
+              {uploading ? (
+                <><Loader2 className="h-3 w-3 animate-spin" /> Mengupload...</>
+              ) : (
+                <><Plus className="h-3 w-3" /> Upload Gambar</>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+          </AdminHeader>
 
           {/* Upload progress */}
           {uploading && (

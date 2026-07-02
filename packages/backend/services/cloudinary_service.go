@@ -33,13 +33,14 @@ type UploadResult struct {
 }
 
 var ValidFolders = map[string]bool{
-	"dokter":  true,
-	"layanan": true,
-	"promo":   true,
-	"galeri":  true,
-	"artikel": true,
-	"logo":    true,
-	"staff":   true,
+	"dokter":   true,
+	"layanan":  true,
+	"promo":    true,
+	"galeri":   true,
+	"kegiatan": true,
+	"staff":    true,
+	"artikel":  true,
+	"logo":     true,
 }
 
 var ValidMimeTypes = map[string]bool{

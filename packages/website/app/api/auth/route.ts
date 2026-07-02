@@ -4,13 +4,23 @@ const SESSION_COOKIE = "admin_session";
 
 // POST /api/auth — login
 export async function POST(req: NextRequest) {
-  const { password } = (await req.json()) as { password?: string };
+  const { username, password } = (await req.json()) as {
+    username?: string;
+    password?: string;
+  };
 
+  const adminUsername = process.env.ADMIN_USERNAME ?? "";
   const adminPassword = process.env.ADMIN_PASSWORD ?? "";
   const sessionToken = process.env.ADMIN_SESSION_TOKEN ?? "";
 
-  if (!adminPassword || !password || password !== adminPassword) {
-    return NextResponse.json({ error: "Password salah" }, { status: 401 });
+  const usernameOk = !adminUsername || username === adminUsername;
+  const passwordOk = Boolean(adminPassword) && password === adminPassword;
+
+  if (!usernameOk || !passwordOk) {
+    return NextResponse.json(
+      { error: "Username atau password salah" },
+      { status: 401 },
+    );
   }
 
   const res = NextResponse.json({ ok: true });

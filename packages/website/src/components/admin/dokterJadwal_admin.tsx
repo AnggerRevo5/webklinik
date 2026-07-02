@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Info, Camera, Eye, EyeOff, Plus, Pencil, Trash2, Clock, Search } from "lucide-react";
+import { CalendarDays, Info, Camera, Eye, EyeOff, Plus, Pencil, Trash2, Clock, Search, Stethoscope, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import {
   adminGetDokter,
@@ -23,7 +23,7 @@ import {
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
-import { ToastContainer, useToast, ConfirmDialog, type ConfirmDialogState } from "@/src/UiKecil/admin_ui";
+import { AdminHeader, adminPrimaryBtn, ToastContainer, useToast, ConfirmDialog, type ConfirmDialogState } from "@/src/UiKecil/admin_ui";
 
 const EMPTY_FORM: KhanzaDokterInput = {
   kd_dokter: "",
@@ -333,10 +333,11 @@ function DokterFormModal({
             <label className={labelCls}>Status Pernikahan</label>
             <select name="stts_nikah" value={form.stts_nikah} onChange={handleChange} className={inputCls}>
               <option value="">— Pilih —</option>
-              <option value="BELUM KAWIN">Belum Kawin</option>
-              <option value="KAWIN">Kawin</option>
+              <option value="BELUM MENIKAH">Belum Kawin</option>
+              <option value="MENIKAH">Kawin</option>
               <option value="JANDA">Janda</option>
-              <option value="DUDA">Duda</option>
+              <option value="DUDHA">Duda</option>
+              <option value="JOMBLO">Lainnya</option>
             </select>
           </div>
 
@@ -567,8 +568,15 @@ export default function DokterJadwalAdmin() {
   const [formModal, setFormModal] = useState<FormModal | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDialogState>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hiddenPage, setHiddenPage] = useState(1);
+  const [inactivePage, setInactivePage] = useState(1);
   const { toasts, showToast, dismissToast } = useToast();
+
+  const INACTIVE_PER_PAGE = 8;
+
+  // Reset ke halaman pertama saat pencarian berubah
+  useEffect(() => {
+    setInactivePage(1);
+  }, [searchQuery]);
 
   const loadDokter = useCallback(() => {
     setLoading(true);
@@ -692,10 +700,6 @@ export default function DokterJadwalAdmin() {
   const selectedDoctor = doctors.find((d) => d.kd_dokter === selectedKd) ?? null;
   const totalTampil = doctors.filter((d) => d.tampil_website).length;
 
-  useEffect(() => {
-    setHiddenPage(1);
-  }, [searchQuery]);
-
   function matchSearch(dok: DokterAdmin) {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -704,8 +708,14 @@ export default function DokterJadwalAdmin() {
 
   const filteredActive = doctors.filter((d) => d.tampil_website && matchSearch(d));
   const filteredInactive = doctors.filter((d) => !d.tampil_website && matchSearch(d));
-  const totalHiddenPages = Math.max(1, Math.ceil(filteredInactive.length / PAGE_SIZE));
-  const pagedInactive = filteredInactive.slice((hiddenPage - 1) * PAGE_SIZE, hiddenPage * PAGE_SIZE);
+
+  // Pagination untuk dokter tersembunyi (jumlahnya bisa banyak)
+  const inactiveTotalPages = Math.max(1, Math.ceil(filteredInactive.length / INACTIVE_PER_PAGE));
+  const inactivePageSafe = Math.min(inactivePage, inactiveTotalPages);
+  const paginatedInactive = filteredInactive.slice(
+    (inactivePageSafe - 1) * INACTIVE_PER_PAGE,
+    inactivePageSafe * INACTIVE_PER_PAGE,
+  );
 
   function renderDokterCard(dok: DokterAdmin) {
     const isSelected = dok.kd_dokter === selectedKd;
@@ -841,32 +851,26 @@ export default function DokterJadwalAdmin() {
         <SidebarAdmin activeKey="dokter" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-900">Dokter & Jadwal</div>
-              <div className="text-[10px] text-slate-400">Data dari SIK Khanza — kelola dokter, atur visibilitas & foto</div>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              {!loading && doctors.length > 0 && (
-                <div className="flex items-center gap-2 text-[9px] text-slate-500">
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">
-                    {totalTampil} ditampilkan di website
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-500">
-                    {doctors.length - totalTampil} disembunyikan
-                  </span>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={openCreateModal}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white hover:bg-sky-700"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Tambah Dokter
-              </button>
-            </div>
-          </header>
+          <AdminHeader
+            icon={<Stethoscope className="h-5 w-5" />}
+            title="Dokter & Jadwal"
+            subtitle="Data dari SIK Khanza — kelola dokter, atur visibilitas & foto"
+          >
+            {!loading && doctors.length > 0 && (
+              <div className="flex items-center gap-2 text-[9px] text-slate-500">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">
+                  {totalTampil} ditampilkan di website
+                </span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-500">
+                  {doctors.length - totalTampil} disembunyikan
+                </span>
+              </div>
+            )}
+            <button type="button" onClick={openCreateModal} className={adminPrimaryBtn}>
+              <Plus className="h-3.5 w-3.5" />
+              Tambah Dokter
+            </button>
+          </AdminHeader>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-5">
             {/* Notice */}
@@ -928,42 +932,52 @@ export default function DokterJadwalAdmin() {
                       <div className="h-px flex-1 bg-slate-200" />
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      {pagedInactive.map((dok) => renderDokterCard(dok))}
+                      {paginatedInactive.map((dok) => renderDokterCard(dok))}
                     </div>
 
-                    {/* Pagination */}
-                    {totalHiddenPages > 1 && (
-                      <div className="mt-4 flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setHiddenPage((p) => Math.max(1, p - 1))}
-                          disabled={hiddenPage === 1}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-medium text-slate-500 disabled:opacity-40 hover:bg-slate-50"
-                        >
-                          ← Prev
-                        </button>
-                        {Array.from({ length: totalHiddenPages }, (_, i) => i + 1).map((page) => (
+                    {/* Pagination — dokter tersembunyi */}
+                    {inactiveTotalPages > 1 && (
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <span className="text-[9px] text-slate-400">
+                          Menampilkan {(inactivePageSafe - 1) * INACTIVE_PER_PAGE + 1}–
+                          {Math.min(inactivePageSafe * INACTIVE_PER_PAGE, filteredInactive.length)} dari{" "}
+                          {filteredInactive.length}
+                        </span>
+                        <div className="flex items-center gap-1.5">
                           <button
-                            key={page}
                             type="button"
-                            onClick={() => setHiddenPage(page)}
-                            className={`rounded-lg border px-3 py-1.5 text-[9px] font-medium transition-colors ${
-                              page === hiddenPage
-                                ? "border-sky-500 bg-sky-500 text-white"
-                                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                            }`}
+                            onClick={() => setInactivePage((p) => Math.max(1, p - 1))}
+                            disabled={inactivePageSafe <= 1}
+                            aria-label="Halaman sebelumnya"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                           >
-                            {page}
+                            <ChevronLeft className="h-3.5 w-3.5" />
                           </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => setHiddenPage((p) => Math.min(totalHiddenPages, p + 1))}
-                          disabled={hiddenPage === totalHiddenPages}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-medium text-slate-500 disabled:opacity-40 hover:bg-slate-50"
-                        >
-                          Next →
-                        </button>
+                          {Array.from({ length: inactiveTotalPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                              key={page}
+                              type="button"
+                              onClick={() => setInactivePage(page)}
+                              aria-current={page === inactivePageSafe ? "page" : undefined}
+                              className={`inline-flex h-7 min-w-7 items-center justify-center rounded-lg border px-2 text-[10px] font-medium transition-colors ${
+                                page === inactivePageSafe
+                                  ? "border-sky-500 bg-sky-600 text-white"
+                                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setInactivePage((p) => Math.min(inactiveTotalPages, p + 1))}
+                            disabled={inactivePageSafe >= inactiveTotalPages}
+                            aria-label="Halaman berikutnya"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -978,60 +992,80 @@ export default function DokterJadwalAdmin() {
               </>
             )}
 
-            {/* Edit foto panel */}
+            {/* Edit foto panel — tampil sebagai popup/modal */}
             {selectedDoctor ? (
-              <form
-                onSubmit={handleSaveFoto}
-                className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+              <div
+                className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8"
+                onClick={() => {
+                  setSelectedKd(null);
+                  setSaveError(null);
+                  setSaveSuccess(false);
+                }}
               >
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="text-[13px] font-semibold text-slate-900">
-                    Ubah foto — {selectedDoctor.nm_dokter}
+                <form
+                  onSubmit={handleSaveFoto}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full max-w-lg rounded-2xl bg-white shadow-xl"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <div className="text-[14px] font-semibold text-slate-900">
+                      Ubah foto — {selectedDoctor.nm_dokter}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedKd(null);
+                        setSaveError(null);
+                        setSaveSuccess(false);
+                      }}
+                      className="rounded-lg px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-100"
+                    >
+                      Tutup
+                    </button>
                   </div>
-                  <span className="rounded-full bg-amber-50 px-2 py-1 text-[8px] font-semibold text-amber-600">
-                    PUT /api/dokter-foto/{selectedDoctor.kd_dokter}
-                  </span>
-                </div>
 
-                <ImagePicker
-                  value={editFoto}
-                  onChange={setEditFoto}
-                  folder="dokter"
-                  label="Foto Dokter"
-                />
+                  <div className="p-6">
+                    <ImagePicker
+                      value={editFoto}
+                      onChange={setEditFoto}
+                      folder="dokter"
+                      label="Foto Dokter"
+                    />
 
-                {saveError ? (
-                  <div className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">
-                    {saveError}
+                    {saveError ? (
+                      <div className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[9px] text-rose-600">
+                        {saveError}
+                      </div>
+                    ) : null}
+                    {saveSuccess ? (
+                      <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-[9px] text-emerald-600">
+                        Foto berhasil disimpan.
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedKd(null);
+                          setSaveError(null);
+                          setSaveSuccess(false);
+                        }}
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-medium text-slate-500 hover:bg-slate-100"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="rounded-lg bg-sky-600 px-4 py-2 text-[10px] font-medium text-white disabled:opacity-60 hover:bg-sky-700"
+                      >
+                        {isSaving ? "Menyimpan..." : "Simpan foto"}
+                      </button>
+                    </div>
                   </div>
-                ) : null}
-                {saveSuccess ? (
-                  <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-[9px] text-emerald-600">
-                    Foto berhasil disimpan.
-                  </div>
-                ) : null}
-
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedKd(null);
-                      setSaveError(null);
-                      setSaveSuccess(false);
-                    }}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-medium text-slate-500"
-                  >
-                    Tutup
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white disabled:opacity-60"
-                  >
-                    {isSaving ? "Menyimpan..." : "Simpan foto"}
-                  </button>
-                </div>
-              </form>
+                </form>
+              </div>
             ) : null}
           </div>
         </section>

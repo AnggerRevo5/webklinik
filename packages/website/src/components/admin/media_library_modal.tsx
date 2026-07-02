@@ -19,9 +19,10 @@ const FOLDERS: { value: MediaFolder | ""; label: string }[] = [
   { value: "layanan", label: "Layanan" },
   { value: "promo", label: "Promo" },
   { value: "galeri", label: "Galeri" },
+  { value: "kegiatan", label: "Kegiatan" },
+  { value: "staff", label: "Staff" },
   { value: "artikel", label: "Artikel" },
   { value: "logo", label: "Logo" },
-  { value: "staff", label: "Staff" },
 ];
 
 interface Props {
@@ -174,7 +175,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect, defaultFo
             ))}
           </div>
           <label
-            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-amber-600 ${uploading ? "pointer-events-none opacity-60" : ""}`}
+            className={`btn-shine inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-cyan-500 px-3.5 py-2 text-[11px] font-semibold text-white shadow-sm shadow-sky-600/25 transition-all hover:-translate-y-0.5 hover:shadow-md ${uploading ? "pointer-events-none opacity-60" : ""}`}
           >
             {uploading ? (
               <>
@@ -337,7 +338,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect, defaultFo
               type="button"
               onClick={handleConfirm}
               disabled={!selected}
-              className="rounded-lg bg-sky-600 px-4 py-2 text-[10px] font-medium text-white disabled:opacity-40 hover:bg-sky-700"
+              className="btn-shine rounded-lg bg-gradient-to-r from-sky-600 to-cyan-500 px-4 py-2 text-[11px] font-semibold text-white shadow-sm shadow-sky-600/25 transition-all hover:-translate-y-0.5 hover:shadow-md disabled:opacity-40 disabled:hover:translate-y-0"
             >
               Gunakan Gambar
             </button>

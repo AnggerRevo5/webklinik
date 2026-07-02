@@ -4,16 +4,23 @@ import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
 import {
   BarChart2,
+  Building2,
+  ChevronDown,
   ClipboardList,
+  Clock,
   FileImage,
   FileText,
   Home,
   Image as ImageIcon,
+  LineChart,
   LogOut,
+  Megaphone,
   Menu,
   MessageCircle,
+  Settings,
   Stethoscope,
   Tag,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -26,21 +33,37 @@ export type SidebarKey =
   | "layanan"
   | "promo"
   | "galeri"
+  | "staff"
+  | "jam"
   | "media"
   | "review"
   | "artikel"
   | "pengunjung"
-  | "sosmed";
+  | "sosmed"
+  | "pengaturan";
 
-type SidebarItem = {
+type SidebarLink = {
   label: string;
   description: string;
-  href?: string;
-  key?: SidebarKey;
+  href: string;
+  key: SidebarKey;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
-const sidebarItems: SidebarItem[] = [
+type SidebarGroup = {
+  group: string;
+  description: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  children: SidebarLink[];
+};
+
+type SidebarEntry = SidebarLink | SidebarGroup;
+
+function isGroup(entry: SidebarEntry): entry is SidebarGroup {
+  return "children" in entry;
+}
+
+const sidebarEntries: SidebarEntry[] = [
   {
     label: "Dashboard",
     description: "Ringkasan data",
@@ -49,32 +72,67 @@ const sidebarItems: SidebarItem[] = [
     icon: Home,
   },
   {
-    label: "Dokter",
-    description: "Jadwal & profil",
-    href: "/dokter_jadwal_admin",
-    key: "dokter",
-    icon: Stethoscope,
+    group: "Profil Klinik",
+    description: "Dokter, tim, jam",
+    icon: Building2,
+    children: [
+      {
+        label: "Dokter",
+        description: "Jadwal & profil",
+        href: "/dokter_jadwal_admin",
+        key: "dokter",
+        icon: Stethoscope,
+      },
+      {
+        label: "Tim",
+        description: "Staff & jabatan",
+        href: "/staff_admin",
+        key: "staff",
+        icon: UserRound,
+      },
+      {
+        label: "Jam Operasional",
+        description: "Jam buka klinik",
+        href: "/jam_operasional_admin",
+        key: "jam",
+        icon: Clock,
+      },
+    ],
   },
   {
-    label: "Layanan",
-    description: "CRUD layanan",
-    href: "/admin_layanan_crud",
-    key: "layanan",
-    icon: ClipboardList,
-  },
-  {
-    label: "Promo",
-    description: "Kelola promo",
-    href: "/admin_promo_page",
-    key: "promo",
-    icon: Tag,
-  },
-  {
-    label: "Galeri",
-    description: "Foto & artikel",
-    href: "/galeri-artikel_admin",
-    key: "galeri",
-    icon: ImageIcon,
+    group: "Konten & Promosi",
+    description: "Layanan, promo, galeri, artikel",
+    icon: Megaphone,
+    children: [
+      {
+        label: "Layanan",
+        description: "CRUD layanan",
+        href: "/admin_layanan_crud",
+        key: "layanan",
+        icon: ClipboardList,
+      },
+      {
+        label: "Promo",
+        description: "Kelola promo",
+        href: "/admin_promo_page",
+        key: "promo",
+        icon: Tag,
+      },
+      {
+        label: "Galeri",
+        description: "Foto & artikel",
+        href: "/galeri-artikel_admin",
+        key: "galeri",
+        icon: ImageIcon,
+      },
+      {
+        label: "Artikel",
+        description: "Kelola artikel",
+        href: "/artikel_admin",
+        key: "artikel",
+        icon: FileText,
+      },
+    ],
   },
   {
     label: "Media",
@@ -84,32 +142,39 @@ const sidebarItems: SidebarItem[] = [
     icon: FileImage,
   },
   {
-    label: "Review",
-    description: "Rating Google",
-    href: "/admin_review_pesan",
-    key: "review",
-    icon: MessageCircle,
+    group: "Analitik",
+    description: "Pengunjung, sosmed, review",
+    icon: LineChart,
+    children: [
+      {
+        label: "Pengunjung",
+        description: "Laporan sesi",
+        href: "/admin_laporan_pengunjung",
+        key: "pengunjung",
+        icon: Users,
+      },
+      {
+        label: "Sosmed",
+        description: "Snapshot & GBP",
+        href: "/admin_sosmed_snapshot",
+        key: "sosmed",
+        icon: BarChart2,
+      },
+      {
+        label: "Review",
+        description: "Rating Google",
+        href: "/admin_review_pesan",
+        key: "review",
+        icon: MessageCircle,
+      },
+    ],
   },
   {
-    label: "Artikel",
-    description: "Kelola artikel",
-    href: "/artikel_admin",
-    key: "artikel",
-    icon: FileText,
-  },
-  {
-    label: "Pengunjung",
-    description: "Laporan sesi",
-    href: "/admin_laporan_pengunjung",
-    key: "pengunjung",
-    icon: Users,
-  },
-  {
-    label: "Sosmed",
-    description: "Snapshot & GBP",
-    href: "/admin_sosmed_snapshot",
-    key: "sosmed",
-    icon: BarChart2,
+    label: "Pengaturan",
+    description: "Konten & kontak",
+    href: "/admin_pengaturan",
+    key: "pengaturan",
+    icon: Settings,
   },
 ];
 
@@ -119,6 +184,15 @@ export default function SidebarAdmin({
   activeKey?: SidebarKey;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Grup yang terbuka. Default: grup yang memuat halaman aktif ikut terbuka.
+  const [openGroups, setOpenGroups] = useState<string[]>(() =>
+    sidebarEntries
+      .filter(isGroup)
+      .filter((entry) =>
+        entry.children.some((child) => child.key === activeKey),
+      )
+      .map((entry) => entry.group),
+  );
   const router = useRouter();
 
   async function handleLogout() {
@@ -127,37 +201,109 @@ export default function SidebarAdmin({
     router.refresh();
   }
 
-  function renderItem(item: SidebarItem, index: number) {
+  function toggleGroup(name: string) {
+    setOpenGroups((prev) =>
+      prev.includes(name)
+        ? prev.filter((item) => item !== name)
+        : [...prev, name],
+    );
+  }
+
+  function renderLink(item: SidebarLink, nested = false) {
     const isActive = activeKey != null && item.key === activeKey;
     const Icon = item.icon;
-    const baseClassName = `group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-all duration-200 ease-out ${
+    const baseClassName = `group relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 text-left text-sm transition-all duration-200 ease-out ${
+      nested ? "py-2" : "py-2.5"
+    } ${
       isActive
-        ? "bg-sky-600 text-white border-sky-500/40 shadow-sm"
-        : "bg-transparent text-slate-700 border-transparent hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+        ? "bg-gradient-to-r from-sky-600 to-cyan-500 text-white shadow-md shadow-sky-600/25"
+        : "bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
     }`;
 
     return (
       <Link
-        key={`${item.label}-${index}`}
-        href={item.href ?? "#"}
+        key={item.key}
+        href={item.href}
         className={baseClassName}
         aria-label={item.label}
+        aria-current={isActive ? "page" : undefined}
         onClick={() => setMenuOpen(false)}
       >
-        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
-          isActive ? "bg-white/20" : "bg-slate-100 group-hover:bg-slate-200"
+        {/* Indikator aktif di sisi kiri */}
+        {isActive && (
+          <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-white/80" />
+        )}
+        <div className={`flex shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+          nested ? "h-7 w-7" : "h-8 w-8"
+        } ${
+          isActive ? "bg-white/20" : "bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600"
         }`}>
-          <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-600"}`} />
+          <Icon className={`h-4 w-4 ${isActive ? "text-white" : ""}`} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold leading-tight">
             {item.label}
           </div>
-          <div className={`mt-0.5 max-w-full truncate text-[10px] leading-none ${isActive ? "text-white/70" : "text-slate-400"}`}>
+          <div className={`mt-0.5 max-w-full truncate text-[10px] leading-none ${isActive ? "text-white/75" : "text-slate-400"}`}>
             {item.description}
           </div>
         </div>
       </Link>
+    );
+  }
+
+  function renderGroup(entry: SidebarGroup) {
+    const Icon = entry.icon;
+    const isOpen = openGroups.includes(entry.group);
+    const hasActive = entry.children.some((child) => child.key === activeKey);
+
+    return (
+      <div key={entry.group}>
+        <button
+          type="button"
+          onClick={() => toggleGroup(entry.group)}
+          aria-expanded={isOpen}
+          className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-200 ease-out ${
+            hasActive && !isOpen
+              ? "bg-sky-50 text-sky-700"
+              : "bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+          }`}
+        >
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+            hasActive && !isOpen
+              ? "bg-sky-100 text-sky-600"
+              : "bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600"
+          }`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold leading-tight">
+              {entry.group}
+            </div>
+            <div className="mt-0.5 max-w-full truncate text-[10px] leading-none text-slate-400">
+              {entry.description}
+            </div>
+          </div>
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+        {isOpen && (
+          <div className="mt-0.5 space-y-0.5 border-l border-slate-100 pl-2.5 ml-4">
+            {entry.children.map((child) => renderLink(child, true))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderNav() {
+    return (
+      <div className="space-y-0.5">
+        {sidebarEntries.map((entry) =>
+          isGroup(entry) ? renderGroup(entry) : renderLink(entry),
+        )}
+      </div>
     );
   }
 
@@ -188,28 +334,30 @@ export default function SidebarAdmin({
         aria-hidden="true"
       />
 
-      <aside className="hidden w-full flex-col border-b border-slate-200 bg-white lg:flex lg:w-55 lg:border-b-0 lg:border-r">
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5">
-          <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-8 w-8 shrink-0" />
+      <aside className="hidden w-full flex-col border-b border-slate-200 bg-white lg:flex lg:w-[220px] lg:border-b-0 lg:border-r">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#0D1B2A] to-[#13314f] px-5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+            <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-7 w-7" />
+          </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold leading-tight text-slate-900">KRI AMC</p>
-            <p className="mt-0.5 text-[10px] leading-none text-slate-400">Admin Panel</p>
+            <p className="text-sm font-bold leading-tight text-white">KRI AMC</p>
+            <p className="mt-0.5 text-[10px] leading-none text-sky-200/70">Admin Panel</p>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Menu</p>
-          <div className="space-y-0.5">{sidebarItems.map((item, index) => renderItem(item, index))}</div>
+          {renderNav()}
         </div>
         <div className="shrink-0 border-t border-slate-100 p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-600 to-cyan-500 text-xs font-bold text-white shadow-sm">
               A
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-slate-900">Admin</p>
+              <p className="truncate text-xs font-semibold text-slate-900">Admin</p>
               <p className="text-[10px] text-slate-400">Super Admin</p>
             </div>
-            <button type="button" title="Logout" onClick={handleLogout} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500">
+            <button type="button" title="Logout" aria-label="Logout" onClick={handleLogout} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500">
               <LogOut className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -220,16 +368,18 @@ export default function SidebarAdmin({
         className={`fixed left-0 top-0 z-50 flex h-dvh w-[85vw] max-w-70 flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-hidden={!menuOpen}
       >
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-5">
-          <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-8 w-8 shrink-0" />
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#0D1B2A] to-[#13314f] px-5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+            <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-7 w-7" />
+          </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold leading-tight text-slate-900">KRI AMC</p>
-            <p className="mt-0.5 text-[10px] leading-none text-slate-400">Admin Panel</p>
+            <p className="text-sm font-bold leading-tight text-white">KRI AMC</p>
+            <p className="mt-0.5 text-[10px] leading-none text-sky-200/70">Admin Panel</p>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Menu</p>
-          <div className="space-y-0.5">{sidebarItems.map((item, index) => renderItem(item, index))}</div>
+          {renderNav()}
         </div>
         <div className="shrink-0 border-t border-slate-100 p-4">
           <div className="flex items-center gap-3">

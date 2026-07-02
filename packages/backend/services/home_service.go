@@ -10,10 +10,12 @@ import (
 // HomePublikData hanya berisi data yang ditampilkan di halaman publik website.
 // Jauh lebih ringan dari HomeData lama yang mengambil semua tabel analytics.
 type HomePublikData struct {
-	Banner     []models.Banner    `json:"banner"`
-	Layanan    []models.Layanan   `json:"layanan"`
-	Promo      []models.Promo     `json:"promo"`
-	KlinikInfo *models.KlinikInfo `json:"klinik_info,omitempty"`
+	Banner           []models.Banner          `json:"banner"`
+	Layanan          []models.Layanan         `json:"layanan"`
+	Promo            []models.Promo           `json:"promo"`
+	KlinikInfo       *models.KlinikInfo       `json:"klinik_info,omitempty"`
+	SiteSettings     []models.SiteSetting     `json:"site_settings"`
+	OperationalHours []models.OperationalHour `json:"operational_hours"`
 }
 
 // HomePublik mengambil hanya 3 tabel + klinik_info untuk halaman publik.
@@ -41,6 +43,10 @@ func HomePublik(db *gorm.DB) (HomePublikData, error) {
 	if err := db.First(&klinikInfo).Error; err == nil {
 		data.KlinikInfo = &klinikInfo
 	}
+
+	db.Where("is_active = ?", true).Find(&data.SiteSettings)
+
+	db.Order("sort_order asc").Order("id asc").Find(&data.OperationalHours)
 
 	return data, nil
 }

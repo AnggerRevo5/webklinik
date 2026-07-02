@@ -3,46 +3,45 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CalendarDays,
+  ArrowRight,
   Check,
   Info,
   Loader2,
-  MessageCircle,
   Search,
   ShieldCheck,
   UserRound,
   WalletCards,
 } from "lucide-react";
 import { Button } from "@/src/UiKecil/button";
-import { Card, CardContent } from "@/src/UiKecil/card";
 import { Input } from "@/src/UiKecil/input";
 import { ToggleGroup, ToggleGroupItem } from "@/src/UiKecil/toggle-group";
 import { Textarea } from "@/src/UiKecil/textarea";
-import Navbar from "@/src/components/navbar";
+import { cn } from "@/src/lib/utils";
 import MobileJKNRedirect from "@/src/components/pendaftaran_online/mobile_jkn_redirect";
+import {
+  RegistrationShell,
+  HelpCard,
+  fieldClass,
+  selectFieldClass,
+  fieldLabelClass,
+  softCardClass,
+} from "@/src/components/pendaftaran_online/registration_shell";
+import { Reveal } from "@/src/components/motion";
 import {
   cekPasienByNIK,
   savePendaftaranSession,
   type PasienKhanza,
 } from "@/src/lib/api";
 
-const inputClass =
-  "h-12 rounded-full border border-[#8f8f8f] bg-[#f7f5f2] px-4 t-body text-black placeholder:text-[#b3b3b3] focus-visible:ring-0";
-const labelClass = "t-body-sm font-bold uppercase tracking-wide text-black";
-const selectClass =
-  "h-12 w-full rounded-full border border-[#8f8f8f] bg-[#f7f5f2] px-4 t-body text-black focus:outline-none cursor-pointer appearance-none";
+const inputClass = fieldClass;
+const labelClass = fieldLabelClass;
+const selectClass = selectFieldClass;
 
 const GOL_DARAH = ["", "A", "B", "O", "AB", "-"];
 const AGAMA = ["", "Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu", "-"];
 const STATUS_NIKAH = ["", "BELUM MENIKAH", "MENIKAH", "JANDA", "DUDHA", "JOMBLO"];
 const PENDIDIKAN = ["", "TS", "TK", "SD", "SMP", "SMA", "SLTA/SEDERAJAT", "D1", "D2", "D3", "D4", "S1", "S2", "S3", "-"];
 const HUBUNGAN = ["", "AYAH", "IBU", "ISTRI", "SUAMI", "SAUDARA", "ANAK", "DIRI SENDIRI", "LAIN-LAIN"];
-
-const steps = [
-  { number: 1, label: "Data diri", active: true },
-  { number: 2, label: "Kunjungan", active: false },
-  { number: 3, label: "Konfirmasi", active: false },
-];
 
 type PasienBaruForm = {
   nm_pasien: string;
@@ -176,133 +175,88 @@ export default function FormulirPendaftaran() {
   // ── Render: Jenis Pasien Selector ─────────────────────────────────────────
   if (jenisPasien === null) {
     return (
-      <main className="min-h-screen bg-[#f7f5f2]">
-        <Navbar />
-        <section className="section-wrap">
-          <Card className="card-radius border border-black/5 bg-[#efefed] shadow-[inset_0px_2px_4px_rgba(0,0,0,0.05)]">
-            <CardContent className="card-base">
-              <div className="mx-auto flex max-w-[560px] flex-col items-center text-center">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="h-6 w-6 text-[#4ea0db]" />
-                  <h1 className="t-h2 font-medium tracking-wide text-[#08b4d8]">
-                    PENDAFTARAN ONLINE
-                  </h1>
+      <RegistrationShell
+        current={1}
+        subtitle="Pilih jenis pasien untuk memulai pendaftaran kunjungan Anda"
+      >
+        <div className="mx-auto max-w-[760px]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Reveal direction="up">
+              <button
+                type="button"
+                onClick={() => setJenisPasien("umum")}
+                className="group relative flex h-full w-full flex-col items-center gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-[0_10px_30px_-18px_rgba(15,76,129,0.35)] transition-all duration-300 hover:-translate-y-1 hover:border-[#00b4d8] hover:shadow-[0_22px_46px_-20px_rgba(0,180,216,0.5)]"
+              >
+                <span className="pointer-events-none absolute inset-x-0 -top-px h-1 bg-gradient-to-r from-[#00b4d8] to-[#0f4c81]" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#00b4d8]/10 text-[#00b4d8] transition-colors group-hover:bg-[#00b4d8] group-hover:text-white">
+                  <UserRound className="h-8 w-8" />
                 </div>
-                <p className="mt-2 t-body font-medium text-black">
-                  Pilih jenis pasien untuk melanjutkan
-                </p>
+                <span className="t-h4 font-bold text-slate-900">Pasien Umum</span>
+                <span className="t-body-sm text-slate-500">
+                  Berbayar / Asuransi swasta
+                </span>
+                <span className="mt-1 inline-flex items-center gap-1 t-body-sm font-semibold text-[#00b4d8]">
+                  Mulai daftar
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </span>
+              </button>
+            </Reveal>
 
-                <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setJenisPasien("umum")}
-                    className="group flex flex-col items-center gap-3 rounded-[20px] border-2 border-black bg-[#f7f5f2] p-6 transition-all hover:border-[#08b4d8] hover:bg-white"
-                  >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#e5defc]">
-                      <UserRound className="h-7 w-7 text-[#08b4d8]" />
-                    </div>
-                    <span className="t-h4 font-bold text-black">Pasien Umum</span>
-                    <span className="t-body-sm font-medium text-[#7f7f7f]">
-                      Berbayar / Asuransi swasta
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setJenisPasien("bpjs")}
-                    className="group flex flex-col items-center gap-3 rounded-[20px] border-2 border-black bg-[#f7f5f2] p-6 transition-all hover:border-green-500 hover:bg-white"
-                  >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-                      <ShieldCheck className="h-7 w-7 text-green-600" />
-                    </div>
-                    <span className="t-h4 font-bold text-black">Peserta BPJS</span>
-                    <span className="t-body-sm font-medium text-[#7f7f7f]">
-                      BPJS Kesehatan
-                    </span>
-                  </button>
+            <Reveal direction="up" delay={120}>
+              <button
+                type="button"
+                onClick={() => setJenisPasien("bpjs")}
+                className="group relative flex h-full w-full flex-col items-center gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-[0_10px_30px_-18px_rgba(15,76,129,0.35)] transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500 hover:shadow-[0_22px_46px_-20px_rgba(16,185,129,0.45)]"
+              >
+                <span className="pointer-events-none absolute inset-x-0 -top-px h-1 bg-gradient-to-r from-emerald-400 to-emerald-600" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 transition-colors group-hover:bg-emerald-500 group-hover:text-white">
+                  <ShieldCheck className="h-8 w-8" />
                 </div>
+                <span className="t-h4 font-bold text-slate-900">Peserta BPJS</span>
+                <span className="t-body-sm text-slate-500">BPJS Kesehatan</span>
+                <span className="mt-1 inline-flex items-center gap-1 t-body-sm font-semibold text-emerald-600">
+                  Via Mobile JKN
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </span>
+              </button>
+            </Reveal>
+          </div>
 
-                <p className="mt-6 t-caption font-medium text-[#b3b3b3]">
-                  Khusus pasien umum · Pasien BPJS via Mobile JKN
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-      </main>
+          <p className="mt-6 text-center t-caption text-slate-400">
+            Khusus pasien umum · Pasien BPJS diarahkan ke aplikasi Mobile JKN
+          </p>
+        </div>
+      </RegistrationShell>
     );
   }
 
   // ── Render: BPJS Redirect ─────────────────────────────────────────────────
   if (jenisPasien === "bpjs") {
     return (
-      <main className="min-h-screen bg-[#f7f5f2]">
-        <Navbar />
-        <section className="section-wrap">
+      <RegistrationShell
+        current={1}
+        subtitle="Pendaftaran peserta BPJS Kesehatan melalui Mobile JKN"
+      >
+        <div className="mx-auto max-w-[640px]">
           <MobileJKNRedirect onBack={() => setJenisPasien(null)} />
-        </section>
-      </main>
+        </div>
+      </RegistrationShell>
     );
   }
 
   // ── Render: Umum — NIK Check + Form ──────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#f7f5f2]">
-      <Navbar />
-      <section className="section-wrap">
-        <Card className="card-radius border border-black/5 bg-[#efefed] shadow-[inset_0px_2px_4px_rgba(0,0,0,0.05)]">
-          <CardContent className="card-base">
-            {/* Judul */}
-            <div className="mx-auto flex max-w-[820px] flex-col items-center text-center">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-6 w-6 text-[#4ea0db]" />
-                <h1 className="t-h2 font-medium tracking-wide text-[#08b4d8]">
-                  PENDAFTARAN ONLINE
-                </h1>
-              </div>
-              <p className="mt-2 t-body font-medium text-black">
-                Isi formulir di bawah untuk mendaftar
-              </p>
-            </div>
-
-            {/* Step indicator */}
-            <div className="mx-auto mt-8 flex max-w-[820px] flex-wrap items-center justify-center gap-3 sm:gap-4">
-              {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center">
-                  <button type="button" className="flex items-center gap-2">
-                    <span
-                      className={`flex h-8 w-8 items-center justify-center rounded-full t-body font-medium ${
-                        step.active
-                          ? "bg-[#1117ff] text-white"
-                          : "bg-[#b4b4b4] text-[#494949]"
-                      }`}
-                    >
-                      {step.number}
-                    </span>
-                    <span
-                      className={`t-body-sm font-medium max-[639px]:hidden ${
-                        step.active ? "text-[#1117ff]" : "text-[#a4a4a4]"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  </button>
-                  {index < steps.length - 1 && (
-                    <div className="mx-3 hidden h-px w-16 bg-[#8cbf76] sm:block" />
-                  )}
-                </div>
-              ))}
-            </div>
-            <p className="mt-2 text-center t-caption font-medium text-[#b3b3b3]">
-              Khusus pasien umum · Pasien BPJS via Mobile JKN
-            </p>
-
-            <div
-              className="mt-10 grid lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]"
-              style={{ gap: "var(--gap-cards)" }}
-            >
-              {/* ── Form Area ── */}
-              <section aria-label="Formulir pendaftaran">
+    <RegistrationShell
+      current={1}
+      subtitle="Isi data diri Anda untuk melanjutkan ke pemilihan jadwal kunjungan"
+    >
+      <Reveal direction="up">
+        <div
+          className="grid lg:grid-cols-[minmax(0,60%)_minmax(0,40%)]"
+          style={{ gap: "var(--gap-cards)" }}
+        >
+          {/* ── Form Area ── */}
+          <section aria-label="Formulir pendaftaran" className={cn(softCardClass, "p-5 sm:p-6")}>
                 {/* CEK NIK */}
                 <div className="mb-6 space-y-3">
                   <label htmlFor="nik-input" className={labelClass}>
@@ -326,7 +280,7 @@ export default function FormulirPendaftaran() {
                       type="button"
                       onClick={handleCekNIK}
                       disabled={nikLoading || nik.length !== 16}
-                      className="h-12 shrink-0 rounded-full bg-[#08b4d8] px-5 t-body font-medium text-white hover:bg-[#06a8ca] disabled:opacity-50"
+                      className="btn-shine h-12 shrink-0 rounded-full bg-[#00b4d8] px-5 t-body font-medium text-white shadow-md shadow-[#00b4d8]/25 transition-transform hover:-translate-y-0.5 hover:bg-[#06a8ca] disabled:opacity-50 disabled:hover:translate-y-0"
                     >
                       {nikLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -373,7 +327,7 @@ export default function FormulirPendaftaran() {
                     <Button
                       type="button"
                       onClick={handleLanjutLama}
-                      className="mt-4 h-12 w-full rounded-full bg-[#08b4d8] t-body font-medium text-white hover:bg-[#06a8ca]"
+                      className="btn-shine mt-4 h-12 w-full rounded-full bg-[#00b4d8] t-body font-medium text-white shadow-md shadow-[#00b4d8]/25 transition-transform hover:-translate-y-0.5 hover:bg-[#06a8ca]"
                     >
                       Lanjutkan Pendaftaran
                     </Button>
@@ -642,91 +596,70 @@ export default function FormulirPendaftaran() {
                     <Button
                       type="button"
                       onClick={handleLanjutBaru}
-                      className="h-12 w-full rounded-full bg-[#08b4d8] t-body font-medium text-white shadow-[0px_4px_33px_6px_#4a445d29] hover:bg-[#06a8ca]"
+                      className="btn-shine h-12 w-full rounded-full bg-[#00b4d8] t-body font-medium text-white shadow-lg shadow-[#00b4d8]/25 transition-transform hover:-translate-y-0.5 hover:bg-[#06a8ca]"
                     >
                       Lanjut ke Jadwal Kunjungan
+                      <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </div>
                 )}
               </section>
 
-              {/* ── Sidebar ── */}
-              <aside className="hidden flex-col gap-4 lg:sticky lg:top-6 lg:flex lg:self-start">
-                <Card className="card-radius border border-[#8f8f8f] bg-[#f7f5f2] shadow-none">
-                  <CardContent className="card-base">
-                    <div className="mb-4 flex items-center gap-2">
-                      <Info className="h-5 w-5 fill-[#80aadf] text-[#80aadf]" />
-                      <h2 className="t-h4 font-bold text-black">
-                        Yang perlu disiapkan
-                      </h2>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-3 rounded-[16px] bg-white/40 p-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#d9d9d9]">
-                          <UserRound className="h-4 w-4 text-[#73a8d8]" />
-                        </div>
-                        <div>
-                          <div className="t-body text-black">KTP / Kartu Identitas</div>
-                          <div className="t-caption font-medium text-[#7f7f7f]">
-                            Untuk verifikasi data diri pasien
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3 rounded-[16px] bg-white/40 p-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#d9d9d9]">
-                          <WalletCards className="h-4 w-4 text-[#e47c7c]" />
-                        </div>
-                        <div>
-                          <div className="t-body text-black">
-                            Kartu Asuransi{" "}
-                            <span className="text-black/30">(jika ada)</span>
-                          </div>
-                          <div className="t-caption font-medium text-[#7f7f7f]">
-                            Untuk pasien dengan asuransi
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="card-radius border-0 bg-[#08b4d8] shadow-[0px_4px_33px_6px_#4a445d29]">
-                  <CardContent className="card-base">
-                    <div className="flex items-center gap-2">
-                      <MessageCircle className="h-4 w-4 text-white" />
-                      <h2 className="t-h4 font-medium text-white">Butuh bantuan?</h2>
-                    </div>
-                    <p className="mt-2 t-caption font-medium text-white/95">
-                      Kesulitan mengisi formulir? Hubungi kami via WhatsApp
-                    </p>
-                    <a
-                      href="https://wa.me/6281225566055"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button className="mt-4 h-11 rounded-full bg-[#008000] px-5 t-body-sm text-white hover:bg-[#007000]">
-                        <MessageCircle className="mr-2 h-4 w-4 fill-current" />
-                        Chat Whatsapp
-                      </Button>
-                    </a>
-                  </CardContent>
-                </Card>
-              </aside>
-
-              {/* ── Mobile accordion ── */}
-              <details className="rounded-2xl border border-[#8f8f8f] bg-[#f7f5f2] p-4 lg:hidden">
-                <summary className="cursor-pointer t-body font-semibold text-black">
-                  Lihat info bantuan pendaftaran
-                </summary>
-                <div className="mt-4 space-y-3 t-body-sm text-[#5f5f5f]">
-                  <p>Siapkan KTP untuk verifikasi data pasien.</p>
-                  <p>Khusus pasien umum, BPJS gunakan Mobile JKN.</p>
+          {/* ── Sidebar ── */}
+          <aside className="hidden flex-col gap-4 lg:sticky lg:top-6 lg:flex lg:self-start">
+            <div className={cn(softCardClass, "p-5")}>
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#00b4d8]/10">
+                  <Info className="h-5 w-5 text-[#00b4d8]" />
                 </div>
-              </details>
+                <h2 className="t-h4 font-bold text-slate-900">
+                  Yang perlu disiapkan
+                </h2>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#00b4d8]/10">
+                    <UserRound className="h-4 w-4 text-[#0f4c81]" />
+                  </div>
+                  <div>
+                    <div className="t-body font-medium text-slate-900">KTP / Kartu Identitas</div>
+                    <div className="t-caption text-slate-500">
+                      Untuk verifikasi data diri pasien
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#e8861e]/10">
+                    <WalletCards className="h-4 w-4 text-[#e8861e]" />
+                  </div>
+                  <div>
+                    <div className="t-body font-medium text-slate-900">
+                      Kartu Asuransi{" "}
+                      <span className="text-slate-400">(jika ada)</span>
+                    </div>
+                    <div className="t-caption text-slate-500">
+                      Untuk pasien dengan asuransi
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </section>
-    </main>
+
+            <HelpCard />
+          </aside>
+
+          {/* ── Mobile accordion ── */}
+          <details className={cn(softCardClass, "p-4 lg:hidden")}>
+            <summary className="cursor-pointer t-body font-semibold text-slate-900">
+              Lihat info bantuan pendaftaran
+            </summary>
+            <div className="mt-4 space-y-3 t-body-sm text-slate-500">
+              <p>Siapkan KTP untuk verifikasi data pasien.</p>
+              <p>Khusus pasien umum, BPJS gunakan Mobile JKN.</p>
+            </div>
+          </details>
+        </div>
+      </Reveal>
+    </RegistrationShell>
   );
 }

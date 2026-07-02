@@ -36,8 +36,10 @@ func AdminAuth() gin.HandlerFunc {
 
 		expected := os.Getenv("ADMIN_API_KEY")
 		if expected == "" {
-			// Kunci belum dikonfigurasi di .env — izinkan sementara agar tidak lock out
-			c.Next()
+			// Kunci belum dikonfigurasi — tolak semua mutasi (fail-closed) supaya
+			// konfigurasi yang belum lengkap tidak membuka backend untuk publik.
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Server belum dikonfigurasi"})
+			c.Abort()
 			return
 		}
 

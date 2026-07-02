@@ -18,6 +18,10 @@ docker-compose.local.yml
 # ============================================================
 backup/*.sql
 *.sql.bak
+# Blokir file baru di SQL/ (dump/backup lokal) kecuali schema yang memang dilacak
+SQL/*
+!SQL/db_klinik.sql
+!SQL/sik.sql
 
 # ============================================================
 # NODE / NEXT.JS

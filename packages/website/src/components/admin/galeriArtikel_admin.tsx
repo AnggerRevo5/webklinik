@@ -6,6 +6,7 @@ import {
   Building2,
   HeartPulse,
   HouseHeart,
+  ImagePlus,
   PencilLine,
   Plus,
   Trash2,
@@ -24,6 +25,8 @@ import {
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import ImagePicker from "@/src/UiKecil/image_picker";
 import {
+  AdminHeader,
+  adminPrimaryBtn,
   ConfirmDialog,
   ToastContainer,
   useToast,
@@ -262,27 +265,23 @@ export default function GaleriArtikelAdmin() {
         <SidebarAdmin activeKey="galeri" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
-          <header className="flex flex-col gap-3 border-b border-slate-200 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[15px] font-semibold text-slate-900">
-                Galeri
-              </div>
-              <div className="text-[10px] text-slate-500">
-                CRUD galeri langsung ke tabel galeri pada database
-              </div>
-            </div>
+          <AdminHeader
+            icon={<ImagePlus className="h-5 w-5" />}
+            title="Galeri"
+            subtitle="CRUD galeri langsung ke tabel galeri pada database"
+          >
             <button
               type="button"
               onClick={() => {
                 setSelectedGalleryId(null);
                 setForm({ kategori: "", text: "", url: "" });
               }}
-              className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-amber-600"
+              className={adminPrimaryBtn}
             >
               <Plus className="h-3 w-3" />
               Tambah foto
             </button>
-          </header>
+          </AdminHeader>
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-5">
             <form
