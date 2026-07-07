@@ -27,7 +27,6 @@ export default function GoogleReviews({ className }: { className?: string }) {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     getGoogleReviews(page, PER_PAGE).then((result) => {
       if (active) {
         setReviews(result.data);
@@ -60,7 +59,7 @@ export default function GoogleReviews({ className }: { className?: string }) {
         {reviews.map((review) => (
           <Card key={review.id} className="card-radius h-full border-0 bg-white shadow-sm">
             <CardContent className="card-base flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 mt-5">
                 <span className="t-body-sm font-semibold text-[#3f3f3f]">
                   {review.reviewer_name || "Pengguna Google"}
                 </span>

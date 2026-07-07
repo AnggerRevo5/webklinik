@@ -445,14 +445,14 @@ function RatingSection({
         <Card className={cn("relative overflow-hidden card-radius border-0 bg-linear-to-br from-white to-[#f7f5f2]", cardShadowMd)}>
           <div className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-[#ff8c00]/8 blur-3xl" />
           <CardContent className="card-base relative">
-            <div className="mb-1 flex flex-wrap items-center gap-2">
+            <div className="mb-1 flex flex-wrap items-center gap-2 mt-5">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-[#e5e0d8] bg-white px-2.5 py-1 shadow-sm">
                 <GoogleGIcon size={14} />
                 <span className="t-body-sm font-semibold text-[#3f3f3f]">
                   Google Review
                 </span>
               </div>
-              <div className="flex gap-0.5">
+              <div className="flex gap-0.5 ">
                 {stars.map((_, i) => (
                   <Star key={i} className="h-4 w-4 fill-[#ff8c00] text-[#ff8c00]" />
                 ))}
