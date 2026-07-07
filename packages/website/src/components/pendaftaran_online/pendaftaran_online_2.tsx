@@ -65,7 +65,11 @@ export default function FormulirKunjungan() {
 
   // Load step1 data + referensi pada mount
   useEffect(() => {
+    // sessionStorage tidak ada di SSR — sengaja dibaca setelah mount (bukan
+    // lazy initial state) supaya render pertama client tidak hydration
+    // mismatch dengan server.
     const session = loadPendaftaranSession();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStep1Data(session.step1);
 
     Promise.all([getPoliKhanza(), getPenjamin()])
@@ -81,16 +85,26 @@ export default function FormulirKunjungan() {
       });
   }, []);
 
-  // Load dokter saat poli + tanggal sudah dipilih
-  useEffect(() => {
+  // Reset/tandai loading saat kdPoli/tanggalPeriksa berubah — saat RENDER
+  // (bukan di efek), pola resmi React "adjusting state when a prop changes".
+  const dokterRequestKey = `${kdPoli}|${tanggalPeriksa}`;
+  const [syncedDokterRequestKey, setSyncedDokterRequestKey] = useState(dokterRequestKey);
+  if (dokterRequestKey !== syncedDokterRequestKey) {
+    setSyncedDokterRequestKey(dokterRequestKey);
     if (!kdPoli || !tanggalPeriksa) {
       setDokterList([]);
       setKdDokter("");
       setSelectedDokter(null);
-      return;
+    } else {
+      setLoadingDokter(true);
     }
+  }
+
+  // Load dokter saat poli + tanggal sudah dipilih — fetch murni, tidak ada
+  // setState sinkron di level teratas (react-hooks/set-state-in-effect).
+  useEffect(() => {
+    if (!kdPoli || !tanggalPeriksa) return;
     const hari = getHariKhanza(new Date(tanggalPeriksa + "T00:00:00"));
-    setLoadingDokter(true);
     getDokterKhanza(kdPoli, hari, tanggalPeriksa)
       .then((list) => {
         setDokterList(list ?? []);

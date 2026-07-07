@@ -64,30 +64,56 @@ export default function MediaAdminPage() {
   const allOnPageSelected = media.length > 0 && media.every((m) => selected.has(m.id));
   const someOnPageSelected = media.some((m) => selected.has(m.id));
 
-  const fetchMedia = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getMedia(activeFolder as MediaFolder || undefined, page);
-      setMedia(result.data);
-      setPagination(result.pagination);
-    } catch {
-      setError("Gagal memuat gambar.");
-    } finally {
-      setLoading(false);
-    }
+  // Logika fetch murni (.then, bukan async/await) — TIDAK ada setState sinkron
+  // di level teratas, supaya aman dipanggil langsung dari efek di bawah
+  // (react-hooks/set-state-in-effect). Tetap mengembalikan Promise supaya
+  // caller lain (upload/delete/sync) bisa tetap `await fetchMedia()`.
+  const fetchMedia = useCallback(() => {
+    return getMedia(activeFolder as MediaFolder || undefined, page)
+      .then((result) => {
+        setMedia(result.data);
+        setPagination(result.pagination);
+        setError(null);
+      })
+      .catch(() => {
+        setError("Gagal memuat gambar.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [activeFolder, page]);
 
+  // Tandai loading saat RENDER ketika folder/halaman berubah (bukan di efek).
+  const mediaRequestKey = `${activeFolder}|${page}`;
+  const [syncedMediaRequestKey, setSyncedMediaRequestKey] = useState(mediaRequestKey);
+  if (mediaRequestKey !== syncedMediaRequestKey) {
+    setSyncedMediaRequestKey(mediaRequestKey);
+    setLoading(true);
+  }
+
   useEffect(() => { fetchMedia(); }, [fetchMedia]);
-  useEffect(() => { setPage(1); setDetail(null); }, [activeFolder]);
-  // Tutup detail saat masuk select mode
-  useEffect(() => { if (isSelectMode) setDetail(null); }, [isSelectMode]);
+
+  // Reset halaman & tutup detail saat folder berubah — saat RENDER (bukan efek).
+  const [syncedActiveFolder, setSyncedActiveFolder] = useState(activeFolder);
+  if (activeFolder !== syncedActiveFolder) {
+    setSyncedActiveFolder(activeFolder);
+    setPage(1);
+    setDetail(null);
+  }
+
+  // Tutup detail saat masuk select mode — saat RENDER (bukan efek).
+  const [wasSelectMode, setWasSelectMode] = useState(isSelectMode);
+  if (isSelectMode !== wasSelectMode) {
+    setWasSelectMode(isSelectMode);
+    if (isSelectMode) setDetail(null);
+  }
 
   function toggleSelect(id: number, e: React.MouseEvent) {
     e.stopPropagation();
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -118,7 +144,8 @@ export default function MediaAdminPage() {
     if (isSelectMode) {
       setSelected((prev) => {
         const next = new Set(prev);
-        next.has(item.id) ? next.delete(item.id) : next.add(item.id);
+        if (next.has(item.id)) next.delete(item.id);
+        else next.add(item.id);
         return next;
       });
     } else {

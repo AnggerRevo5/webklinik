@@ -4,6 +4,7 @@ import * as React from "react";
 import gsap from "gsap";
 import { usePathname } from "next/navigation";
 import { startSession, trackPageview, endSession } from "@/src/lib/tracking";
+import { loadConsent, onConsentChanged } from "@/src/lib/consent";
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -38,13 +39,21 @@ export default function SiteAnimations() {
     };
   }, [pathname]);
 
-  // Mulai sesi sekali saat mount + pasang listener visibilitychange untuk end session
+  // Mulai sesi HANYA bila consent analitik sudah diberikan (lewat CookieConsent).
   // Lewati tracking jika halaman admin — baca window.location.pathname karena effect
   // hanya berjalan di client, dan deps array harus tetap [] (tidak boleh berubah ukuran)
   React.useEffect(() => {
     if (isAdminPath(window.location.pathname)) return;
 
-    startSession();
+    function tryStart() {
+      const consent = loadConsent();
+      if (consent?.analytics) startSession();
+    }
+
+    tryStart(); // consent mungkin sudah tersimpan dari kunjungan sebelumnya
+    const unsubscribe = onConsentChanged((consent) => {
+      if (consent.analytics) startSession();
+    });
 
     function handleVisibilityChange() {
       if (document.visibilityState === "hidden") {
@@ -55,6 +64,7 @@ export default function SiteAnimations() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      unsubscribe();
     };
   }, []);
 
@@ -65,7 +75,8 @@ export default function SiteAnimations() {
       return;
     }
     if (isAdminPath(pathname)) return;
-    trackPageview();
+    if (!loadConsent()?.analytics) return;
+    trackPageview(pathname);
   }, [pathname]);
 
   return (

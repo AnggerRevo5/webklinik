@@ -264,13 +264,13 @@ func AdminToggleTampilDokterHandler(db *gorm.DB) gin.HandlerFunc {
 				TampilWebsite: true,
 			}
 			if err := db.Create(&foto).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				respondInternal(c, err, "")
 				return
 			}
 		} else {
 			foto.TampilWebsite = !foto.TampilWebsite
 			if err := db.Save(&foto).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				respondInternal(c, err, "")
 				return
 			}
 		}

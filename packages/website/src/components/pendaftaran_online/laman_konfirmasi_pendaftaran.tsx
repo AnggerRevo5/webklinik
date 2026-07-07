@@ -27,13 +27,16 @@ export default function LamanKonfirmasiPendaftaran() {
   const [session, setSession] = useState<PendaftaranSession>({});
 
   useEffect(() => {
+    // Sengaja setelah mount (bukan lazy initial state) supaya tidak hydration
+    // mismatch — SSR tidak punya akses sessionStorage, jadi render pertama
+    // client HARUS sama dengan server ({}), baru diisi data asli sesudahnya.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSession(loadPendaftaranSession());
   }, []);
 
   const { result, step1, step2 } = session;
 
   const noReg = result?.no_reg ?? "—";
-  const noRkm = result?.no_rkm_medis ?? "—";
   const tanggal = result?.tanggal_periksa ?? step2?.tanggal_periksa ?? "";
   const waktu = result?.waktu_kunjungan ?? step2?.waktu_kunjungan ?? "—";
   const nmDokter = result?.nm_dokter ?? step2?.nm_dokter ?? "—";
@@ -98,10 +101,6 @@ export default function LamanKonfirmasiPendaftaran() {
 
             {/* Detail grid */}
             <div className="mx-auto mt-7 grid w-full max-w-[560px] grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left sm:col-span-2">
-                <p className="t-caption font-medium uppercase tracking-wider text-slate-400">No. Rekam Medis</p>
-                <p className="mt-0.5 t-body font-bold text-slate-900">{noRkm}</p>
-              </div>
               {detailItems.map((item) => (
                 <div key={item.label} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#00b4d8]/10 text-[#00b4d8]">

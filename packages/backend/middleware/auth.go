@@ -15,22 +15,42 @@ var publicPOSTPrefixes = []string{
 	"/api/kontak",
 }
 
-// AdminAuth memeriksa X-Admin-Key header untuk semua request mutating.
-// GET, OPTIONS, HEAD, dan path di publicPOSTPrefixes selalu diizinkan.
+// isProtectedReadPath = path GET/HEAD yang tetap butuh X-Admin-Key (data admin/PII).
+// Endpoint /api/admin/* jelas admin; /api/visitor-sessions & /api/event adalah
+// endpoint analitik lama yang membocorkan IP pengunjung bila dibiarkan publik.
+func isProtectedReadPath(path string) bool {
+	return strings.HasPrefix(path, "/api/admin/") ||
+		path == "/api/visitor-sessions" ||
+		path == "/api/event"
+}
+
+// AdminAuth memeriksa X-Admin-Key header untuk request mutating dan untuk
+// pembacaan (GET/HEAD) ke path admin/PII. OPTIONS (CORS preflight), GET/HEAD ke
+// path publik, dan mutasi ke publicPOSTPrefixes selalu diizinkan.
 func AdminAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
+		path := c.Request.URL.Path
 
-		if method == "GET" || method == "OPTIONS" || method == "HEAD" {
+		// OPTIONS (CORS preflight) selalu diizinkan.
+		if method == "OPTIONS" {
 			c.Next()
 			return
 		}
 
-		path := c.Request.URL.Path
-		for _, prefix := range publicPOSTPrefixes {
-			if strings.HasPrefix(path, prefix) {
+		if method == "GET" || method == "HEAD" {
+			// Pembacaan publik bebas; pembacaan data admin/PII wajib key.
+			if !isProtectedReadPath(path) {
 				c.Next()
 				return
+			}
+		} else {
+			// Method mutasi: path publik bebas, sisanya wajib key.
+			for _, prefix := range publicPOSTPrefixes {
+				if strings.HasPrefix(path, prefix) {
+					c.Next()
+					return
+				}
 			}
 		}
 

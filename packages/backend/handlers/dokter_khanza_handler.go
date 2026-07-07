@@ -99,7 +99,7 @@ func AdminCreateKhanzaDokterHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 			"status":         "1",
 		}
 		if err := dbKhanza.Model(&models.KhanzaDokter{}).Create(createData).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 
@@ -160,7 +160,7 @@ func AdminUpdateKhanzaDokterHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 		}
 
 		if err := dbKhanza.Model(&models.KhanzaDokter{}).Where("kd_dokter = ?", kdDokter).Updates(updates).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 

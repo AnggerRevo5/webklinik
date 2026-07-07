@@ -2,16 +2,21 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
+  AtSign,
   BarChart2,
   Edit2,
   MapPin,
   Plus,
+  RefreshCw,
   Save,
   Trash2,
   X,
 } from "lucide-react";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
-import { AdminHeader } from "@/src/UiKecil/admin_ui";
+import InstagramStats from "@/src/components/InstagramStats";
+import TiktokStats from "@/src/components/TiktokStats";
+import FacebookStats from "@/src/components/FacebookStats";
+import { AdminHeader, useToast, ToastContainer } from "@/src/UiKecil/admin_ui";
 import {
   adminGetSocialMediaStats,
   adminCreateSocialMediaStats,
@@ -25,12 +30,19 @@ import {
   adminCreateGBPInteraction,
   adminUpdateGBPInteraction,
   adminDeleteGBPInteraction,
+  adminRefreshInstagram,
+  adminGetInstagramHitStats,
+  adminRefreshTiktok,
+  adminGetTiktokHitStats,
+  adminRefreshFacebook,
+  adminGetFacebookHitStats,
   type SocialMediaStatsItem,
   type SocialMediaEngagementItem,
   type GBPInteractionItem,
+  type GoogleHitStats,
 } from "@/src/lib/api";
 
-type Tab = "stats" | "engagement" | "gbp";
+type Tab = "instagram" | "tiktok" | "facebook" | "stats" | "engagement" | "gbp";
 
 const PLATFORM_OPTIONS = ["instagram", "facebook", "tiktok", "youtube", "whatsapp"];
 const GBP_TYPES = ["pencarian", "klik_rute", "klik_telepon", "tampil_foto", "pesan_langsung"];
@@ -46,6 +58,190 @@ function formatDate(iso: string) {
       day: "2-digit", month: "short", year: "numeric",
     });
   } catch { return iso; }
+}
+
+// ── Instagram (otomatis via RapidAPI) ───────────────────────────────────────────
+
+function TabInstagram() {
+  const { toasts, showToast, dismissToast } = useToast();
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [hitStats, setHitStats] = useState<GoogleHitStats | null>(null);
+
+  const loadHitStats = useCallback(() => {
+    adminGetInstagramHitStats().then((stats) => setHitStats(stats));
+  }, []);
+
+  useEffect(() => { loadHitStats(); }, [loadHitStats]);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    const res = await adminRefreshInstagram();
+    if (res.success) {
+      showToast(res.message ?? "Data Instagram berhasil diperbarui", "success");
+      setRefreshKey((k) => k + 1);
+      loadHitStats();
+    } else {
+      showToast(res.error ?? "Gagal memperbarui data Instagram", "error");
+    }
+    setRefreshing(false);
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-slate-500">Statistik followers & engagement Instagram, ditarik otomatis dari RapidAPI.</p>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Memperbarui..." : "Refresh Data"}
+        </button>
+      </div>
+
+      {hitStats && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-[9px] text-slate-500">
+          <span><strong className="text-slate-700">{hitStats.hits_this_month}</strong> hit RapidAPI bulan ini</span>
+          <span><strong className="text-slate-700">{hitStats.hits_total}</strong> hit sepanjang waktu</span>
+          {hitStats.last_hit_at ? (
+            <span>Terakhir: {new Date(hitStats.last_hit_at).toLocaleString("id-ID")}</span>
+          ) : null}
+          <span className="text-slate-400">Auto-refresh: tiap Senin 08:00 (~4-5 hit/bulan dari limit 50)</span>
+        </div>
+      )}
+
+      <InstagramStats key={refreshKey} className="max-w-sm" />
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  );
+}
+
+// ── TikTok (otomatis via RapidAPI) ──────────────────────────────────────────────
+
+function TabTiktok() {
+  const { toasts, showToast, dismissToast } = useToast();
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [hitStats, setHitStats] = useState<GoogleHitStats | null>(null);
+
+  const loadHitStats = useCallback(() => {
+    adminGetTiktokHitStats().then((stats) => setHitStats(stats));
+  }, []);
+
+  useEffect(() => { loadHitStats(); }, [loadHitStats]);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    const res = await adminRefreshTiktok();
+    if (res.success) {
+      showToast(res.message ?? "Data TikTok berhasil diperbarui", "success");
+      setRefreshKey((k) => k + 1);
+      loadHitStats();
+    } else if (res.available === false) {
+      showToast("TIKTOK_PROFILE_URL belum diatur di .env backend", "error");
+    } else {
+      showToast(res.error ?? "Gagal memperbarui data TikTok", "error");
+    }
+    setRefreshing(false);
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-slate-500">Statistik followers & engagement TikTok, ditarik otomatis dari RapidAPI.</p>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Memperbarui..." : "Refresh Data"}
+        </button>
+      </div>
+
+      {hitStats && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-[9px] text-slate-500">
+          <span><strong className="text-slate-700">{hitStats.hits_this_month}</strong> hit RapidAPI bulan ini</span>
+          <span><strong className="text-slate-700">{hitStats.hits_total}</strong> hit sepanjang waktu</span>
+          {hitStats.last_hit_at ? (
+            <span>Terakhir: {new Date(hitStats.last_hit_at).toLocaleString("id-ID")}</span>
+          ) : null}
+          <span className="text-slate-400">Auto-refresh: tiap Senin 08:00 (bareng Instagram & Facebook)</span>
+        </div>
+      )}
+
+      <TiktokStats key={refreshKey} className="max-w-sm" />
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  );
+}
+
+// ── Facebook (otomatis via RapidAPI) ────────────────────────────────────────────
+
+function TabFacebook() {
+  const { toasts, showToast, dismissToast } = useToast();
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [hitStats, setHitStats] = useState<GoogleHitStats | null>(null);
+
+  const loadHitStats = useCallback(() => {
+    adminGetFacebookHitStats().then((stats) => setHitStats(stats));
+  }, []);
+
+  useEffect(() => { loadHitStats(); }, [loadHitStats]);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    const res = await adminRefreshFacebook();
+    if (res.success) {
+      showToast(res.message ?? "Data Facebook berhasil diperbarui", "success");
+      setRefreshKey((k) => k + 1);
+      loadHitStats();
+    } else if (res.available === false) {
+      showToast("FACEBOOK_PROFILE_URL belum diatur di .env backend", "error");
+    } else {
+      showToast(res.error ?? "Gagal memperbarui data Facebook", "error");
+    }
+    setRefreshing(false);
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-slate-500">Statistik followers & engagement Facebook, ditarik otomatis dari RapidAPI.</p>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Memperbarui..." : "Refresh Data"}
+        </button>
+      </div>
+
+      {hitStats && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-[9px] text-slate-500">
+          <span><strong className="text-slate-700">{hitStats.hits_this_month}</strong> hit RapidAPI bulan ini</span>
+          <span><strong className="text-slate-700">{hitStats.hits_total}</strong> hit sepanjang waktu</span>
+          {hitStats.last_hit_at ? (
+            <span>Terakhir: {new Date(hitStats.last_hit_at).toLocaleString("id-ID")}</span>
+          ) : null}
+          <span className="text-slate-400">Auto-refresh: tiap Senin 08:00 (bareng Instagram & TikTok)</span>
+        </div>
+      )}
+
+      <FacebookStats key={refreshKey} className="max-w-sm" />
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  );
 }
 
 // ── Stats Follower ────────────────────────────────────────────────────────────
@@ -65,13 +261,23 @@ function TabStats() {
   const [form, setForm] = useState<StatsForm>(emptyStats());
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setItems(await adminGetSocialMediaStats());
-    setLoading(false);
+  // Logika fetch murni — TIDAK ada setState sinkron di level teratas, supaya
+  // aman dipanggil langsung dari efek di bawah (react-hooks/set-state-in-effect).
+  const fetchItems = useCallback(() => {
+    return adminGetSocialMediaStats().then((data) => {
+      setItems(data);
+      setLoading(false);
+    });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // Dipakai setelah create/update/delete — boleh setState sinkron karena
+  // dipanggil dari event handler, bukan dari efek.
+  const load = useCallback(() => {
+    setLoading(true);
+    fetchItems();
+  }, [fetchItems]);
+
+  useEffect(() => { fetchItems(); }, [fetchItems]);
 
   function startAdd() {
     setEditId(null);
@@ -264,13 +470,23 @@ function TabEngagement() {
   const [form, setForm] = useState<EngagementForm>(emptyEngagement());
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setItems(await adminGetSocialMediaEngagement());
-    setLoading(false);
+  // Logika fetch murni — TIDAK ada setState sinkron di level teratas, supaya
+  // aman dipanggil langsung dari efek di bawah (react-hooks/set-state-in-effect).
+  const fetchItems = useCallback(() => {
+    return adminGetSocialMediaEngagement().then((data) => {
+      setItems(data);
+      setLoading(false);
+    });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // Dipakai setelah create/update/delete — boleh setState sinkron karena
+  // dipanggil dari event handler, bukan dari efek.
+  const load = useCallback(() => {
+    setLoading(true);
+    fetchItems();
+  }, [fetchItems]);
+
+  useEffect(() => { fetchItems(); }, [fetchItems]);
 
   function startAdd() {
     setEditId(null);
@@ -435,13 +651,23 @@ function TabGBP() {
   const [form, setForm] = useState<GBPForm>(emptyGBP());
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setItems(await adminGetGBPInteraction());
-    setLoading(false);
+  // Logika fetch murni — TIDAK ada setState sinkron di level teratas, supaya
+  // aman dipanggil langsung dari efek di bawah (react-hooks/set-state-in-effect).
+  const fetchItems = useCallback(() => {
+    return adminGetGBPInteraction().then((data) => {
+      setItems(data);
+      setLoading(false);
+    });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // Dipakai setelah create/update/delete — boleh setState sinkron karena
+  // dipanggil dari event handler, bukan dari efek.
+  const load = useCallback(() => {
+    setLoading(true);
+    fetchItems();
+  }, [fetchItems]);
+
+  useEffect(() => { fetchItems(); }, [fetchItems]);
 
   function startAdd() {
     setEditId(null);
@@ -579,6 +805,9 @@ export default function SosmedSnapshot() {
   const [activeTab, setActiveTab] = useState<Tab>("stats");
 
   const tabs: { key: Tab; label: string; icon: typeof BarChart2 }[] = [
+    { key: "instagram", label: "Instagram (Otomatis)", icon: AtSign },
+    { key: "tiktok", label: "TikTok (Otomatis)", icon: AtSign },
+    { key: "facebook", label: "Facebook (Otomatis)", icon: AtSign },
     { key: "stats", label: "Statistik Follower", icon: BarChart2 },
     { key: "engagement", label: "Engagement", icon: BarChart2 },
     { key: "gbp", label: "GBP Interaction", icon: MapPin },
@@ -619,6 +848,9 @@ export default function SosmedSnapshot() {
 
           <div className="flex-1 overflow-y-auto p-4 lg:p-5">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              {activeTab === "instagram" && <TabInstagram />}
+              {activeTab === "tiktok" && <TabTiktok />}
+              {activeTab === "facebook" && <TabFacebook />}
               {activeTab === "stats" && <TabStats />}
               {activeTab === "engagement" && <TabEngagement />}
               {activeTab === "gbp" && <TabGBP />}

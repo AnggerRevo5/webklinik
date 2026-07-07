@@ -58,6 +58,10 @@ export default function PendaftaranOnlineKonfirmasiSection() {
   const [consent, setConsent] = useState(false);
 
   useEffect(() => {
+    // sessionStorage tidak ada di SSR — sengaja dibaca setelah mount (bukan
+    // lazy initial state) supaya render pertama client tidak hydration
+    // mismatch dengan server.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSession(loadPendaftaranSession());
   }, []);
 
@@ -113,7 +117,6 @@ export default function PendaftaranOnlineKonfirmasiSection() {
       savePendaftaranSession({
         result: {
           no_reg: res.data?.no_reg ?? "—",
-          no_rkm_medis: res.data?.no_rkm_medis ?? "",
           tanggal_periksa: step2.tanggal_periksa,
           waktu_kunjungan: step2.waktu_kunjungan,
           nm_dokter: step2.nm_dokter,

@@ -13,7 +13,7 @@ func GetEventHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		event, err := services.Event(db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, event)

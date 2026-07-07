@@ -1,9 +1,12 @@
 package routes
 
 import (
+	"backend/handlers"
 	"backend/middleware"
 	"backend/services"
+	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +18,17 @@ import (
 func SetupRouter(db *gorm.DB, dbKhanza *gorm.DB, cldSvc *services.CloudinaryService) *gin.Engine {
 	r := gin.Default()
 	r.MaxMultipartMemory = 10 << 20
+
+	// Trusted proxies: daftar IP/subnet proxy sah (mis. subnet container website
+	// atau IP Cloudflare), dipisah koma via env TRUSTED_PROXIES. Dengan ini
+	// c.ClientIP() mengurai X-Forwarded-For hanya dari proxy tepercaya, sehingga
+	// rate limiter menghitung per pengunjung — bukan per proxy — dan tidak bisa
+	// dipalsukan lewat header. Bila kosong, dipakai perilaku default Gin.
+	if tp := os.Getenv("TRUSTED_PROXIES"); tp != "" {
+		if err := r.SetTrustedProxies(strings.Split(tp, ",")); err != nil {
+			log.Printf("[Router] TRUSTED_PROXIES tidak valid: %v", err)
+		}
+	}
 
 	// CORS: hanya izinkan domain yang terdaftar di env ALLOWED_ORIGINS (pisahkan koma)
 	// Contoh: ALLOWED_ORIGINS=http://localhost:3000,https://klinikkamu.com
@@ -30,20 +44,22 @@ func SetupRouter(db *gorm.DB, dbKhanza *gorm.DB, cldSvc *services.CloudinaryServ
 		MaxAge:        12 * time.Hour,
 	}))
 
-	// Rate limiter global: 120 request per menit per IP
-	globalLimiter := middleware.NewRateLimiter(120, time.Minute)
+	// Rate limiter global per IP per menit. Bisa disetel via RATE_LIMIT_GLOBAL.
+	globalLimiter := middleware.NewRateLimiter(envInt("RATE_LIMIT_GLOBAL", 120), time.Minute)
 	r.Use(globalLimiter.Middleware())
 
 	// Admin auth: semua POST/PUT/PATCH/DELETE perlu X-Admin-Key kecuali path public
 	r.Use(middleware.AdminAuth())
+	// Audit log: catat semua mutasi admin yang lolos AdminAuth (harus setelah AdminAuth).
+	r.Use(middleware.AuditLog(db))
 
 	registerRoutes(r, db, dbKhanza, cldSvc)
 	return r
 }
 
 func registerRoutes(r *gin.Engine, db *gorm.DB, dbKhanza *gorm.DB, cldSvc *services.CloudinaryService) {
-	// Rate limiter ketat untuk pendaftaran: 10 request per menit per IP
-	pendaftaranLimiter := middleware.NewRateLimiter(10, time.Minute)
+	// Rate limiter ketat untuk pendaftaran. Bisa disetel via RATE_LIMIT_PENDAFTARAN.
+	pendaftaranLimiter := middleware.NewRateLimiter(envInt("RATE_LIMIT_PENDAFTARAN", 10), time.Minute)
 
 	RegisterHomeRoutes(r, db)
 	RegisterBannerRoutes(r, db)
@@ -65,4 +81,25 @@ func registerRoutes(r *gin.Engine, db *gorm.DB, dbKhanza *gorm.DB, cldSvc *servi
 	RegisterTrackingRoutes(r, db)
 	RegisterSosmedRoutes(r, db)
 	RegisterStatsRoutes(r, db)
+	RegisterGoogleBusinessRoutes(r, db)
+	RegisterInstagramRoutes(r, db)
+	RegisterTiktokRoutes(r, db)
+	RegisterFacebookRoutes(r, db)
+	RegisterAdminAuthRoutes(r, db)
+
+	// Audit log admin (butuh X-Admin-Key — path "/api/admin/" sudah wajib key
+	// lewat middleware.AdminAuth untuk semua method termasuk GET).
+	r.POST("/api/admin/audit-log", handlers.RecordAuditLogHandler(db))
+	r.GET("/api/admin/audit-log", handlers.GetAuditLogsHandler(db))
+}
+
+// envInt membaca variabel lingkungan sebagai integer positif; mengembalikan
+// nilai default bila kosong atau tidak valid.
+func envInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
 }

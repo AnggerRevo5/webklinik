@@ -15,7 +15,7 @@ func GetOperationalHoursHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hours, err := services.OperationalHours(db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, hours)
@@ -30,7 +30,7 @@ func CreateOperationalHourHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.CreateOperationalHour(db, &h); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusCreated, h)
@@ -50,7 +50,7 @@ func UpdateOperationalHourHandler(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 		if err := services.UpdateOperationalHour(db, &h); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, h)
@@ -68,7 +68,7 @@ func DeleteOperationalHourHandler(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 		if err := services.DeleteOperationalHour(db, id); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "jam operasional dihapus"})

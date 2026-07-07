@@ -39,10 +39,19 @@ func HomePublik(db *gorm.DB) (HomePublikData, error) {
 		data.Promo = promos
 	}
 
+	// Error dari First() sengaja diabaikan (sama seperti handlers/review_handler.go)
+	// — kalau tabel klinik_info belum ada isinya sama sekali, klinikInfo tetap
+	// struct kosong (rating_google=0), tapi RatingSummary di bawah tetap bisa
+	// mengisinya dari cache Google Business. Tanpa ini, klinik_info tidak pernah
+	// dikirim ke frontend sama sekali kalau baris manualnya belum pernah dibuat.
 	var klinikInfo models.KlinikInfo
-	if err := db.First(&klinikInfo).Error; err == nil {
-		data.KlinikInfo = &klinikInfo
-	}
+	db.First(&klinikInfo)
+	// Prioritaskan rating dari cache Google Business (kalau sudah pernah
+	// di-refresh) di atas angka manual — supaya hero halaman utama konsisten
+	// dengan yang ditampilkan di halaman Tentang Kami (lihat
+	// handlers/review_handler.go, sumber logikanya sama-sama RatingSummary).
+	klinikInfo.RatingGoogle, klinikInfo.TotalUlasan = RatingSummary(db, klinikInfo.RatingGoogle, klinikInfo.TotalUlasan)
+	data.KlinikInfo = &klinikInfo
 
 	db.Where("is_active = ?", true).Find(&data.SiteSettings)
 

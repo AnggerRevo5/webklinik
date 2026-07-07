@@ -2,9 +2,10 @@
 
 import { MapPin, Phone, Siren } from "lucide-react";
 import Image from "next/image";
-import { useHomeData, useSiteSettings } from "@/src/lib/hooks";
+import { useSiteSettings } from "@/src/lib/hooks";
 import { cn } from "@/src/lib/utils";
 import { Reveal } from "@/src/components/motion";
+import { trackSocialClick } from "@/src/lib/tracking";
 
 const ASSETS = {
   logo: "/assets/logo/LOGO.svg",
@@ -16,33 +17,19 @@ const ASSETS = {
   },
 } as const;
 
-const socialIconMap: Record<string, string> = {
-  instagram: ASSETS.icons.instagram,
-  facebook:  ASSETS.icons.facebook,
-  tiktok:    ASSETS.icons.tiktok,
-  whatsapp:  ASSETS.icons.whatsapp,
-};
-
-const FALLBACK_SOCIALS = [
+const SOCIAL_DEFS = [
   { key: "instagram", icon: ASSETS.icons.instagram, label: "Instagram" },
   { key: "facebook",  icon: ASSETS.icons.facebook,  label: "Facebook"  },
   { key: "tiktok",    icon: ASSETS.icons.tiktok,    label: "TikTok"    },
-  { key: "whatsapp",  icon: ASSETS.icons.whatsapp,  label: "WhatsApp"  },
 ];
 
 export default function Footer() {
-  const { data } = useHomeData();
   const settings = useSiteSettings();
-  const socialLinks = data?.social_links ?? [];
 
-  const socials = socialLinks.length > 0
-    ? socialLinks.map((item) => ({
-        key: item.label.toLowerCase(),
-        icon: socialIconMap[item.label.toLowerCase()] ?? ASSETS.icons.whatsapp,
-        label: item.label,
-        url: item.url,
-      }))
-    : FALLBACK_SOCIALS.map((s) => ({ ...s, url: "#" }));
+  const socials = [
+    ...SOCIAL_DEFS.map((s) => ({ ...s, url: settings[s.key] ?? "#" })),
+    { key: "whatsapp", icon: ASSETS.icons.whatsapp, label: "WhatsApp", url: `https://wa.me/${settings.whatsapp}` },
+  ];
 
   return (
     <footer className="relative overflow-hidden bg-[#eef8fb]">
@@ -108,6 +95,7 @@ export default function Footer() {
                   target={s.url.startsWith("http") ? "_blank" : undefined}
                   rel="noopener noreferrer"
                   aria-label={s.label}
+                  onClick={() => trackSocialClick(s.key)}
                   className="group flex h-9 w-9 items-center justify-center rounded-full border border-[#00b4d8]/20 bg-white shadow-sm transition-all duration-200 hover:scale-110 hover:border-[#00b4d8]/50 hover:bg-[#00b4d8]/10"
                 >
                   <Image

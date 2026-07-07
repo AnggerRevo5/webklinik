@@ -9,16 +9,19 @@ import { cn } from "@/src/lib/utils";
    parallax pakai rAF + transform. Semua menghormati prefers-reduced-motion.
    ───────────────────────────────────────────────────────────── */
 
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = React.useState(false);
-  React.useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const handler = () => setReduced(mq.matches);
-    mq.addEventListener?.("change", handler);
-    return () => mq.removeEventListener?.("change", handler);
-  }, []);
-  return reduced;
+// useSyncExternalStore (bukan useState+useEffect) — cara resmi React untuk
+// membaca & subscribe ke state eksternal seperti matchMedia, tanpa
+// setState sinkron di efek (react-hooks/set-state-in-effect).
+export function usePrefersReducedMotion() {
+  return React.useSyncExternalStore(
+    (callback) => {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      mq.addEventListener?.("change", callback);
+      return () => mq.removeEventListener?.("change", callback);
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
 }
 
 type RevealDirection = "up" | "down" | "left" | "right" | "fade" | "zoom";
@@ -75,10 +78,9 @@ export function Reveal({
   const reduced = usePrefersReducedMotion();
 
   React.useEffect(() => {
-    if (reduced) {
-      setVisible(true);
-      return;
-    }
+    // reduced=true: style di bawah sudah selalu render tampil penuh terlepas
+    // dari `visible`, jadi tidak perlu setState sinkron di sini sama sekali.
+    if (reduced) return;
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -281,10 +283,8 @@ export function CountUp({
   const reduced = usePrefersReducedMotion();
 
   React.useEffect(() => {
-    if (reduced) {
-      setValue(to);
-      return;
-    }
+    // reduced=true ditangani via displayValue di bawah, bukan setState di sini.
+    if (reduced) return;
     const el = ref.current;
     if (!el) return;
     let raf = 0;
@@ -320,10 +320,12 @@ export function CountUp({
     };
   }, [to, from, duration, reduced]);
 
+  const displayValue = reduced ? to : value;
+
   return (
     <span ref={ref} className={className}>
       {prefix}
-      {value.toFixed(decimals)}
+      {displayValue.toFixed(decimals)}
       {suffix}
     </span>
   );
@@ -402,10 +404,9 @@ export function WordReveal({
   const words = text.split(" ");
 
   React.useEffect(() => {
-    if (reduced) {
-      setVisible(true);
-      return;
-    }
+    // reduced=true: style di bawah mengabaikan `visible` sepenuhnya (pakai
+    // undefined), jadi tidak perlu setState sinkron di sini.
+    if (reduced) return;
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -558,10 +559,9 @@ export function ClipReveal({
   const reduced = usePrefersReducedMotion();
 
   React.useEffect(() => {
-    if (reduced) {
-      setVisible(true);
-      return;
-    }
+    // reduced=true: style di bawah mengabaikan `visible` sepenuhnya (pakai
+    // undefined), jadi tidak perlu setState sinkron di sini.
+    if (reduced) return;
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(

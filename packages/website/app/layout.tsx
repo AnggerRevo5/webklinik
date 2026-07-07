@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import SiteAnimations from "@/src/hooks/site-animations";
+import CookieConsent from "@/src/components/cookie_consent";
+import SmoothScroll from "@/src/components/smooth_scroll";
 
 export const metadata: Metadata = {
   title: "Klinik Ampelgading Medical Centre",
@@ -23,8 +25,11 @@ export default function RootLayout({
       className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col font-sans">
-        <SiteAnimations />
-        {children}
+        <SmoothScroll>
+          <SiteAnimations />
+          {children}
+          <CookieConsent />
+        </SmoothScroll>
       </body>
     </html>
   );

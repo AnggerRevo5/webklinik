@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -11,6 +12,45 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
+
+// envInt membaca env sebagai integer positif, atau default bila kosong/invalid.
+func envInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
+}
+
+// envSeconds membaca env sebagai detik lalu diubah ke time.Duration.
+func envSeconds(key string, def time.Duration) time.Duration {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return time.Duration(n) * time.Second
+		}
+	}
+	return def
+}
+
+// configurePool menerapkan pengaturan connection pool. Tanpa ini, koneksi
+// idle yang jadi basi (mis. jalur jaringan sempat putus — VPN/Tailscale
+// re-handshake, NAT timeout, WiFi roaming) baru ketahuan mati saat benar-benar
+// dipakai untuk query, dan request itu harus menunggu timeout TCP (bisa
+// berdetik-detik) sebelum driver retry pakai koneksi baru. ConnMaxLifetime
+// memaksa koneksi di-refresh berkala SEBELUM sempat basi, jadi hiccup
+// jaringan tidak nyangkut jadi delay panjang di request pengguna.
+func configurePool(gdb *gorm.DB) error {
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		return fmt.Errorf("gagal ambil sql.DB dari gorm: %w", err)
+	}
+	sqlDB.SetMaxOpenConns(envInt("DB_MAX_OPEN_CONNS", 15))
+	sqlDB.SetMaxIdleConns(envInt("DB_MAX_IDLE_CONNS", 5))
+	sqlDB.SetConnMaxLifetime(envSeconds("DB_CONN_MAX_LIFETIME_SEC", 5*time.Minute))
+	sqlDB.SetConnMaxIdleTime(envSeconds("DB_CONN_MAX_IDLE_TIME_SEC", 2*time.Minute))
+	return nil
+}
 
 func Connect() (*gorm.DB, error) {
 	_ = godotenv.Load()
@@ -33,6 +73,9 @@ func Connect() (*gorm.DB, error) {
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("gagal konek nih ke database awowkwkwk: %w", err)
+	}
+	if err := configurePool(db); err != nil {
+		return nil, err
 	}
 
 	return db, nil
@@ -66,6 +109,9 @@ func ConnectKhanza() *gorm.DB {
 			sqlDB, pingErr := db.DB()
 			if pingErr == nil {
 				if pingErr = sqlDB.Ping(); pingErr == nil {
+					if poolErr := configurePool(db); poolErr != nil {
+						log.Printf("[Khanza] Gagal atur connection pool: %v", poolErr)
+					}
 					log.Printf("[Khanza] Koneksi berhasil ke %s/%s", host, name)
 					return db
 				}

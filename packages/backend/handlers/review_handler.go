@@ -2,12 +2,51 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"backend/models"
+	"backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+// ratingFromCacheOrKlinikInfo mengembalikan rating & jumlah ulasan dari cache
+// Google Business bila sudah pernah di-refresh, kalau tidak jatuh ke nilai
+// manual di KlinikInfo. link_gmaps selalu dari KlinikInfo karena RapidAPI
+// Local Business Data yang dipakai di sini tidak mengembalikan link Maps.
+// Logika intinya ada di services.RatingSummary (dipakai juga oleh
+// services/home_service.go untuk hero halaman utama) supaya kedua halaman
+// selalu konsisten menampilkan rating yang sama.
+func ratingFromCacheOrKlinikInfo(db *gorm.DB, info models.KlinikInfo) (float64, int) {
+	return services.RatingSummary(db, info.RatingGoogle, info.TotalUlasan)
+}
+
+// ratingBreakdownFromCacheOrReviews mengembalikan distribusi jumlah ulasan per
+// bintang (5..1). Sumber utama: google_business_cache.rating_5..rating_1 (dari
+// reviews_per_rating RapidAPI, mencakup SEMUA ulasan Google — bukan cuma yang
+// di-cache lokal). Fallback: hitung dari testimoni manual (tabel review) bila
+// cache belum pernah di-refresh.
+func ratingBreakdownFromCacheOrReviews(db *gorm.DB, reviews []models.Review) map[string]int {
+	var cache models.GoogleBusinessCache
+	if db.Order("id ASC").First(&cache).Error == nil && cache.Rating > 0 {
+		return map[string]int{
+			"5": cache.Rating5,
+			"4": cache.Rating4,
+			"3": cache.Rating3,
+			"2": cache.Rating2,
+			"1": cache.Rating1,
+		}
+	}
+	breakdown := map[string]int{"5": 0, "4": 0, "3": 0, "2": 0, "1": 0}
+	for _, r := range reviews {
+		key := strconv.Itoa(r.Rating)
+		if _, ok := breakdown[key]; ok {
+			breakdown[key]++
+		}
+	}
+	return breakdown
+}
 
 // GET /api/review — public, hanya tampil=true
 func GetReviewPublicHandler(db *gorm.DB) gin.HandlerFunc {
@@ -19,15 +58,17 @@ func GetReviewPublicHandler(db *gorm.DB) gin.HandlerFunc {
 
 		var info models.KlinikInfo
 		db.First(&info)
+		ratingGoogle, totalUlasan := ratingFromCacheOrKlinikInfo(db, info)
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"data": gin.H{
 				"reviews": reviews,
 				"summary": gin.H{
-					"rating_google": info.RatingGoogle,
-					"total_ulasan":  info.TotalUlasan,
-					"link_gmaps":    info.LinkGmaps,
+					"rating_google":     ratingGoogle,
+					"total_ulasan":      totalUlasan,
+					"link_gmaps":        info.LinkGmaps,
+					"rating_breakdown":  ratingBreakdownFromCacheOrReviews(db, reviews),
 				},
 			},
 		})
@@ -42,14 +83,16 @@ func AdminGetReviewHandler(db *gorm.DB) gin.HandlerFunc {
 
 		var info models.KlinikInfo
 		db.First(&info)
+		ratingGoogle, totalUlasan := ratingFromCacheOrKlinikInfo(db, info)
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"reviews": reviews,
 			"summary": gin.H{
-				"rating_google": info.RatingGoogle,
-				"total_ulasan":  info.TotalUlasan,
-				"link_gmaps":    info.LinkGmaps,
+				"rating_google":    ratingGoogle,
+				"total_ulasan":     totalUlasan,
+				"link_gmaps":       info.LinkGmaps,
+				"rating_breakdown": ratingBreakdownFromCacheOrReviews(db, reviews),
 			},
 		})
 	}
@@ -60,12 +103,14 @@ func AdminGetReviewSummaryHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var info models.KlinikInfo
 		db.First(&info)
+		ratingGoogle, totalUlasan := ratingFromCacheOrKlinikInfo(db, info)
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"data": gin.H{
-				"rating_google": info.RatingGoogle,
-				"total_ulasan":  info.TotalUlasan,
-				"link_gmaps":    info.LinkGmaps,
+				"rating_google":    ratingGoogle,
+				"total_ulasan":     totalUlasan,
+				"link_gmaps":       info.LinkGmaps,
+				"rating_breakdown": ratingBreakdownFromCacheOrReviews(db, nil),
 			},
 		})
 	}
@@ -102,11 +147,11 @@ func AdminUpdateReviewSummaryHandler(db *gorm.DB) gin.HandlerFunc {
 func AdminCreateReviewHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var body struct {
-			Nama     string `json:"nama"     binding:"required"`
+			Nama     string `json:"nama"     binding:"required,max=100"`
 			Rating   int    `json:"rating"   binding:"required,min=1,max=5"`
-			Komentar string `json:"komentar" binding:"required"`
+			Komentar string `json:"komentar" binding:"required,max=2000"`
 			Tanggal  string `json:"tanggal"  binding:"required"`
-			Tag      string `json:"tag"`
+			Tag      string `json:"tag"      binding:"max=50"`
 			Featured bool   `json:"featured"`
 			Tampil   *bool  `json:"tampil"`
 			Urutan   int    `json:"urutan"`
@@ -130,7 +175,7 @@ func AdminCreateReviewHandler(db *gorm.DB) gin.HandlerFunc {
 			Urutan:   body.Urutan,
 		}
 		if err := db.Create(&review).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusCreated, gin.H{"success": true, "data": review})
@@ -142,11 +187,11 @@ func AdminUpdateReviewHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		var body struct {
-			Nama     string `json:"nama"`
+			Nama     string `json:"nama"     binding:"max=100"`
 			Rating   int    `json:"rating"`
-			Komentar string `json:"komentar"`
+			Komentar string `json:"komentar" binding:"max=2000"`
 			Tanggal  string `json:"tanggal"`
-			Tag      string `json:"tag"`
+			Tag      string `json:"tag"      binding:"max=50"`
 			Featured bool   `json:"featured"`
 			Tampil   bool   `json:"tampil"`
 			Urutan   int    `json:"urutan"`
@@ -165,7 +210,7 @@ func AdminUpdateReviewHandler(db *gorm.DB) gin.HandlerFunc {
 			"tampil":   body.Tampil,
 			"urutan":   body.Urutan,
 		}).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"success": true})
@@ -207,7 +252,7 @@ func AdminDeleteReviewHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if err := db.Delete(&models.Review{}, id).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"success": true})

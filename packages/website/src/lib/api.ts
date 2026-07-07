@@ -264,10 +264,15 @@ export type Review = {
   updated_at: string;
 };
 
+export type RatingBreakdown = { "5": number; "4": number; "3": number; "2": number; "1": number };
+
+export const EMPTY_RATING_BREAKDOWN: RatingBreakdown = { "5": 0, "4": 0, "3": 0, "2": 0, "1": 0 };
+
 export type ReviewSummary = {
   rating_google: number;
   total_ulasan: number;
   link_gmaps: string;
+  rating_breakdown: RatingBreakdown;
 };
 
 export type ReviewAdminData = {
@@ -275,13 +280,30 @@ export type ReviewAdminData = {
   summary: ReviewSummary;
 };
 
+const EMPTY_SUMMARY: ReviewSummary = {
+  rating_google: 0,
+  total_ulasan: 0,
+  link_gmaps: "",
+  rating_breakdown: EMPTY_RATING_BREAKDOWN,
+};
+
+// Merge dengan default per-field (bukan fallback whole-object) — supaya tetap
+// aman kalau backend yang sedang jalan versinya lebih lama dan belum
+// mengembalikan field tertentu (mis. rating_breakdown ditambahkan belakangan).
+function normalizeSummary(summary: Partial<ReviewSummary> | undefined | null): ReviewSummary {
+  return { ...EMPTY_SUMMARY, ...summary };
+}
+
 export async function getReview(): Promise<ReviewAdminData> {
   try {
     const res = await adminFetch(`${API_BASE_URL}/review`, { cache: "no-store" });
     const json = await res.json();
-    return json.data ?? { reviews: [], summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
+    return {
+      reviews: json.data?.reviews ?? [],
+      summary: normalizeSummary(json.data?.summary),
+    };
   } catch {
-    return { reviews: [], summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
+    return { reviews: [], summary: EMPTY_SUMMARY };
   }
 }
 
@@ -289,9 +311,9 @@ export async function adminGetReview(): Promise<ReviewAdminData> {
   try {
     const res = await adminFetch(`${API_BASE_URL}/admin/review`, { cache: "no-store" });
     const json = await res.json();
-    return { reviews: json.reviews ?? [], summary: json.summary ?? { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
+    return { reviews: json.reviews ?? [], summary: normalizeSummary(json.summary) };
   } catch {
-    return { reviews: [], summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" } };
+    return { reviews: [], summary: EMPTY_SUMMARY };
   }
 }
 
@@ -360,6 +382,236 @@ export async function adminUpdateReviewSummary(
     cache: "no-store",
   });
   return res.json();
+}
+
+// ─── Google Business (rating & ulasan otomatis via RapidAPI) ────────────────
+
+export type GoogleBusinessInfo = {
+  id: number;
+  rating: number;
+  review_count: number;
+  name: string;
+  address: string;
+  phone: string;
+  updated_at: string;
+} | null;
+
+export type GoogleReviewItem = {
+  id: number;
+  reviewer_name: string;
+  rating: number;
+  review_text: string;
+  review_date: string;
+  owner_reply: string;
+  published_at: string;
+  tampil: boolean;
+};
+
+const EMPTY_PAGINATION: MediaPagination = { page: 1, per_page: 6, total: 0, total_pages: 0 };
+
+export async function getGoogleBusiness(): Promise<GoogleBusinessInfo> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/google-business`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getGoogleReviews(
+  page = 1,
+  perPage = 6,
+): Promise<{ data: GoogleReviewItem[]; pagination: MediaPagination }> {
+  try {
+    const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+    const res = await adminFetch(`${API_BASE_URL}/google-reviews?${params}`, { cache: "no-store" });
+    const json = await res.json();
+    return { data: json.data ?? [], pagination: json.pagination ?? EMPTY_PAGINATION };
+  } catch {
+    return { data: [], pagination: EMPTY_PAGINATION };
+  }
+}
+
+export async function adminGetGoogleReviews(
+  page = 1,
+  perPage = 10,
+  rating?: number,
+): Promise<{ data: GoogleReviewItem[]; pagination: MediaPagination }> {
+  try {
+    const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+    if (rating) params.set("rating", String(rating));
+    const res = await adminFetch(`${API_BASE_URL}/admin/google-reviews?${params}`, { cache: "no-store" });
+    const json = await res.json();
+    return { data: json.data ?? [], pagination: json.pagination ?? EMPTY_PAGINATION };
+  } catch {
+    return { data: [], pagination: EMPTY_PAGINATION };
+  }
+}
+
+export async function adminToggleTampilGoogleReview(
+  id: number,
+): Promise<{ success: boolean; tampil: boolean }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/google-reviews/${id}/toggle-tampil`, {
+    method: "PATCH",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminRefreshGoogleBusiness(): Promise<{ success: boolean; message?: string; error?: string }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/google-business/refresh`, {
+    method: "POST",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminSearchGoogleBusinessId(): Promise<{ success: boolean; business_id?: string; error?: string }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/google-business/search-id`, {
+    method: "POST",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export type GoogleHitStats = {
+  hits_this_month: number;
+  hits_total: number;
+  last_hit_at: string | null;
+};
+
+const EMPTY_HIT_STATS: GoogleHitStats = { hits_this_month: 0, hits_total: 0, last_hit_at: null };
+
+export async function adminGetGoogleHitStats(): Promise<GoogleHitStats> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/admin/google-business/hit-stats`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? EMPTY_HIT_STATS;
+  } catch {
+    return EMPTY_HIT_STATS;
+  }
+}
+
+// ─── Instagram (statistik otomatis via RapidAPI) ─────────────────────────────
+
+export type InstagramStatsData = {
+  id: number;
+  followers: number;
+  following: number;
+  posts_count: number;
+  engagement_rate: number;
+  avg_likes: number;
+  avg_comments: number;
+  username: string;
+  full_name: string;
+  updated_at: string;
+  is_cached: boolean;
+} | null;
+
+export async function getInstagramStats(): Promise<InstagramStatsData> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/instagram-stats`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function adminRefreshInstagram(): Promise<{ success: boolean; message?: string; error?: string }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/instagram/refresh`, {
+    method: "POST",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminGetInstagramHitStats(): Promise<GoogleHitStats> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/admin/instagram/hit-stats`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? EMPTY_HIT_STATS;
+  } catch {
+    return EMPTY_HIT_STATS;
+  }
+}
+
+// ─── TikTok & Facebook (pola identik Instagram di atas, API RapidAPI yang sama) ─
+
+export type TiktokStatsData = {
+  id: number;
+  followers: number;
+  following: number;
+  posts_count: number;
+  engagement_rate: number;
+  avg_likes: number;
+  avg_comments: number;
+  username: string;
+  full_name: string;
+  updated_at: string;
+  is_cached: boolean;
+} | null;
+
+export type FacebookStatsData = TiktokStatsData;
+
+// available:false berarti TIKTOK_PROFILE_URL/FACEBOOK_PROFILE_URL belum diisi
+// di env backend — beda dari data:null yang berarti "sudah dikonfigurasi tapi
+// belum pernah di-refresh".
+export async function getTiktokStats(): Promise<{ available: boolean; data: TiktokStatsData }> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/tiktok-stats`, { cache: "no-store" });
+    const json = await res.json();
+    return { available: json.available ?? false, data: json.data ?? null };
+  } catch {
+    return { available: false, data: null };
+  }
+}
+
+export async function adminRefreshTiktok(): Promise<{ success: boolean; message?: string; error?: string; available?: boolean }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/tiktok/refresh`, {
+    method: "POST",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminGetTiktokHitStats(): Promise<GoogleHitStats> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/admin/tiktok/hit-stats`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? EMPTY_HIT_STATS;
+  } catch {
+    return EMPTY_HIT_STATS;
+  }
+}
+
+export async function getFacebookStats(): Promise<{ available: boolean; data: FacebookStatsData }> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/facebook-stats`, { cache: "no-store" });
+    const json = await res.json();
+    return { available: json.available ?? false, data: json.data ?? null };
+  } catch {
+    return { available: false, data: null };
+  }
+}
+
+export async function adminRefreshFacebook(): Promise<{ success: boolean; message?: string; error?: string; available?: boolean }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/facebook/refresh`, {
+    method: "POST",
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminGetFacebookHitStats(): Promise<GoogleHitStats> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/admin/facebook/hit-stats`, { cache: "no-store" });
+    const json = await res.json();
+    return json.data ?? EMPTY_HIT_STATS;
+  } catch {
+    return EMPTY_HIT_STATS;
+  }
 }
 
 // ─── Artikel ─────────────────────────────────────────────────────────────────
@@ -534,12 +786,11 @@ export async function getDokterPublik(): Promise<DokterPublik[]> {
   }
 }
 
+// Sengaja TIDAK menelan error di sini — pemanggil perlu bisa membedakan
+// "memang tidak ada dokter" dari "sesi admin habis/gagal memuat", supaya UI
+// tidak menampilkan pesan yang menyesatkan.
 export async function adminGetDokter(): Promise<DokterAdmin[]> {
-  try {
-    return await requestJson<DokterAdmin[]>("/admin/dokter");
-  } catch {
-    return [];
-  }
+  return requestJson<DokterAdmin[]>("/admin/dokter");
 }
 
 export async function adminToggleTampilDokter(
@@ -708,7 +959,6 @@ export async function adminDeleteKhanzaDokter(
 export type PasienKhanza = {
   no_rkm_medis: string;
   nm_pasien: string;
-  no_ktp: string;
   jk: "L" | "P";
   tgl_lahir: string;
   no_tlp: string;
@@ -782,7 +1032,6 @@ export type SubmitPendaftaranResponse = {
   error?: string;
   data?: {
     no_reg: string;
-    no_rkm_medis: string;
     tanggal_periksa: string;
     waktu_kunjungan: string;
     status: string;
@@ -824,7 +1073,6 @@ export type PendaftaranSession = {
   };
   result?: {
     no_reg: string;
-    no_rkm_medis: string;
     tanggal_periksa: string;
     waktu_kunjungan: string;
     nm_dokter: string;
@@ -858,11 +1106,18 @@ export function getHariKhanza(date: Date): string {
   return map[date.getDay()];
 }
 
-export async function cekPasienByNIK(nik: string): Promise<CekPasienResponse> {
-  const res = await adminFetch(
-    `${API_BASE_URL}/pendaftaran/cek-pasien?nik=${encodeURIComponent(nik)}`,
-    { cache: "no-store", headers: { Accept: "application/json" } },
-  );
+export async function cekPasienByNIK(
+  nik: string,
+  tglLahir: string,
+): Promise<CekPasienResponse> {
+  // POST+body (bukan GET+query) supaya NIK & tanggal lahir tidak ikut
+  // tercatat di access log server.
+  const res = await adminFetch(`${API_BASE_URL}/pendaftaran/cek-pasien`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ nik, tgl_lahir: tglLahir }),
+  });
   return res.json();
 }
 
@@ -942,7 +1197,10 @@ export type VisitorSessionItem = {
 export async function adminGetVisitorStats(): Promise<VisitorStats | null> {
   try {
     const res = await adminFetch(`${API_BASE_URL}/admin/stats/visitor`, { cache: "no-store" });
-    return res.json();
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json || typeof json !== "object" || !Array.isArray(json.source)) return null;
+    return json as VisitorStats;
   } catch { return null; }
 }
 
@@ -1007,7 +1265,7 @@ export async function adminGetSocialMediaStats(): Promise<SocialMediaStatsItem[]
   try {
     const res = await adminFetch(`${API_BASE_URL}/admin/social-media-stats`, { cache: "no-store" });
     const json = await res.json();
-    return json.data ?? json ?? [];
+    return Array.isArray(json?.data) ? json.data : [];
   } catch { return []; }
 }
 
@@ -1044,7 +1302,7 @@ export async function adminGetSocialMediaEngagement(): Promise<SocialMediaEngage
   try {
     const res = await adminFetch(`${API_BASE_URL}/admin/social-media-engagement`, { cache: "no-store" });
     const json = await res.json();
-    return json.data ?? json ?? [];
+    return Array.isArray(json?.data) ? json.data : [];
   } catch { return []; }
 }
 
@@ -1081,7 +1339,7 @@ export async function adminGetGBPInteraction(): Promise<GBPInteractionItem[]> {
   try {
     const res = await adminFetch(`${API_BASE_URL}/admin/gbp-interaction`, { cache: "no-store" });
     const json = await res.json();
-    return json.data ?? json ?? [];
+    return Array.isArray(json?.data) ? json.data : [];
   } catch { return []; }
 }
 
@@ -1349,6 +1607,10 @@ export type TimelineEntry = {
 export const SITE_DEFAULTS: Record<string, string> = {
   telepon: "0812-2556-6055",
   whatsapp: "6281225566055",
+  instagram: "https://www.instagram.com/ampelgadingmedicalcentre",
+  facebook: "https://www.facebook.com/share/1JwVSouKaH/?mibextid=wwXIfr",
+  tiktok: "https://www.tiktok.com/@ampelgadingmedicalcentre",
+  email: "ampelgadingmedicalcentre@gmail.com",
   hero_subtitle:
     "Pelayanan kesehatan terpadu untuk masyarakat Ampelgading dan sekitarnya. UGD 24 jam, rawat inap, persalinan, laboratorium, dan apotek. Menerima BPJS dan pasien umum.",
   about_text:
@@ -1462,4 +1724,99 @@ export async function createContactMessage(payload: ContactMessagePayload) {
       status: payload.status ?? "new",
     }),
   });
+}
+
+// ─── Audit Log Admin ─────────────────────────────────────────────────────────
+
+export type AuditLogItem = {
+  id: number;
+  actor: string;
+  action: string;
+  method?: string;
+  path?: string;
+  ip_address: string;
+  kota?: string;
+  negara?: string;
+  user_agent?: string;
+  detail?: string;
+  created_at: string;
+};
+
+export async function adminGetAuditLogs(): Promise<AuditLogItem[]> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/audit-log`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Tidak diizinkan");
+  const json = await res.json();
+  return Array.isArray(json?.data) ? json.data : [];
+}
+
+// ─── Hierarki admin (superadmin/admin) ───────────────────────────────────────
+
+export type CurrentAdmin = { username: string; role: "superadmin" | "admin" } | null;
+
+// getCurrentAdmin — panggil /api/auth/me langsung (Next.js-only, BUKAN lewat
+// proxy /api/backend/... karena endpoint ini tidak diteruskan ke Go).
+export async function getCurrentAdmin(): Promise<CurrentAdmin> {
+  try {
+    const res = await fetch("/api/auth/me", { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export type AdminUserItem = {
+  id: number;
+  username: string;
+  role: "superadmin" | "admin";
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function adminGetAdminUsers(): Promise<AdminUserItem[]> {
+  try {
+    const res = await adminFetch(`${API_BASE_URL}/admin/admin-users`, { cache: "no-store" });
+    const json = await res.json();
+    return Array.isArray(json?.data) ? json.data : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function adminCreateAdminUser(data: {
+  username: string;
+  password: string;
+  role: "superadmin" | "admin";
+}): Promise<{ success: boolean; data?: AdminUserItem; error?: string }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/admin-users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminUpdateAdminUser(
+  id: number,
+  data: { role?: "superadmin" | "admin"; is_active?: boolean; password?: string },
+): Promise<{ success: boolean; error?: string }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/admin-users/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+export async function adminDeleteAdminUser(
+  id: number,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await adminFetch(`${API_BASE_URL}/admin/admin-users/${id}`, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  return res.json();
 }

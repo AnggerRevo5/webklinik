@@ -13,7 +13,7 @@ func GetHomeHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		home, err := services.HomePublik(db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, home)

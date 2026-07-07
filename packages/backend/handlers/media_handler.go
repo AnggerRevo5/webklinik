@@ -100,7 +100,7 @@ func UploadMediaHandler(db *gorm.DB, cldSvc *services.CloudinaryService) gin.Han
 
 		result, err := cldSvc.Upload(file, fh.Filename, mimeType, folder)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Gagal upload: " + err.Error()})
+			respondInternal(c, err, "Gagal mengunggah gambar")
 			return
 		}
 
@@ -145,10 +145,7 @@ func SyncCloudinaryMediaHandler(db *gorm.DB, cldSvc *services.CloudinaryService)
 
 		result, err := cldSvc.SyncFromCloudinary(db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Gagal sync: " + err.Error(),
-			})
+			respondInternal(c, err, "Gagal sync media dari Cloudinary")
 			return
 		}
 

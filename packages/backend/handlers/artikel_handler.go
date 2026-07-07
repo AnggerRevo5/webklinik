@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"backend/models"
+	"backend/services"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -116,12 +117,12 @@ func AdminGetArtikelDetailHandler(db *gorm.DB) gin.HandlerFunc {
 func AdminCreateArtikelHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		type Body struct {
-			Judul     string `json:"judul"     binding:"required"`
-			Konten    string `json:"konten"`
-			Ringkasan string `json:"ringkasan"`
-			Kategori  string `json:"kategori"`
+			Judul     string `json:"judul"     binding:"required,max=200"`
+			Konten    string `json:"konten"    binding:"max=100000"`
+			Ringkasan string `json:"ringkasan" binding:"max=1000"`
+			Kategori  string `json:"kategori"  binding:"max=100"`
 			FotoURL   string `json:"foto_url"`
-			Penulis   string `json:"penulis"`
+			Penulis   string `json:"penulis"   binding:"max=100"`
 			Status    string `json:"status"`
 		}
 		var body Body
@@ -131,9 +132,11 @@ func AdminCreateArtikelHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		slug := ensureUniqueArtikelSlug(db, generateArtikelSlug(body.Judul), 0)
+		// Sanitasi HTML konten (cegah stored XSS) sebelum diproses/disimpan.
+		konten := services.SanitizeArtikelHTML(body.Konten)
 		ringkasan := body.Ringkasan
-		if ringkasan == "" && body.Konten != "" {
-			ringkasan = generateArtikelRingkasan(body.Konten, 200)
+		if ringkasan == "" && konten != "" {
+			ringkasan = generateArtikelRingkasan(konten, 200)
 		}
 
 		status := "draft"
@@ -149,7 +152,7 @@ func AdminCreateArtikelHandler(db *gorm.DB) gin.HandlerFunc {
 		artikel := models.Artikel{
 			Judul:       body.Judul,
 			Slug:        slug,
-			Konten:      body.Konten,
+			Konten:      konten,
 			Ringkasan:   ringkasan,
 			Kategori:    body.Kategori,
 			FotoURL:     body.FotoURL,
@@ -176,12 +179,12 @@ func AdminUpdateArtikelHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		type Body struct {
-			Judul     string `json:"judul"`
-			Konten    string `json:"konten"`
-			Ringkasan string `json:"ringkasan"`
-			Kategori  string `json:"kategori"`
+			Judul     string `json:"judul"     binding:"max=200"`
+			Konten    string `json:"konten"    binding:"max=100000"`
+			Ringkasan string `json:"ringkasan" binding:"max=1000"`
+			Kategori  string `json:"kategori"  binding:"max=100"`
 			FotoURL   string `json:"foto_url"`
-			Penulis   string `json:"penulis"`
+			Penulis   string `json:"penulis"   binding:"max=100"`
 			Status    string `json:"status"`
 		}
 		var body Body
@@ -199,12 +202,13 @@ func AdminUpdateArtikelHandler(db *gorm.DB) gin.HandlerFunc {
 			artikel.Judul = body.Judul
 		}
 		if body.Konten != "" {
-			artikel.Konten = body.Konten
+			// Sanitasi HTML konten (cegah stored XSS) sebelum disimpan.
+			artikel.Konten = services.SanitizeArtikelHTML(body.Konten)
 		}
 		if body.Ringkasan != "" {
 			artikel.Ringkasan = body.Ringkasan
 		} else if body.Konten != "" && artikel.Ringkasan == "" {
-			artikel.Ringkasan = generateArtikelRingkasan(body.Konten, 200)
+			artikel.Ringkasan = generateArtikelRingkasan(artikel.Konten, 200)
 		}
 		if body.Kategori != "" {
 			artikel.Kategori = body.Kategori
@@ -241,7 +245,7 @@ func AdminPublishArtikelHandler(db *gorm.DB) gin.HandlerFunc {
 			"status":       "published",
 			"published_at": now,
 		}).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Artikel dipublish"})
@@ -256,7 +260,7 @@ func AdminDraftArtikelHandler(db *gorm.DB) gin.HandlerFunc {
 			"status":       "draft",
 			"published_at": nil,
 		}).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Artikel ditarik ke draft"})
@@ -268,7 +272,7 @@ func AdminDeleteArtikelHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		if err := db.Delete(&models.Artikel{}, id).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Artikel dihapus"})

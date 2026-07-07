@@ -74,7 +74,7 @@ function DokterFormModal({
   // ── Jadwal state (hanya mode edit) ──
   const [jadwalList, setJadwalList] = useState<KhanzaJadwal[]>([]);
   const [poliList, setPoliList] = useState<PoliKhanza[]>([]);
-  const [jadwalLoading, setJadwalLoading] = useState(false);
+  const [jadwalLoading, setJadwalLoading] = useState(modal.mode === "edit");
   const [showAddJadwal, setShowAddJadwal] = useState(false);
   const [jadwalForm, setJadwalForm] = useState<KhanzaJadwal>({ ...EMPTY_JADWAL });
   const [jadwalSubmitting, setJadwalSubmitting] = useState(false);
@@ -83,7 +83,10 @@ function DokterFormModal({
 
   useEffect(() => {
     if (modal.mode !== "edit") return;
-    setJadwalLoading(true);
+    // Tidak perlu setJadwalLoading(true) di sini — sudah default true untuk
+    // mode edit (lihat useState di atas), dan komponen ini selalu mount ulang
+    // per sesi edit (tidak pernah menerima prop `modal` baru saat sudah
+    // mounted), jadi efek ini murni "sekali per mount".
     Promise.all([
       adminGetJadwalDokter(modal.kdDokter),
       getPoliKhanza(),
@@ -553,8 +556,6 @@ function DokterFormModal({
   );
 }
 
-const PAGE_SIZE = 10;
-
 export default function DokterJadwalAdmin() {
   const [doctors, setDoctors] = useState<DokterAdmin[]>([]);
   const [spesialis, setSpesialis] = useState<KhanzaSpesialis[]>([]);
@@ -569,36 +570,62 @@ export default function DokterJadwalAdmin() {
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDialogState>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [inactivePage, setInactivePage] = useState(1);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { toasts, showToast, dismissToast } = useToast();
 
   const INACTIVE_PER_PAGE = 8;
 
-  // Reset ke halaman pertama saat pencarian berubah
-  useEffect(() => {
+  // Reset ke halaman pertama saat pencarian berubah — dilakukan saat RENDER
+  // (bukan di efek), pola resmi React "adjusting state when a prop changes".
+  const [syncedSearchQuery, setSyncedSearchQuery] = useState("");
+  if (searchQuery !== syncedSearchQuery) {
+    setSyncedSearchQuery(searchQuery);
     setInactivePage(1);
-  }, [searchQuery]);
+  }
 
-  const loadDokter = useCallback(() => {
-    setLoading(true);
-    adminGetDokter().then((list) => {
-      setDoctors(list);
-      setLoading(false);
-    });
+  // Logika fetch murni — TIDAK ada setState sinkron di level teratas, supaya
+  // aman dipanggil langsung dari efek mount (react-hooks/set-state-in-effect).
+  const fetchDokterData = useCallback(() => {
+    adminGetDokter()
+      .then((list) => {
+        setDoctors(list);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setDoctors([]);
+        setLoadError(
+          err instanceof Error && err.message === "Tidak diizinkan"
+            ? "Sesi admin telah berakhir. Silakan login ulang."
+            : "Gagal memuat data dokter dari server. Coba muat ulang halaman.",
+        );
+        setLoading(false);
+      });
   }, []);
 
-  useEffect(() => {
-    loadDokter();
-    adminGetSpesialis().then(setSpesialis);
-  }, [loadDokter]);
+  // Dipakai tombol refresh & event handler lain — boleh setState sinkron
+  // karena tidak dipanggil dari efek.
+  const loadDokter = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    fetchDokterData();
+  }, [fetchDokterData]);
 
   useEffect(() => {
+    fetchDokterData();
+    adminGetSpesialis().then(setSpesialis);
+  }, [fetchDokterData]);
+
+  // Sinkronkan editFoto ke dokter terpilih saat RENDER (bukan di efek).
+  const [syncedSelectedKd, setSyncedSelectedKd] = useState<string | null>(null);
+  if (selectedKd !== syncedSelectedKd) {
+    setSyncedSelectedKd(selectedKd);
     const dok = doctors.find((d) => d.kd_dokter === selectedKd);
     if (dok) {
       setEditFoto(dok.foto_url ?? "");
       setSaveError(null);
       setSaveSuccess(false);
     }
-  }, [selectedKd, doctors]);
+  }
 
   async function handleToggleTampil(kdDokter: string) {
     setToggling(kdDokter);
@@ -884,6 +911,26 @@ export default function DokterJadwalAdmin() {
             {loading ? (
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-[10px] text-slate-500 shadow-sm">
                 Memuat data dokter...
+              </div>
+            ) : loadError ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-[11px] text-amber-800 shadow-sm">
+                <p className="mb-2">{loadError}</p>
+                {loadError.includes("login ulang") ? (
+                  <a
+                    href="/admin_login_page"
+                    className="inline-flex items-center rounded-lg bg-amber-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-amber-700"
+                  >
+                    Ke halaman login
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={loadDokter}
+                    className="inline-flex items-center rounded-lg bg-amber-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-amber-700"
+                  >
+                    Coba lagi
+                  </button>
+                )}
               </div>
             ) : doctors.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-[10px] text-slate-500 shadow-sm">

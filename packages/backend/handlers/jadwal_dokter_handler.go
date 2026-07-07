@@ -15,7 +15,7 @@ func GetJadwalDokterHandler(db *gorm.DB) gin.HandlerFunc {
 		kdDokter := c.Query("kd_dokter")
 		jadwal, err := services.GetJadwalDokter(db, kdDokter)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, jadwal)
@@ -30,7 +30,7 @@ func CreateJadwalDokterHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.CreateJadwalDokter(db, &jadwal); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusCreated, gin.H{"success": true, "data": jadwal})
@@ -64,7 +64,7 @@ func UpdateJadwalDokterHandler(db *gorm.DB) gin.HandlerFunc {
 			Kuota:      input.Kuota,
 		}
 		if err := services.UpdateJadwalDokter(db, &jadwal, input.OldHariKerja, input.OldJamMulai); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": jadwal})
@@ -85,7 +85,7 @@ func DeleteJadwalDokterHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.DeleteJadwalDokter(db, input.KdDokter, input.HariKerja, input.JamMulai); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "jadwal dihapus"})

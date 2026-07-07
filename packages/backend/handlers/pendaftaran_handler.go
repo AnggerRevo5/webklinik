@@ -1,9 +1,13 @@
 package handlers
 
 import (
+	"backend/middleware"
 	"backend/models"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,27 +31,67 @@ func khanzaNotAvailable(c *gin.Context) {
 	})
 }
 
-// GET /api/pendaftaran/cek-pasien?nik=xxxx
-func CekPasienByNIKHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
+// hashNIK menghasilkan kunci non-reversibel untuk NIK, dipakai sebagai key
+// rate limiter agar NIK asli tidak tersimpan mentah di memory/log manapun.
+func hashNIK(nik string) string {
+	sum := sha256.Sum256([]byte(nik))
+	return hex.EncodeToString(sum[:])
+}
+
+// POST /api/pendaftaran/cek-pasien  { "nik": "...", "tgl_lahir": "..." }
+// Sengaja POST+body (bukan GET+query) agar NIK & tanggal lahir tidak ikut
+// tercatat di access log server (gin.Logger mencatat path+query, bukan body).
+func CekPasienByNIKHandler(dbKhanza *gorm.DB, nikLimiter *middleware.RateLimiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if dbKhanza == nil {
 			khanzaNotAvailable(c)
 			return
 		}
-		nik := c.Query("nik")
-		if nik == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Parameter nik wajib diisi"})
+
+		var body struct {
+			Nik      string `json:"nik"`
+			TglLahir string `json:"tgl_lahir"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil || body.Nik == "" || body.TglLahir == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Parameter nik dan tgl_lahir wajib diisi"})
 			return
 		}
 
-		var pasien models.KhanzaPasien
-		result := dbKhanza.Where("no_ktp = ?", nik).First(&pasien)
-		if result.Error != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"success": true,
-				"found":   false,
-				"message": "Pasien belum terdaftar, silakan isi data baru",
+		// Limit ketat per-NIK (terpisah dari limit per-IP): NIK mengandung tanggal
+		// lahir di dalam digitnya sendiri, jadi siapa pun yang tahu NIK korban bisa
+		// lolos verifikasi dengan SATU request dari IP mana pun. Limit per-NIK ini
+		// mencegah percobaan brute-force 4 digit terakhir NIK lewat rotasi IP.
+		if ok, retryAfter := nikLimiter.AllowKey(hashNIK(body.Nik)); !ok {
+			sec := int(retryAfter.Seconds())
+			if sec < 1 {
+				sec = 1
+			}
+			c.Header("Retry-After", strconv.Itoa(sec))
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"success": false,
+				"error":   "Terlalu banyak percobaan verifikasi untuk NIK ini. Coba lagi nanti.",
 			})
+			return
+		}
+
+		// Respons generik saat verifikasi gagal — sengaja TIDAK membedakan antara
+		// "NIK tidak terdaftar" dan "tanggal lahir tidak cocok" agar NIK tidak bisa
+		// dienumerasi. Data pasien hanya dikembalikan bila NIK DAN tgl lahir cocok.
+		notVerified := gin.H{
+			"success": true,
+			"found":   false,
+			"message": "Pasien belum terdaftar, silakan isi data baru",
+		}
+
+		var pasien models.KhanzaPasien
+		if err := dbKhanza.Where("no_ktp = ?", body.Nik).First(&pasien).Error; err != nil {
+			c.JSON(http.StatusOK, notVerified)
+			return
+		}
+
+		// Verifikasi ganda: tanggal lahir harus cocok (normalisasi ke YYYY-MM-DD).
+		if dateOnly(pasien.TglLahir) != dateOnly(body.TglLahir) {
+			c.JSON(http.StatusOK, notVerified)
 			return
 		}
 
@@ -61,7 +105,6 @@ func CekPasienByNIKHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 				"jk":           pasien.Jk,
 				"no_tlp":       pasien.NoTlp,
 				"alamat":       pasien.Alamat,
-				"no_ktp":       pasien.NoKtp,
 				"kd_pj":        pasien.KdPj,
 			},
 		})
@@ -248,6 +291,20 @@ func SubmitPendaftaranHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 		noRkmMedis := body.NoRkmMedis
 
 		if body.IsNewPasien {
+			// Cegah rekam medis ganda: API publik ini tidak boleh percaya begitu
+			// saja pada flag is_new_pasien dari klien — client bisa saja melewati
+			// alur cek-pasien di UI dan memanggil endpoint ini langsung dengan NIK
+			// yang sudah terdaftar, yang akan memecah riwayat medis pasien.
+			var existing models.KhanzaPasien
+			if err := tx.Where("no_ktp = ?", body.NoKtp).First(&existing).Error; err == nil {
+				tx.Rollback()
+				c.JSON(http.StatusConflict, gin.H{
+					"success": false,
+					"error":   "NIK sudah terdaftar. Silakan gunakan verifikasi NIK untuk pasien lama.",
+				})
+				return
+			}
+
 			var maxNo struct{ MaxNo string }
 			tx.Raw(`SELECT LPAD(MAX(CAST(no_rkm_medis AS UNSIGNED)) + 1, 6, '0') AS max_no
 			        FROM pasien WHERE no_rkm_medis REGEXP '^[0-9]+$'`).Scan(&maxNo)
@@ -299,10 +356,7 @@ func SubmitPendaftaranHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 
 			if err := tx.Create(&pasienBaru).Error; err != nil {
 				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"success": false,
-					"error":   "Gagal mendaftarkan pasien: " + err.Error(),
-				})
+				respondInternal(c, err, "Gagal mendaftarkan pasien")
 				return
 			}
 		}
@@ -347,21 +401,19 @@ func SubmitPendaftaranHandler(dbKhanza *gorm.DB) gin.HandlerFunc {
 
 		if err := tx.Create(&booking).Error; err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Gagal membuat booking: " + err.Error(),
-			})
+			respondInternal(c, err, "Gagal membuat booking")
 			return
 		}
 
 		tx.Commit()
 
+		// no_rkm_medis sengaja TIDAK dikembalikan ke klien — nomor rekam medis
+		// cukup diketahui sistem internal, tidak perlu ditampilkan ke publik.
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "Pendaftaran berhasil",
 			"data": gin.H{
 				"no_reg":          noReg,
-				"no_rkm_medis":    noRkmMedis,
 				"tanggal_periksa": body.TanggalPeriksa,
 				"waktu_kunjungan": waktuKunjungan,
 				"status":          "Belum",

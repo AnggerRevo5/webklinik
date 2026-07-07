@@ -17,7 +17,7 @@ func GetStaffHandler(db *gorm.DB) gin.HandlerFunc {
 		onlyActive := c.Query("active") == "true"
 		staff, err := services.StaffList(db, onlyActive)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, staff)
@@ -32,7 +32,7 @@ func CreateStaffHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.CreateStaff(db, &staff); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusCreated, staff)
@@ -52,7 +52,7 @@ func UpdateStaffHandler(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 		if err := services.UpdateStaff(db, &staff); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, staff)
@@ -70,7 +70,7 @@ func DeleteStaffHandler(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 		if err := services.DeleteStaff(db, id); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "staff dihapus"})

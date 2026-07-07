@@ -18,10 +18,11 @@ docker-compose.local.yml
 # ============================================================
 backup/*.sql
 *.sql.bak
-# Blokir file baru di SQL/ (dump/backup lokal) kecuali schema yang memang dilacak
-SQL/*
-!SQL/db_klinik.sql
-!SQL/sik.sql
+# Seluruh folder SQL/ (dump lokal untuk import ke server DB) — JANGAN pernah
+# di-commit, berisi/berpotensi berisi data pasien. Sebelumnya folder ini malah
+# di-whitelist (!SQL/db_klinik.sql, !SQL/sik.sql) — itu penyebab dump lama
+# sempat ter-commit dan bocor ke riwayat publik. Jangan whitelist lagi.
+SQL/
 
 # ============================================================
 # NODE / NEXT.JS

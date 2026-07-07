@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
-import Footer from "@/src/components/footer";
+import PageFooter from "@/src/components/page_footer";
 import Navbar from "@/src/components/navbar";
 import { Reveal, ScrollProgress, WordReveal } from "@/src/components/motion";
 import { getGaleri, type Gallery } from "@/src/lib/api";
@@ -64,10 +64,12 @@ export default function GaleriLengkap() {
     [items, activeCat],
   );
 
-  /* Reset jumlah yang tampil setiap ganti kategori. */
-  useEffect(() => {
+  /* Reset jumlah yang tampil setiap ganti kategori — saat RENDER (bukan efek). */
+  const [syncedActiveCat, setSyncedActiveCat] = useState(activeCat);
+  if (activeCat !== syncedActiveCat) {
+    setSyncedActiveCat(activeCat);
     setVisible(PAGE_SIZE);
-  }, [activeCat]);
+  }
 
   const shown = filtered.slice(0, visible);
   const hasMore = visible < filtered.length;
@@ -292,7 +294,7 @@ export default function GaleriLengkap() {
         )}
       </section>
 
-      <Footer />
+      <PageFooter />
 
       {/* ── Lightbox ── */}
       {activeImage && (

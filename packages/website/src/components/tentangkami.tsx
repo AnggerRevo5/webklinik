@@ -1,19 +1,19 @@
 "use client";
 
-import { ExternalLink, MessageSquare, Siren, Star, UserRound, X } from "lucide-react";
+import { ExternalLink, MessageSquare, Star, UserRound, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import Footer from "@/src/components/footer";
+import PageFooter from "@/src/components/page_footer";
 import Navbar from "@/src/components/navbar";
 import { Button } from "@/src/UiKecil/button";
 import { Card, CardContent } from "@/src/UiKecil/card";
 import { Section, SectionHeader } from "@/src/UiKecil/section";
-import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";
 import { Reveal, Parallax, Tilt, ScrollProgress, WordReveal, ClipReveal } from "@/src/components/motion";
-import { getGaleriPreview, getReview, getStaff, parseTimeline, type GaleriPreview, type ReviewAdminData, type Staff } from "@/src/lib/api";
+import { EMPTY_RATING_BREAKDOWN, getGaleriPreview, getReview, getStaff, parseTimeline, type GaleriPreview, type ReviewAdminData, type Staff } from "@/src/lib/api";
+import GoogleReviews from "@/src/components/GoogleReviews";
 import { useSiteSettings } from "@/src/lib/hooks";
 
 /* ─── Types ─── */
@@ -24,14 +24,6 @@ type VisionMissionItem = {
   title: string;
   icon: string;
   content: string;
-};
-
-type TimelineItem = {
-  year: string;
-  title: string;
-  description: string;
-  yearClass: string;
-  titleClass: string;
 };
 
 
@@ -58,8 +50,6 @@ const ASSETS = {
 
 /* Nomor kontak diambil dinamis via useSiteSettings() di tiap komponen. */
 
-const cardShadowSoft =
-  "shadow-[0px_2.87px_17.25px_-0.72px_#00000033] transition-shadow duration-300 hover:shadow-[0px_4px_24px_-2px_#00000040]";
 const cardShadowMd =
   "shadow-[0px_3.43px_20.59px_-0.86px_#00000033] transition-shadow duration-300 hover:shadow-[0px_5px_28px_-2px_#00000045]";
 
@@ -426,10 +416,11 @@ function RatingSection({
 }) {
   const { reviews, summary } = reviewData;
 
-  const dynamicRatingBars = [5, 4, 3, 2, 1].map((star) => {
-    const count = reviews.filter((r) => r.rating === star).length;
-    const pct =
-      reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
+  const breakdown = summary.rating_breakdown;
+  const breakdownTotal = breakdown["5"] + breakdown["4"] + breakdown["3"] + breakdown["2"] + breakdown["1"];
+  const dynamicRatingBars = ([5, 4, 3, 2, 1] as const).map((star) => {
+    const count = breakdown[String(star) as "5" | "4" | "3" | "2" | "1"];
+    const pct = breakdownTotal > 0 ? Math.round((count / breakdownTotal) * 100) : 0;
     return { label: String(star), value: pct };
   });
 
@@ -557,7 +548,11 @@ function RatingSection({
         </div>
       </div>
 
-      {/* Review cards */}
+      {/* Review cards — testimoni terkurasi manual, section terpisah dari
+          "Ulasan dari Google" di bawah. Disembunyikan total bila kosong
+          (bukan tampilkan placeholder) supaya tidak ada section kosong yang
+          mengganggu bila admin belum menambah testimoni manual. */}
+      {(loading || reviews.length > 0) && (
       <div
         className="mt-8 grid md:grid-cols-2 lg:grid-cols-3"
         style={{ gap: "var(--gap-cards)" }}
@@ -572,13 +567,6 @@ function RatingSection({
               )}
             />
           ))
-        ) : reviews.length === 0 ? (
-          <div className="col-span-3 py-12 text-center">
-            <MessageSquare className="mx-auto mb-3 h-8 w-8 text-[#d9d9d9]" />
-            <p className="t-body text-[#9a9a9a]">
-              Belum ada ulasan yang ditampilkan.
-            </p>
-          </div>
         ) : (
           reviews.map((review, index) => (
             <Reveal key={review.id ?? index} direction="up" delay={Math.min(index, 5) * 80}>
@@ -632,6 +620,13 @@ function RatingSection({
           ))
         )}
       </div>
+      )}
+
+      {/* Ulasan Google asli (cache RapidAPI, terpisah dari testimoni terkurasi di atas) */}
+      <div className="mt-10">
+        <h3 className="mb-4 t-h4 font-bold text-[#3f3f3f]">Ulasan dari Google</h3>
+        <GoogleReviews />
+      </div>
 
       {/* CTA bar */}
       <Card
@@ -663,70 +658,6 @@ function RatingSection({
         </CardContent>
       </Card>
     </Section>
-  );
-}
-
-function EmergencyCta() {
-  const settings = useSiteSettings();
-  const CLINIC_PHONE = settings.telepon;
-  return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#0f4c81] via-[#1a5fa0] to-[#2d7dd2]">
-      <div className="pointer-events-none absolute inset-0 bg-grid-soft opacity-40" />
-      <div className="pointer-events-none absolute -right-10 -top-16 h-64 w-64 rounded-full bg-[#5fd0e8]/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-[#e8861e]/20 blur-3xl" />
-
-      <div className="relative section-container flex flex-col gap-6 py-9 lg:flex-row lg:items-center lg:justify-between">
-        <Reveal direction="right" className="flex items-center gap-4">
-          <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full bg-[#2d7dd2] md:h-[104px] md:w-[104px]">
-            <span className="absolute inset-0 rounded-full ring-2 ring-white/30" style={{ animation: "soft-pulse 2.2s ease-out infinite" }} />
-            <Siren className="h-9 w-9 text-white md:h-12 md:w-12" />
-          </div>
-          <div>
-            <div className="t-h4 font-bold text-white">
-              Butuh bantuan segera?
-            </div>
-            <div className="t-body mt-1 text-white/90">UGD kami buka 24 jam</div>
-            <div className="t-body text-white/90">hubungi kami</div>
-          </div>
-        </Reveal>
-        <Reveal direction="left" delay={120} className="flex flex-wrap gap-4">
-          <Button
-            className={cn(
-              "btn-shine h-12 rounded-full bg-[#008000] px-6 t-body text-white shadow-lg shadow-emerald-900/30 transition-transform hover:-translate-y-0.5 hover:bg-[#067006]",
-            )}
-            asChild
-          >
-            <Link href="/pendaftaran_online_1">
-              <>
-                <AssetIcon
-                  src={ASSETS.icons.whatsapp}
-                  alt=""
-                  size={20}
-                  className="mr-2"
-                />
-                Daftar Online
-              </>
-            </Link>
-          </Button>
-          <Button
-            className={cn(
-              "btn-shine h-12 rounded-full bg-[#e8861e] px-6 t-body text-white shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5 hover:bg-[#d77a18]",
-            )}
-            asChild
-          >
-            <a href={`tel:${CLINIC_PHONE.replace(/-/g, "")}`}>
-              <AssetIcon
-                src={ASSETS.icons.phone}
-                alt=""
-                size={20}
-                className="mr-2"
-              />
-              {CLINIC_PHONE}
-            </a>
-          </Button>
-        </Reveal>
-      </div>
-    </section>
   );
 }
 
@@ -905,7 +836,7 @@ function TimSection() {
 export default function TentangKami() {
   const [reviewData, setReviewData] = useState<ReviewAdminData>({
     reviews: [],
-    summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "" },
+    summary: { rating_google: 0, total_ulasan: 0, link_gmaps: "", rating_breakdown: EMPTY_RATING_BREAKDOWN },
   });
   const [loadingReview, setLoadingReview] = useState(true);
 
@@ -917,15 +848,14 @@ export default function TentangKami() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f2f0ed] text-[#3f3f3f]">
+    <main className="min-h-screen bg-[#f7f5f2] text-[#3f3f3f]">
       <ScrollProgress />
       <Navbar />
       <AboutIntroSection />
       <GaleriPreviewSection />
       <TimSection />
       <RatingSection reviewData={reviewData} loading={loadingReview} />
-      <EmergencyCta />
-      <Footer />
+      <PageFooter />
     </main>
   );
 }

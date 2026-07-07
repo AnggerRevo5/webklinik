@@ -1,6 +1,6 @@
 "use client";
 
-import { PencilLine, Plus, Trash2, UserRound, Users2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, PencilLine, Plus, Trash2, UserRound, Users2 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -39,6 +39,9 @@ export default function StaffAdmin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toasts, showToast, dismissToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+  const [page, setPage] = useState(1);
+
+  const STAFF_PER_PAGE = 8;
 
   useEffect(() => {
     getAllStaff()
@@ -52,7 +55,12 @@ export default function StaffAdmin() {
     [staff, selectedId],
   );
 
-  useEffect(() => {
+  // Sinkronkan form ke item terpilih saat RENDER (bukan di efek) — pola resmi
+  // React untuk "adjusting state when a prop changes", menghindari render
+  // tambahan yang dipicu efek (react-hooks/set-state-in-effect).
+  const [syncedSelectedId, setSyncedSelectedId] = useState<number | null>(null);
+  if (selectedId !== syncedSelectedId) {
+    setSyncedSelectedId(selectedId);
     if (selected) {
       setForm({
         nama: selected.nama,
@@ -62,7 +70,7 @@ export default function StaffAdmin() {
         is_active: selected.is_active,
       });
     }
-  }, [selected]);
+  }
 
   function resetForm() {
     setSelectedId(null);
@@ -133,6 +141,14 @@ export default function StaffAdmin() {
     () =>
       [...staff].sort((a, b) => a.urutan - b.urutan || a.id - b.id),
     [staff],
+  );
+
+  // Pagination daftar staff (foto bisa banyak).
+  const totalPages = Math.max(1, Math.ceil(sortedStaff.length / STAFF_PER_PAGE));
+  const pageSafe = Math.min(page, totalPages);
+  const paginatedStaff = sortedStaff.slice(
+    (pageSafe - 1) * STAFF_PER_PAGE,
+    pageSafe * STAFF_PER_PAGE,
   );
 
   return (
@@ -291,7 +307,7 @@ export default function StaffAdmin() {
                   Memuat data staff...
                 </div>
               ) : sortedStaff.length > 0 ? (
-                sortedStaff.map((item) => (
+                paginatedStaff.map((item) => (
                   <article
                     key={item.id}
                     className="group relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200"
@@ -352,6 +368,51 @@ export default function StaffAdmin() {
                 </div>
               )}
             </div>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-[9px] text-slate-400">
+                  Menampilkan {(pageSafe - 1) * STAFF_PER_PAGE + 1}–
+                  {Math.min(pageSafe * STAFF_PER_PAGE, sortedStaff.length)} dari{" "}
+                  {sortedStaff.length}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={pageSafe <= 1}
+                    aria-label="Halaman sebelumnya"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPage(p)}
+                      aria-current={p === pageSafe ? "page" : undefined}
+                      className={`inline-flex h-7 min-w-7 items-center justify-center rounded-lg border px-2 text-[10px] font-medium transition-colors ${
+                        p === pageSafe
+                          ? "border-sky-500 bg-sky-600 text-white"
+                          : "border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={pageSafe >= totalPages}
+                    aria-label="Halaman berikutnya"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       </div>

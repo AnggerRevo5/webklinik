@@ -44,31 +44,46 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect, defaultFo
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const fetchMedia = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getMedia(activeFolder as MediaFolder || undefined, page);
-      setMedia(result.data);
-      setPagination(result.pagination);
-    } catch {
-      setError("Gagal memuat gambar. Coba refresh.");
-    } finally {
-      setLoading(false);
-    }
+  // Logika fetch murni (.then, bukan async/await) — TIDAK ada setState sinkron
+  // di level teratas, supaya aman dipanggil langsung dari efek di bawah
+  // (react-hooks/set-state-in-effect). Tetap mengembalikan Promise supaya
+  // caller lain (upload/delete) bisa tetap `await fetchMedia()`.
+  const fetchMedia = useCallback(() => {
+    return getMedia(activeFolder as MediaFolder || undefined, page)
+      .then((result) => {
+        setMedia(result.data);
+        setPagination(result.pagination);
+        setError(null);
+      })
+      .catch(() => {
+        setError("Gagal memuat gambar. Coba refresh.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [activeFolder, page]);
 
-  useEffect(() => {
+  // Reset seleksi & tandai loading saat modal dibuka — saat RENDER (bukan efek).
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setSelected(null);
-      fetchMedia();
+      setLoading(true);
     }
-  }, [isOpen, fetchMedia]);
+  }
 
   useEffect(() => {
+    if (isOpen) fetchMedia();
+  }, [isOpen, fetchMedia]);
+
+  // Reset halaman & seleksi saat folder berubah — saat RENDER (bukan efek).
+  const [syncedActiveFolder, setSyncedActiveFolder] = useState(activeFolder);
+  if (activeFolder !== syncedActiveFolder) {
+    setSyncedActiveFolder(activeFolder);
     setPage(1);
     setSelected(null);
-  }, [activeFolder]);
+  }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -175,7 +190,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect, defaultFo
             ))}
           </div>
           <label
-            className={`btn-shine inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-cyan-500 px-3.5 py-2 text-[11px] font-semibold text-white shadow-sm shadow-sky-600/25 transition-all hover:-translate-y-0.5 hover:shadow-md ${uploading ? "pointer-events-none opacity-60" : ""}`}
+            className={`btn-shine inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-linear-to-r from-sky-600 to-cyan-500 px-3.5 py-2 text-[11px] font-semibold text-white shadow-sm shadow-sky-600/25 transition-all hover:-translate-y-0.5 hover:shadow-md ${uploading ? "pointer-events-none opacity-60" : ""}`}
           >
             {uploading ? (
               <>
@@ -338,7 +353,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect, defaultFo
               type="button"
               onClick={handleConfirm}
               disabled={!selected}
-              className="btn-shine rounded-lg bg-gradient-to-r from-sky-600 to-cyan-500 px-4 py-2 text-[11px] font-semibold text-white shadow-sm shadow-sky-600/25 transition-all hover:-translate-y-0.5 hover:shadow-md disabled:opacity-40 disabled:hover:translate-y-0"
+              className="btn-shine rounded-lg bg-linear-to-r from-sky-600 to-cyan-500 px-4 py-2 text-[11px] font-semibold text-white shadow-sm shadow-sky-600/25 transition-all hover:-translate-y-0.5 hover:shadow-md disabled:opacity-40 disabled:hover:translate-y-0"
             >
               Gunakan Gambar
             </button>

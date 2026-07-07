@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  ChevronLeft,
+  ChevronRight,
   Eye,
   EyeOff,
   Plus,
@@ -16,15 +18,24 @@ import { useEffect, useState } from "react";
 import {
   adminCreateReview,
   adminDeleteReview,
+  adminGetGoogleHitStats,
+  adminGetGoogleReviews,
   adminGetReview,
+  adminRefreshGoogleBusiness,
   adminToggleFeatured,
   adminToggleTampil,
+  adminToggleTampilGoogleReview,
   adminUpdateReview,
   adminUpdateReviewSummary,
+  EMPTY_RATING_BREAKDOWN,
+  type GoogleHitStats,
+  type GoogleReviewItem,
+  type MediaPagination,
   type Review,
   type ReviewSummary,
 } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
+import GoogleRating from "@/src/components/GoogleRating";
 import {
   AdminHeader,
   adminPrimaryBtn,
@@ -80,15 +91,65 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
 
 export default function AdminReviewPesan() {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [summary, setSummary] = useState<ReviewSummary>({ rating_google: 0, total_ulasan: 0, link_gmaps: "" });
+  const [summary, setSummary] = useState<ReviewSummary>({ rating_google: 0, total_ulasan: 0, link_gmaps: "", rating_breakdown: EMPTY_RATING_BREAKDOWN });
   const [loading, setLoading] = useState(true);
   const { toasts, showToast, dismissToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   // Summary form
-  const [summaryForm, setSummaryForm] = useState<ReviewSummary>({ rating_google: 0, total_ulasan: 0, link_gmaps: "" });
+  const [summaryForm, setSummaryForm] = useState<ReviewSummary>({ rating_google: 0, total_ulasan: 0, link_gmaps: "", rating_breakdown: EMPTY_RATING_BREAKDOWN });
   const [savingSummary, setSavingSummary] = useState(false);
   const [summaryMsg, setSummaryMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Google Business (otomatis via RapidAPI)
+  const [refreshingGoogle, setRefreshingGoogle] = useState(false);
+  const [googleRefreshKey, setGoogleRefreshKey] = useState(0);
+  const [googleReviews, setGoogleReviews] = useState<GoogleReviewItem[]>([]);
+  const [googlePagination, setGooglePagination] = useState<MediaPagination>({ page: 1, per_page: 10, total: 0, total_pages: 0 });
+  const [googlePage, setGooglePage] = useState(1);
+  const [googleRatingFilter, setGoogleRatingFilter] = useState<number | null>(null);
+  const [loadingGoogleReviews, setLoadingGoogleReviews] = useState(true);
+  const [hitStats, setHitStats] = useState<GoogleHitStats | null>(null);
+
+  function loadHitStats() {
+    adminGetGoogleHitStats().then((stats) => setHitStats(stats));
+  }
+
+  useEffect(() => { loadHitStats(); }, []);
+
+  function loadGoogleReviews() {
+    adminGetGoogleReviews(googlePage, 10, googleRatingFilter ?? undefined).then((result) => {
+      setGoogleReviews(result.data);
+      setGooglePagination(result.pagination);
+      setLoadingGoogleReviews(false);
+    });
+  }
+
+  useEffect(() => { loadGoogleReviews(); }, [googlePage, googleRatingFilter]);
+
+  function selectGoogleRatingFilter(rating: number | null) {
+    setGoogleRatingFilter(rating);
+    setGooglePage(1);
+  }
+
+  async function handleToggleTampilGoogleReview(r: GoogleReviewItem) {
+    setGoogleReviews((prev) => prev.map((x) => x.id === r.id ? { ...x, tampil: !x.tampil } : x));
+    await adminToggleTampilGoogleReview(r.id);
+  }
+
+  async function handleRefreshGoogle() {
+    setRefreshingGoogle(true);
+    const res = await adminRefreshGoogleBusiness();
+    if (res.success) {
+      showToast(res.message ?? "Data Google Business berhasil diperbarui", "success");
+      setGoogleRefreshKey((k) => k + 1);
+      loadGoogleReviews();
+      loadHitStats();
+    } else {
+      showToast(res.error ?? "Gagal memperbarui data Google Business", "error");
+    }
+    setRefreshingGoogle(false);
+  }
 
   // Modal add/edit
   const [modalOpen, setModalOpen] = useState(false);
@@ -100,13 +161,15 @@ export default function AdminReviewPesan() {
   // Tab filter
   const [activeTab, setActiveTab] = useState<"semua" | "tampil" | "tersembunyi">("semua");
 
-  async function loadData() {
-    setLoading(true);
-    const data = await adminGetReview();
-    setReviews(data.reviews);
-    setSummary(data.summary);
-    setSummaryForm(data.summary);
-    setLoading(false);
+  // Pakai .then() (bukan async/await) supaya linter react-hooks bisa lihat
+  // setState hanya terjadi di kelanjutan asinkron, bukan sinkron di efek.
+  function loadData() {
+    adminGetReview().then((data) => {
+      setReviews(data.reviews);
+      setSummary(data.summary);
+      setSummaryForm(data.summary);
+      setLoading(false);
+    });
   }
 
   useEffect(() => { loadData(); }, []);
@@ -313,6 +376,131 @@ export default function AdminReviewPesan() {
                 ) : null}
               </div>
             </form>
+
+            {/* Google Business (otomatis via RapidAPI) */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[13px] font-semibold text-slate-900">Google Business (Otomatis)</div>
+                <button
+                  type="button"
+                  onClick={handleRefreshGoogle}
+                  disabled={refreshingGoogle}
+                  className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-3 py-2 text-[10px] font-medium text-white disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-3 w-3 ${refreshingGoogle ? "animate-spin" : ""}`} />
+                  {refreshingGoogle ? "Memperbarui..." : "Refresh Data"}
+                </button>
+              </div>
+
+              {hitStats ? (
+                <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-[9px] text-slate-500">
+                  <span><strong className="text-slate-700">{hitStats.hits_this_month}</strong> hit RapidAPI bulan ini</span>
+                  <span><strong className="text-slate-700">{hitStats.hits_total}</strong> hit sepanjang waktu</span>
+                  {hitStats.last_hit_at ? (
+                    <span>Terakhir: {new Date(hitStats.last_hit_at).toLocaleString("id-ID")}</span>
+                  ) : null}
+                  <span className="text-slate-400">Auto-refresh: tiap Senin 07:00 (~2 hit/minggu)</span>
+                </div>
+              ) : null}
+
+              <GoogleRating key={googleRefreshKey} className="mb-4" />
+
+              {/* Filter bintang */}
+              <div className="mb-3 flex flex-wrap gap-2 text-[9px] font-medium">
+                <button
+                  type="button"
+                  onClick={() => selectGoogleRatingFilter(null)}
+                  className={`rounded-full border px-3 py-1.5 transition-all ${googleRatingFilter === null ? "border-sky-600 bg-sky-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-sky-200"}`}
+                >
+                  Semua
+                </button>
+                {[5, 4, 3, 2, 1].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => selectGoogleRatingFilter(star)}
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 transition-all ${googleRatingFilter === star ? "border-sky-600 bg-sky-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-sky-200"}`}
+                  >
+                    {star} <Star className="h-2.5 w-2.5 fill-current" />
+                  </button>
+                ))}
+              </div>
+
+              {loadingGoogleReviews ? (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-center text-[10px] text-slate-500">
+                  Memuat ulasan Google...
+                </div>
+              ) : googleReviews.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-center text-[10px] text-slate-500">
+                  Belum ada ulasan Google di kategori ini.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {googleReviews.map((r) => (
+                    <article key={r.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex flex-wrap items-start gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] font-semibold text-slate-900">
+                              {r.reviewer_name || "Pengguna Google"}
+                            </span>
+                            {!r.tampil ? (
+                              <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[8px] text-rose-500">Tersembunyi</span>
+                            ) : null}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-2">
+                            <div className="flex gap-0.5">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-3 w-3 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[8px] text-slate-400">{r.review_date}</span>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-600">{r.review_text}</p>
+                        </div>
+                        <button
+                          type="button"
+                          title={r.tampil ? "Sembunyikan dari website" : "Tampilkan di website"}
+                          onClick={() => handleToggleTampilGoogleReview(r)}
+                          className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-[9px] font-medium transition-all hover:-translate-y-0.5 ${r.tampil ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+                        >
+                          {r.tampil ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+
+              {googlePagination.total_pages > 1 && (
+                <div className="mt-3 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGooglePage((p) => Math.max(1, p - 1))}
+                    disabled={googlePage === 1}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 disabled:opacity-40 hover:enabled:bg-slate-50"
+                    aria-label="Halaman sebelumnya"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="text-[9px] text-slate-400">
+                    Halaman {googlePagination.page} dari {googlePagination.total_pages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGooglePage((p) => Math.min(googlePagination.total_pages, p + 1))}
+                    disabled={googlePage === googlePagination.total_pages}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 disabled:opacity-40 hover:enabled:bg-slate-50"
+                    aria-label="Halaman berikutnya"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Panduan */}
             <div className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">

@@ -17,15 +17,18 @@ import {
   Megaphone,
   Menu,
   MessageCircle,
+  ScrollText,
   Settings,
+  ShieldCheck,
   Stethoscope,
   Tag,
   UserRound,
   Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getCurrentAdmin, type CurrentAdmin } from "@/src/lib/api";
 
 export type SidebarKey =
   | "dashboard"
@@ -40,7 +43,14 @@ export type SidebarKey =
   | "artikel"
   | "pengunjung"
   | "sosmed"
+  | "auditlog"
+  | "kelola-admin"
   | "pengaturan";
+
+// Key yang cuma boleh tampil untuk role superadmin (superadmin only:
+// audit log & kelola akun admin — lihat middleware.AdminAuth/requireSuperadmin
+// di backend, yang jadi penegak sesungguhnya; ini cuma soal UX sembunyikan menu).
+const SUPERADMIN_ONLY_KEYS: SidebarKey[] = ["auditlog", "kelola-admin"];
 
 type SidebarLink = {
   label: string;
@@ -167,7 +177,21 @@ const sidebarEntries: SidebarEntry[] = [
         key: "review",
         icon: MessageCircle,
       },
+      {
+        label: "Audit Log",
+        description: "Riwayat login & aktivitas admin",
+        href: "/admin_audit_log",
+        key: "auditlog",
+        icon: ScrollText,
+      },
     ],
+  },
+  {
+    label: "Kelola Admin",
+    description: "Akun & role admin",
+    href: "/kelola_admin",
+    key: "kelola-admin",
+    icon: ShieldCheck,
   },
   {
     label: "Pengaturan",
@@ -195,6 +219,36 @@ export default function SidebarAdmin({
   );
   const router = useRouter();
 
+  const [currentAdmin, setCurrentAdmin] = useState<CurrentAdmin>(null);
+  useEffect(() => {
+    let alive = true;
+    getCurrentAdmin().then((admin) => {
+      if (alive) setCurrentAdmin(admin);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const isSuperadmin = currentAdmin?.role === "superadmin";
+  const displayUsername = currentAdmin?.username ?? "Admin";
+  const displayRoleLabel = isSuperadmin ? "Super Admin" : currentAdmin?.role === "admin" ? "Admin" : "—";
+  const displayInitial = (currentAdmin?.username?.[0] ?? "A").toUpperCase();
+  // Sembunyikan menu superadmin-only untuk role admin biasa. Ini cuma UX —
+  // penegak sesungguhnya ada di backend (requireSuperadmin), jadi tetap aman
+  // walau seseorang paksa akses URL-nya langsung.
+  const visibleEntries: SidebarEntry[] = sidebarEntries
+    .map((entry) => {
+      if (isGroup(entry)) {
+        const children = entry.children.filter(
+          (child) => isSuperadmin || !SUPERADMIN_ONLY_KEYS.includes(child.key),
+        );
+        return children.length > 0 ? { ...entry, children } : null;
+      }
+      return isSuperadmin || !SUPERADMIN_ONLY_KEYS.includes(entry.key) ? entry : null;
+    })
+    .filter((entry): entry is SidebarEntry => entry !== null);
+
   async function handleLogout() {
     await fetch("/api/auth", { method: "DELETE" });
     router.push("/admin_login_page");
@@ -216,7 +270,7 @@ export default function SidebarAdmin({
       nested ? "py-2" : "py-2.5"
     } ${
       isActive
-        ? "bg-gradient-to-r from-sky-600 to-cyan-500 text-white shadow-md shadow-sky-600/25"
+        ? "bg-linear-to-r from-sky-600 to-cyan-500 text-white shadow-md shadow-sky-600/25"
         : "bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
     }`;
 
@@ -300,7 +354,7 @@ export default function SidebarAdmin({
   function renderNav() {
     return (
       <div className="space-y-0.5">
-        {sidebarEntries.map((entry) =>
+        {visibleEntries.map((entry) =>
           isGroup(entry) ? renderGroup(entry) : renderLink(entry),
         )}
       </div>
@@ -334,8 +388,8 @@ export default function SidebarAdmin({
         aria-hidden="true"
       />
 
-      <aside className="hidden w-full flex-col border-b border-slate-200 bg-white lg:flex lg:w-[220px] lg:border-b-0 lg:border-r">
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#0D1B2A] to-[#13314f] px-5">
+      <aside className="hidden w-full flex-col border-b border-slate-200 bg-white lg:flex lg:w-55 lg:border-b-0 lg:border-r">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-linear-to-r from-[#0D1B2A] to-[#13314f] px-5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
             <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-7 w-7" />
           </div>
@@ -350,12 +404,12 @@ export default function SidebarAdmin({
         </div>
         <div className="shrink-0 border-t border-slate-100 p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-600 to-cyan-500 text-xs font-bold text-white shadow-sm">
-              A
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-sky-600 to-cyan-500 text-xs font-bold text-white shadow-sm">
+              {displayInitial}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-slate-900">Admin</p>
-              <p className="text-[10px] text-slate-400">Super Admin</p>
+              <p className="truncate text-xs font-semibold text-slate-900">{displayUsername}</p>
+              <p className="text-[10px] text-slate-400">{displayRoleLabel}</p>
             </div>
             <button type="button" title="Logout" aria-label="Logout" onClick={handleLogout} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500">
               <LogOut className="h-3.5 w-3.5" />
@@ -368,7 +422,7 @@ export default function SidebarAdmin({
         className={`fixed left-0 top-0 z-50 flex h-dvh w-[85vw] max-w-70 flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-hidden={!menuOpen}
       >
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#0D1B2A] to-[#13314f] px-5">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 bg-linear-to-r from-[#0D1B2A] to-[#13314f] px-5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
             <img src="/assets/logo/LOGO.svg" alt="KRI AMC" className="h-7 w-7" />
           </div>
@@ -384,11 +438,11 @@ export default function SidebarAdmin({
         <div className="shrink-0 border-t border-slate-100 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
-              A
+              {displayInitial}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-slate-900">Admin</p>
-              <p className="text-[10px] text-slate-400">Super Admin</p>
+              <p className="truncate text-xs font-medium text-slate-900">{displayUsername}</p>
+              <p className="text-[10px] text-slate-400">{displayRoleLabel}</p>
             </div>
             <button type="button" title="Logout" onClick={handleLogout} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500">
               <LogOut className="h-3.5 w-3.5" />

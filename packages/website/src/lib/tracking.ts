@@ -1,8 +1,23 @@
 // Utilitas tracking sesi pengunjung — dipakai di client components saja.
 // Semua fungsi guard terhadap SSR dengan pengecekan typeof window.
+// PENTING: startSession() TIDAK dipanggil sama sekali sebelum consent analitik
+// diberikan (lihat SiteAnimations) — sesuai prinsip privacy-by-design UU PDP.
+// Situs publik tidak pernah meminta lokasi GPS presisi — lihat consent.ts.
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://172.20.10.2:8080/api";
 const SESSION_KEY = "vsk"; // visitor session key
+const VISITOR_KEY = "kri_visitor_id"; // ID persisten lintas-sesi (localStorage)
+
+/** ID pengunjung persisten — bukan identitas pribadi, cuma UUID acak di localStorage. */
+function getOrCreateVisitorId(): string {
+  if (typeof window === "undefined") return "";
+  let id = localStorage.getItem(VISITOR_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(VISITOR_KEY, id);
+  }
+  return id;
+}
 
 function detectSource(): string {
   try {
@@ -22,7 +37,11 @@ function detectSource(): string {
   }
 }
 
-/** Mulai sesi baru. Idempotent — tidak melakukan apa-apa jika sesi sudah ada di sessionStorage. */
+/**
+ * Mulai sesi baru. Idempotent — tidak melakukan apa-apa jika sesi sudah ada di
+ * sessionStorage. HARUS hanya dipanggil setelah consent.analytics = true —
+ * caller (SiteAnimations) bertanggung jawab atas gerbang ini.
+ */
 export async function startSession(): Promise<void> {
   if (typeof window === "undefined") return;
   if (sessionStorage.getItem(SESSION_KEY)) return;
@@ -31,7 +50,13 @@ export async function startSession(): Promise<void> {
     const res = await fetch(`${API_BASE}/track/session/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source: detectSource() }),
+      body: JSON.stringify({
+        source: detectSource(),
+        visitor_id: getOrCreateVisitorId(),
+        resolusi: `${screen.width}x${screen.height}`,
+        bahasa: navigator.language,
+        consent_analytics: true,
+      }),
     });
     const data = await res.json();
     if (data.session_id) {
@@ -41,7 +66,7 @@ export async function startSession(): Promise<void> {
 }
 
 /** Catat pageview tambahan (panggil setiap kali route berubah, bukan saat pertama load). */
-export function trackPageview(): void {
+export function trackPageview(halaman: string): void {
   if (typeof window === "undefined") return;
   const sessionId = sessionStorage.getItem(SESSION_KEY);
   if (!sessionId) return;
@@ -49,7 +74,11 @@ export function trackPageview(): void {
   fetch(`${API_BASE}/track/session/pageview`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId }),
+    body: JSON.stringify({
+      session_id: sessionId,
+      visitor_id: getOrCreateVisitorId(),
+      halaman,
+    }),
   }).catch(() => {});
 }
 

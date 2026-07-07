@@ -15,7 +15,7 @@ func GetPromoHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		promo, err := services.Promo(db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, promo)
@@ -30,7 +30,7 @@ func CreatePromoHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.CreatePromo(db, &promo); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusCreated, promo)
@@ -80,7 +80,7 @@ func UpdatePromoHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if err := services.UpdatePromo(db, &promo); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 
@@ -103,7 +103,7 @@ func DeletePromoHandler(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if err := services.DeletePromo(db, promo.ID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 

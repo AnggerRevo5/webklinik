@@ -85,6 +85,7 @@ export default function FormulirPendaftaran() {
 
   // NIK check
   const [nik, setNik] = useState("");
+  const [tglLahirCek, setTglLahirCek] = useState("");
   const [nikLoading, setNikLoading] = useState(false);
   const [nikError, setNikError] = useState("");
   const [pasienLama, setPasienLama] = useState<PasienKhanza | null>(null);
@@ -102,10 +103,14 @@ export default function FormulirPendaftaran() {
       setNikError("NIK harus 16 digit");
       return;
     }
+    if (!tglLahirCek) {
+      setNikError("Tanggal lahir wajib diisi untuk verifikasi");
+      return;
+    }
     setNikError("");
     setNikLoading(true);
     try {
-      const res = await cekPasienByNIK(nik);
+      const res = await cekPasienByNIK(nik, tglLahirCek);
       setNikChecked(true);
       if (res.found) {
         setPasienLama(res.data);
@@ -127,7 +132,7 @@ export default function FormulirPendaftaran() {
       step1: {
         isNewPasien: false,
         no_rkm_medis: pasienLama.no_rkm_medis,
-        no_ktp: pasienLama.no_ktp,
+        no_ktp: nik,
         nm_pasien: pasienLama.nm_pasien,
         jk: pasienLama.jk,
         tgl_lahir: pasienLama.tgl_lahir,
@@ -262,24 +267,39 @@ export default function FormulirPendaftaran() {
                   <label htmlFor="nik-input" className={labelClass}>
                     NIK (Nomor Induk Kependudukan)
                   </label>
+                  <Input
+                    id="nik-input"
+                    value={nik}
+                    onChange={(e) => {
+                      setNik(e.target.value.replace(/\D/g, "").slice(0, 16));
+                      setNikChecked(false);
+                      setPasienLama(null);
+                      setPasienFound(false);
+                    }}
+                    placeholder="16 Digit Nomor KTP"
+                    className={inputClass}
+                    maxLength={16}
+                  />
+                  <label htmlFor="tgl-lahir-cek" className={labelClass}>
+                    Tanggal Lahir
+                  </label>
                   <div className="flex gap-2">
                     <Input
-                      id="nik-input"
-                      value={nik}
+                      id="tgl-lahir-cek"
+                      type="date"
+                      value={tglLahirCek}
                       onChange={(e) => {
-                        setNik(e.target.value.replace(/\D/g, "").slice(0, 16));
+                        setTglLahirCek(e.target.value);
                         setNikChecked(false);
                         setPasienLama(null);
                         setPasienFound(false);
                       }}
-                      placeholder="16 Digit Nomor KTP"
                       className={`${inputClass} flex-1`}
-                      maxLength={16}
                     />
                     <Button
                       type="button"
                       onClick={handleCekNIK}
-                      disabled={nikLoading || nik.length !== 16}
+                      disabled={nikLoading || nik.length !== 16 || !tglLahirCek}
                       className="btn-shine h-12 shrink-0 rounded-full bg-[#00b4d8] px-5 t-body font-medium text-white shadow-md shadow-[#00b4d8]/25 transition-transform hover:-translate-y-0.5 hover:bg-[#06a8ca] disabled:opacity-50 disabled:hover:translate-y-0"
                     >
                       {nikLoading ? (
@@ -290,6 +310,9 @@ export default function FormulirPendaftaran() {
                       <span className="ml-2 hidden sm:inline">Cek</span>
                     </Button>
                   </div>
+                  <p className="t-caption text-slate-400">
+                    Tanggal lahir diperlukan untuk memverifikasi data pasien.
+                  </p>
                   {nikError && (
                     <p className="t-body-sm text-red-500">{nikError}</p>
                   )}

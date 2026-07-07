@@ -14,7 +14,7 @@ func GetLayananHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		layanan, err := services.Layanan(db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, layanan)
@@ -29,7 +29,7 @@ func CreateLayananHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.CreateLayanan(db, &layanan); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusCreated, layanan)
@@ -44,7 +44,7 @@ func UpdateLayananHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.UpdateLayanan(db, &layanan); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, layanan)
@@ -59,7 +59,7 @@ func DeleteLayananHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.DeleteLayanan(db, layanan.ID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "layanan dihapus"})

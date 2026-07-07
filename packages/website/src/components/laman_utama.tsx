@@ -8,7 +8,6 @@ import {
   Copy,
   MapPin,
   Send,
-  Siren,
   Star,
   X,
 } from "lucide-react";
@@ -23,6 +22,7 @@ import {
   getArtikel,
 } from "@/src/lib/api";
 import { useHomeData, useSiteSettings } from "@/src/lib/hooks";
+import { trackSocialClick } from "@/src/lib/tracking";
 import { Button } from "@/src/UiKecil/button";
 import { Card, CardContent } from "@/src/UiKecil/card";
 import { Input } from "@/src/UiKecil/input";
@@ -34,7 +34,7 @@ import {
   formatOperationalHours,
   normalizePhoneNumber,
 } from "@/src/lib/utils";
-import Footer from "@/src/components/footer";
+import PageFooter from "@/src/components/page_footer";
 import Navbar from "@/src/components/navbar";
 import { Reveal, Parallax, Tilt, ScrollProgress, WordReveal, Marquee, Magnetic, ClipReveal } from "@/src/components/motion";
 
@@ -105,7 +105,6 @@ const cardShadowSoft =
 const cardShadowMd =
   "shadow-[0px_3.43px_20.59px_-0.86px_#00000033] transition-shadow duration-300 hover:shadow-[0px_5px_28px_-2px_#00000045]";
 const btnPrimary = "rounded-full bg-[#00b4d8] text-white hover:bg-[#00a3c5]";
-const btnAccent = "rounded-full bg-[#e8861e] text-white hover:bg-[#d77a18]";
 const btnSoft = "rounded-full bg-[#00b4d826] text-black hover:bg-[#00b4d833]";
 
 /* Re-usable button height token (48px desktop, 44px mobile) */
@@ -114,16 +113,17 @@ const btnHeight = "h-11 lg:h-12";
 const CLINIC_ADDRESS =
   "Dsn. Krajan RT.013 RW.005, Desa Tirtomarto, Kec. Ampelgading, Kab. Malang, Jawa Timur 65183";
 
-const SOCIAL_LINK_ITEMS = [
-  { label: "Instagram", href: "#", icon: ASSETS.icons.instagram },
-  { label: "Facebook", href: "#", icon: ASSETS.icons.facebook },
-  { label: "Tiktok", href: "#", icon: ASSETS.icons.tiktok },
-  {
-    label: "Email",
-    href: "mailto:info@ampelgadingmedical.com",
-    icon: ASSETS.icons.email,
-  },
-] as const;
+// URL instagram/facebook/tiktok/email diambil dari site_settings (bisa
+// diedit admin) lewat useSiteSettings() di dalam HubungiKamiSection — bukan
+// lagi hardcoded "#", lihat SITE_DEFAULTS di src/lib/api.ts untuk nilai awal.
+function socialLinkItems(settings: Record<string, string>) {
+  return [
+    { key: "instagram", label: "Instagram", href: settings.instagram, icon: ASSETS.icons.instagram },
+    { key: "facebook", label: "Facebook", href: settings.facebook, icon: ASSETS.icons.facebook },
+    { key: "tiktok", label: "Tiktok", href: settings.tiktok, icon: ASSETS.icons.tiktok },
+    { key: "email", label: "Email", href: `mailto:${settings.email}`, icon: ASSETS.icons.email },
+  ] as const;
+}
 
 /* ─── Section data ─── */
 
@@ -1199,13 +1199,14 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
                 Ikuti kami
               </span>
               <div className="flex gap-1.5 ml-1">
-                {SOCIAL_LINK_ITEMS.map((item) => (
+                {socialLinkItems(settings).map((item) => (
                   <a
-                    key={item.label}
+                    key={item.key}
                     href={item.href}
                     target={item.href.startsWith("http") ? "_blank" : undefined}
                     rel="noopener noreferrer"
                     aria-label={item.label}
+                    onClick={() => trackSocialClick(item.key)}
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4f4f4] transition-all hover:bg-[#e4f6fb] hover:scale-110"
                   >
                     <AssetIcon src={item.icon} alt={item.label} size={16} />
@@ -1298,67 +1299,6 @@ function HubungiKamiSection({ homeData }: { homeData?: HomeData | null }) {
 }
 
 /* ─── Emergency CTA ─── */
-
-function EmergencyCta() {
-  const settings = useSiteSettings();
-  const CLINIC_PHONE = settings.telepon;
-  return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#0f4c81] via-[#1a5fa0] to-[#2d7dd2]">
-      {/* Dekorasi orb + grid */}
-      <div className="pointer-events-none absolute inset-0 bg-grid-soft opacity-40" />
-      <div className="pointer-events-none absolute -right-10 -top-16 h-64 w-64 rounded-full bg-[#5fd0e8]/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-[#e8861e]/20 blur-3xl" />
-
-      <div className="relative section-container py-9 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <Reveal direction="right" className="flex items-center gap-4">
-          <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full bg-[#2d7dd2] md:h-[104px] md:w-[104px]">
-            <span className="absolute inset-0 rounded-full ring-2 ring-white/30" style={{ animation: "soft-pulse 2.2s ease-out infinite" }} />
-            <Siren className="h-9 w-9 text-white md:h-12 md:w-12" />
-          </div>
-          <div>
-            <div className="t-h4 font-bold text-white">
-              Butuh bantuan segera?
-            </div>
-            <div className="t-body mt-1 text-white/90">UGD kami buka 24 jam</div>
-            <div className="t-body text-white/90">hubungi kami</div>
-          </div>
-        </Reveal>
-        <Reveal direction="left" delay={120} className="flex flex-wrap gap-4">
-          <Button
-            className={cn(
-              btnHeight,
-              "btn-shine rounded-full bg-[#008000] px-6 t-body text-white shadow-lg shadow-emerald-900/30 transition-transform hover:-translate-y-0.5 hover:bg-[#067006]",
-            )}
-            asChild
-          >
-            <Link href="/pendaftaran_online_1">
-              <>
-                <AssetIcon
-                  src={ASSETS.icons.whatsapp}
-                  alt=""
-                  size={20}
-                  className="mr-2"
-                />
-                Daftar Online
-              </>
-            </Link>
-          </Button>
-          <Button className={cn(btnAccent, btnHeight, "btn-shine px-6 t-body shadow-lg shadow-orange-900/20 transition-transform hover:-translate-y-0.5")} asChild>
-            <a href={`tel:${CLINIC_PHONE.replace(/-/g, "")}`}>
-              <AssetIcon
-                src={ASSETS.icons.phone}
-                alt=""
-                size={20}
-                className="mr-2"
-              />
-              {CLINIC_PHONE}
-            </a>
-          </Button>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
 
 /* Section layanan utama klinik. */
 function LayananSection({
@@ -1840,8 +1780,7 @@ export default function LamanUtama() {
       <PromoSection homeData={data} loading={loading} />
       <ArtikelSection />
       <HubungiKamiSection homeData={data} />
-      <EmergencyCta />
-      <Footer />
+      <PageFooter />
     </main>
   );
 }

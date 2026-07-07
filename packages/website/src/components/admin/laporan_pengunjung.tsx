@@ -70,9 +70,19 @@ export default function LaporanPengunjung() {
   const [filterBrowser, setFilterBrowser] = useState("");
   const [page, setPage] = useState(1);
 
-  const load = useCallback(async () => {
+  // Tandai loading saat RENDER ketika page/filter berubah (bukan di efek) —
+  // pola resmi React "adjusting state when a prop changes".
+  const requestKey = `${page}|${filterDevice}|${filterSource}|${filterBrowser}`;
+  const [syncedRequestKey, setSyncedRequestKey] = useState(requestKey);
+  if (requestKey !== syncedRequestKey) {
+    setSyncedRequestKey(requestKey);
     setLoading(true);
-    const [statsData, sessionsData] = await Promise.all([
+  }
+
+  // Logika fetch murni — TIDAK ada setState sinkron di level teratas, supaya
+  // aman dipanggil langsung dari efek di bawah (react-hooks/set-state-in-effect).
+  const fetchVisitorData = useCallback(() => {
+    Promise.all([
       adminGetVisitorStats(),
       adminGetVisitorSessions(
         page,
@@ -80,18 +90,20 @@ export default function LaporanPengunjung() {
         filterSource || undefined,
         filterBrowser || undefined,
       ),
-    ]);
-    setStats(statsData);
-    setSessions(sessionsData.data);
-    setPagination(sessionsData.pagination);
-    setLoading(false);
+    ]).then(([statsData, sessionsData]) => {
+      setStats(statsData);
+      setSessions(sessionsData.data);
+      setPagination(sessionsData.pagination);
+      setLoading(false);
+    });
   }, [page, filterDevice, filterSource, filterBrowser]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { fetchVisitorData(); }, [fetchVisitorData]);
 
   function applyFilters() {
     setPage(1);
-    load();
+    setLoading(true);
+    fetchVisitorData();
   }
 
   return (
@@ -167,8 +179,8 @@ export default function LaporanPengunjung() {
                     <span className="text-[11px] font-semibold text-slate-800">Sumber Trafik</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {stats.source.length > 0
-                      ? stats.source.map((s) => (
+                    {(stats.source ?? []).length > 0
+                      ? (stats.source ?? []).map((s) => (
                           <button
                             key={s.source}
                             type="button"
@@ -193,7 +205,7 @@ export default function LaporanPengunjung() {
                     <span className="text-[11px] font-semibold text-slate-800">Device</span>
                   </div>
                   <div className="flex gap-2">
-                    {Object.entries(stats.device).map(([dev, count]) => {
+                    {Object.entries(stats.device ?? {}).map(([dev, count]) => {
                       const isActive = filterDevice === dev;
                       return (
                         <button

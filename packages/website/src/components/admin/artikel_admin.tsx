@@ -58,11 +58,21 @@ export default function ArtikelAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<ArtikelPayload>(EMPTY_FORM);
 
-  const fetchList = useCallback(async () => {
+  // Tandai loading saat RENDER ketika filter berubah (bukan di efek) — pola
+  // resmi React "adjusting state when a prop changes". fetchList sendiri
+  // tidak boleh punya setState sinkron karena dipanggil langsung dari efek
+  // di bawah (react-hooks/set-state-in-effect).
+  const [lastRequestedFilter, setLastRequestedFilter] = useState<FilterStatus>(filterStatus);
+  if (filterStatus !== lastRequestedFilter) {
+    setLastRequestedFilter(filterStatus);
     setLoading(true);
-    const res = await adminGetArtikel(1, filterStatus === "all" ? undefined : filterStatus);
-    setArtikelList(res.data ?? []);
-    setLoading(false);
+  }
+
+  const fetchList = useCallback(() => {
+    adminGetArtikel(1, filterStatus === "all" ? undefined : filterStatus).then((res) => {
+      setArtikelList(res.data ?? []);
+      setLoading(false);
+    });
   }, [filterStatus]);
 
   useEffect(() => {

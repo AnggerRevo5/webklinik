@@ -5,10 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
-import { useHomeData, useSiteSettings } from "@/src/lib/hooks";
+import { useLenis } from "lenis/react";
+import { useSiteSettings } from "@/src/lib/hooks";
 import { Button } from "@/src/UiKecil/button";
 import { Separator } from "@/src/UiKecil/separator";
 import { cn } from "@/src/lib/utils";
+import { trackSocialClick } from "@/src/lib/tracking";
 
 
 const ASSETS = {
@@ -65,14 +67,13 @@ function AssetIcon({
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const lenis = useLenis();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
-  const { data } = useHomeData();
   const settings = useSiteSettings();
   const WHATSAPP_URL = `https://wa.me/${settings.whatsapp}`;
 
-  const getSocialUrl = (key: string) =>
-    data?.social_links?.find((s) => s.label.toLowerCase() === key)?.url ?? "#";
+  const getSocialUrl = (key: string) => settings[key] ?? "#";
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -112,7 +113,11 @@ export default function Navbar() {
       e.preventDefault();
       const el = document.getElementById(id);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (lenis) {
+          lenis.scrollTo(el);
+        } else {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       } else {
         router.push(`/#${id}`);
       }
@@ -157,6 +162,7 @@ export default function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
+                  onClick={() => trackSocialClick(key)}
                   className="group flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 hover:bg-[#00b4d8]/10"
                 >
                   <Image
@@ -232,7 +238,7 @@ export default function Navbar() {
                     : "text-white hover:text-white",
                 )}
                 onClick={(e) =>
-                  item.isSection && handleSectionClick(e as any, item.id)
+                  item.isSection && handleSectionClick(e, item.id)
                 }
               >
                 {item.label}
@@ -296,7 +302,7 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 onClick={(e) => {
-                  if (item.isSection) handleSectionClick(e as any, item.id);
+                  if (item.isSection) handleSectionClick(e, item.id);
                   setMenuOpen(false);
                 }}
                 className="translate-y-2 t-h2 font-semibold text-white opacity-0 transition-all duration-300"

@@ -14,7 +14,7 @@ func GetBannerHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		banner, err := services.Banner(db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, banner)
@@ -29,7 +29,7 @@ func CreateBannerHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.CreateBanner(db, &banner); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusCreated, banner)
@@ -44,7 +44,7 @@ func UpdateBannerHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.UpdateBanner(db, &banner); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, banner)
@@ -59,7 +59,7 @@ func DeleteBannerHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		if err := services.DeleteBanner(db, banner.ID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err, "")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "banner dihapus"})

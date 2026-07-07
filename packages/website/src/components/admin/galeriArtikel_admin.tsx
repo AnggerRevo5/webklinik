@@ -156,7 +156,10 @@ export default function GaleriArtikelAdmin() {
     [gallery, selectedGalleryId],
   );
 
-  useEffect(() => {
+  // Sinkronkan form ke item terpilih saat RENDER (bukan di efek).
+  const [syncedGalleryId, setSyncedGalleryId] = useState<number | null>(null);
+  if (selectedGalleryId !== syncedGalleryId) {
+    setSyncedGalleryId(selectedGalleryId);
     if (selectedGallery) {
       setForm({
         kategori: selectedGallery.kategori,
@@ -164,7 +167,7 @@ export default function GaleriArtikelAdmin() {
         url: selectedGallery.url,
       });
     }
-  }, [selectedGallery]);
+  }
 
   const galleryItems: GalleryItem[] = gallery.map((item, index) => ({
     id: item.id,

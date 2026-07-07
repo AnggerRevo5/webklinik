@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
 
       <div className="grid min-h-dvh w-full overflow-hidden bg-[#F0F4FA] xl:grid-cols-2">
         {/* ── Panel brand ── */}
-        <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0D1B2A] via-[#13314f] to-[#0f4c81] px-10 py-10 text-white xl:flex">
+        <section className="relative hidden flex-col justify-between overflow-hidden bg-linear-to-br from-[#0D1B2A] via-[#13314f] to-[#0f4c81] px-10 py-10 text-white xl:flex">
           <div className="pointer-events-none absolute inset-0 bg-grid-soft opacity-20" />
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-sky-500/20 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-16 -left-12 h-56 w-56 rounded-full bg-amber-500/15 blur-3xl" />
@@ -104,7 +104,7 @@ export default function AdminLoginPage() {
           <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-[0_30px_70px_-40px_rgba(15,76,129,0.5)] backdrop-blur sm:p-8">
             {/* Brand mini untuk mobile */}
             <div className="mb-6 flex items-center gap-3 xl:hidden">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0D1B2A] to-[#13314f]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-[#0D1B2A] to-[#13314f]">
                 <img src="/assets/logo/LOGO.svg" alt="Logo AMC" className="h-8 w-8" />
               </div>
               <div>
@@ -190,7 +190,7 @@ export default function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={loading || !username || !password}
-                className="btn-shine mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 px-4 py-3 text-[13px] font-semibold text-white shadow-lg shadow-sky-600/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sky-600/40 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                className="btn-shine mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-sky-600 to-cyan-500 px-4 py-3 text-[13px] font-semibold text-white shadow-lg shadow-sky-600/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sky-600/40 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 <Key className="h-4 w-4" />
                 {loading ? "Memverifikasi..." : "Masuk ke Dashboard"}

@@ -89,10 +89,10 @@ export default function AdminPromoPage() {
   const { toasts, showToast, dismissToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
-  const loadPromo = useCallback(() => {
-    setLoadingPromo(true);
-    setFetchError(null);
-    getPromo()
+  // Logika fetch murni — TIDAK ada setState sinkron di level teratas, supaya
+  // aman dipanggil langsung dari efek mount (react-hooks/set-state-in-effect).
+  const fetchPromoData = useCallback(() => {
+    return getPromo()
       .then((list) => {
         setPromos(list);
         if (list[0]) setSelectedPromoId((prev) => prev ?? list[0].id);
@@ -103,14 +103,26 @@ export default function AdminPromoPage() {
       .finally(() => setLoadingPromo(false));
   }, []);
 
-  useEffect(() => { loadPromo(); }, [loadPromo]);
+  // Dipakai tombol "refresh" manual — di sini boleh setState sinkron karena
+  // dipanggil dari event handler, bukan dari efek.
+  const loadPromo = useCallback(() => {
+    setLoadingPromo(true);
+    setFetchError(null);
+    fetchPromoData();
+  }, [fetchPromoData]);
+
+  useEffect(() => { fetchPromoData(); }, [fetchPromoData]);
 
   const selectedPromo = useMemo(
     () => promos.find((item) => item.id === selectedPromoId) ?? null,
     [promos, selectedPromoId],
   );
 
-  useEffect(() => {
+  // Sinkronkan editForm ke promo terpilih saat RENDER (bukan di efek) — pola
+  // resmi React "adjusting state when a prop changes".
+  const [syncedPromoId, setSyncedPromoId] = useState<number | null>(null);
+  if (selectedPromoId !== syncedPromoId) {
+    setSyncedPromoId(selectedPromoId);
     if (selectedPromo) {
       setEditForm({
         url: selectedPromo.url,
@@ -119,7 +131,7 @@ export default function AdminPromoPage() {
         tanggal_selesai: toInputDate(selectedPromo.tanggal_selesai),
       });
     }
-  }, [selectedPromo]);
+  }
 
   const counts = useMemo(() => {
     const result = { semua: promos.length, aktif: 0, draft: 0, expired: 0 };

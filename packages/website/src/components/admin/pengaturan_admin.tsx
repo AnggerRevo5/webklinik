@@ -100,6 +100,10 @@ export default function PengaturanAdmin() {
       const items = [
         { setting_key: "telepon", setting_value: form.telepon ?? "", setting_group: "kontak" },
         { setting_key: "whatsapp", setting_value: form.whatsapp ?? "", setting_group: "kontak" },
+        { setting_key: "instagram", setting_value: form.instagram ?? "", setting_group: "kontak" },
+        { setting_key: "facebook", setting_value: form.facebook ?? "", setting_group: "kontak" },
+        { setting_key: "tiktok", setting_value: form.tiktok ?? "", setting_group: "kontak" },
+        { setting_key: "email", setting_value: form.email ?? "", setting_group: "kontak" },
         { setting_key: "hero_subtitle", setting_value: form.hero_subtitle ?? "", setting_group: "beranda" },
         { setting_key: "hero_image", setting_value: form.hero_image ?? "", setting_group: "beranda" },
         { setting_key: "about_text", setting_value: form.about_text ?? "", setting_group: "tentang" },
@@ -163,6 +167,34 @@ export default function PengaturanAdmin() {
                       <input
                         value={form.whatsapp ?? ""}
                         onChange={(e) => setField("whatsapp", e.target.value)}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Instagram" hint="Link profil Instagram, contoh: https://www.instagram.com/namaklinik">
+                      <input
+                        value={form.instagram ?? ""}
+                        onChange={(e) => setField("instagram", e.target.value)}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Facebook" hint="Link profil/halaman Facebook">
+                      <input
+                        value={form.facebook ?? ""}
+                        onChange={(e) => setField("facebook", e.target.value)}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="TikTok" hint="Link profil TikTok">
+                      <input
+                        value={form.tiktok ?? ""}
+                        onChange={(e) => setField("tiktok", e.target.value)}
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Email" hint="Email kontak, tampil di footer & tombol email">
+                      <input
+                        value={form.email ?? ""}
+                        onChange={(e) => setField("email", e.target.value)}
                         className={inputCls}
                       />
                     </Field>

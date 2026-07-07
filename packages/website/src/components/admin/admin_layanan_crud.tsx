@@ -9,7 +9,7 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   createService,
   deleteService,
@@ -43,35 +43,41 @@ export default function AdminLayananCrud() {
   const { toasts, showToast, dismissToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
-  useEffect(() => {
-    if (data?.layanan) {
-      setServices(data.layanan);
-      setServiceActiveMap((current) => {
-        const nextMap = { ...current };
-        for (const item of data.layanan) {
-          if (!(item.id in nextMap)) nextMap[item.id] = true;
-        }
-        return nextMap;
-      });
-      if (selectedServiceId == null && data.layanan[0]) {
-        setSelectedServiceId(data.layanan[0].id);
+  // Sinkronkan services/serviceActiveMap dari data hook saat RENDER (bukan di
+  // efek) — pola resmi React "adjusting state when a prop changes", dikunci
+  // ke referensi array data.layanan supaya cuma jalan sekali per fetch baru.
+  const [syncedLayanan, setSyncedLayanan] = useState<Service[] | undefined>(undefined);
+  if (data?.layanan && data.layanan !== syncedLayanan) {
+    setSyncedLayanan(data.layanan);
+    setServices(data.layanan);
+    setServiceActiveMap((current) => {
+      const nextMap = { ...current };
+      for (const item of data.layanan) {
+        if (!(item.id in nextMap)) nextMap[item.id] = true;
       }
+      return nextMap;
+    });
+    if (selectedServiceId == null && data.layanan[0]) {
+      setSelectedServiceId(data.layanan[0].id);
     }
-  }, [data?.layanan, selectedServiceId]);
+  }
 
   const selectedService = useMemo(
     () => services.find((item) => item.id === selectedServiceId) ?? null,
     [selectedServiceId, services],
   );
 
-  useEffect(() => {
+  // Sinkronkan editForm ke layanan terpilih saat RENDER (bukan di efek).
+  const [syncedServiceId, setSyncedServiceId] = useState<number | null>(null);
+  if (selectedServiceId !== syncedServiceId) {
+    setSyncedServiceId(selectedServiceId);
     if (selectedService) {
       setEditForm({
         nama_layanan: selectedService.nama_layanan,
         url: selectedService.url,
       });
     }
-  }, [selectedService]);
+  }
 
   async function handleCreateService(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -240,17 +246,17 @@ export default function AdminLayananCrud() {
                     <div className="text-slate-300">
                       <PencilLine className="h-4 w-4 rotate-90" />
                     </div>
-                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[9px] font-semibold text-slate-500">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[9px] font-semibold text-slate-500">
                       {index + 1}
                     </div>
                     {service.url ? (
                       <img
                         src={service.url}
                         alt={service.nama_layanan}
-                        className="h-8 w-8 flex-shrink-0 rounded-lg object-cover"
+                        className="h-8 w-8 shrink-0 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="h-8 w-8 flex-shrink-0 rounded-lg bg-slate-100" />
+                      <div className="h-8 w-8 shrink-0 rounded-lg bg-slate-100" />
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] font-medium text-slate-900">{service.nama_layanan}</div>
@@ -267,13 +273,13 @@ export default function AdminLayananCrud() {
                           [service.id]: !(current[service.id] ?? true),
                         }))
                       }
-                      className={`relative h-[18px] w-8 flex-shrink-0 rounded-full transition-colors duration-300 ${serviceActiveMap[service.id] !== false ? "bg-sky-600" : "bg-slate-200"}`}
+                      className={`relative h-4.5 w-8 shrink-0 rounded-full transition-colors duration-300 ${serviceActiveMap[service.id] !== false ? "bg-sky-600" : "bg-slate-200"}`}
                     >
                       <span
-                        className={`absolute top-[2px] h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-all ${serviceActiveMap[service.id] !== false ? "left-4" : "left-[2px]"}`}
+                        className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-all ${serviceActiveMap[service.id] !== false ? "left-4" : "left-0.5"}`}
                       />
                     </button>
-                    <div className="flex flex-shrink-0 gap-1">
+                    <div className="flex shrink-0 gap-1">
                       <button
                         type="button"
                         title="Edit layanan ini"

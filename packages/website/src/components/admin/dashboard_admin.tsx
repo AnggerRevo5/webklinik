@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useHomeData } from "@/src/lib/hooks";
-import { getDokterPublik } from "@/src/lib/api";
+import { getDokterPublik, getInstagramStats, type InstagramStatsData } from "@/src/lib/api";
 import SidebarAdmin from "@/src/components/admin/sidebar_admin";
 import { CountUp } from "@/src/components/motion";
 
@@ -178,6 +178,20 @@ export default function DashboardAdmin() {
     };
   }, []);
 
+  // Instagram otomatis (cache RapidAPI) — sumber followers/engagement yang
+  // nyata dipakai sekarang; tabel social_media_stats manual sudah tidak
+  // pernah diisi lagi sejak integrasi ini ada.
+  const [instagramStats, setInstagramStats] = useState<InstagramStatsData>(null);
+  useEffect(() => {
+    let alive = true;
+    getInstagramStats().then((stats) => {
+      if (alive) setInstagramStats(stats);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   /* ── Derivasi data ── */
   const visitorSessions = (data?.visitor_sessions ?? []) as Array<{
     pages_visited?: number;
@@ -188,6 +202,19 @@ export default function DashboardAdmin() {
     follower_count?: number;
     engagement_rate?: number;
   }>;
+  // Gabungkan snapshot manual (kalau ada) dengan data Instagram otomatis,
+  // supaya tile "Total Followers"/"Engagement" tidak selalu 0 hanya karena
+  // tabel manual tidak pernah diisi lagi.
+  const combinedSocialStats = instagramStats
+    ? [
+        ...socialMediaStats,
+        {
+          platform: "instagram",
+          follower_count: instagramStats.followers,
+          engagement_rate: instagramStats.engagement_rate,
+        },
+      ]
+    : socialMediaStats;
   const events = (data?.event ?? []) as Array<{ event_type?: string }>;
 
   const totalVisitorPages = visitorSessions.reduce(
@@ -206,43 +233,36 @@ export default function DashboardAdmin() {
     visitorSessions.length > 0
       ? (totalVisitorPages / visitorSessions.length).toFixed(1)
       : "0.0";
-  const totalFollowers = socialMediaStats.reduce(
+  const totalFollowers = combinedSocialStats.reduce(
     (total, item) => total + Number(item.follower_count ?? 0),
     0,
   );
   const averageEngagementRate =
-    socialMediaStats.length > 0
+    combinedSocialStats.length > 0
       ? (
-          socialMediaStats.reduce(
+          combinedSocialStats.reduce(
             (total, item) => total + Number(item.engagement_rate ?? 0),
             0,
-          ) / socialMediaStats.length
+          ) / combinedSocialStats.length
         ).toFixed(2)
       : "0.00";
-  const latestReviewCount = data?.google_reviews?.[0]?.review_count ?? 0;
-  const latestRating = data?.google_reviews?.[0]?.average_rating ?? 0;
+  // Rating Google asli — dari klinik_info (sudah diprioritaskan ke cache
+  // Google Business otomatis oleh backend, lihat services.RatingSummary).
+  // Bukan lagi dari tabel google_reviews lama (snapshot manual yang sudah
+  // tidak dipakai sejak integrasi RapidAPI).
+  const latestRating = data?.klinik_info?.rating_google ?? 0;
+  const latestReviewCount = data?.klinik_info?.total_ulasan ?? 0;
   const topPlatform =
-    [...socialMediaStats].sort(
+    [...combinedSocialStats].sort(
       (left, right) =>
         Number(right.follower_count ?? 0) - Number(left.follower_count ?? 0),
     )[0]?.platform ?? "-";
 
   const socialMediaEngagementCount = data?.social_media_engagement?.length ?? 0;
-  const socialMediaStatsCount = data?.social_media_stats?.length ?? 0;
+  const socialMediaStatsCount = combinedSocialStats.length;
   const gbpInteractionCount = data?.gbp_interactions?.length ?? 0;
-  const googleReviewCount = data?.google_reviews?.length ?? 0;
-  const googleReviews = (data?.google_reviews ?? []) as Array<{
-    average_rating?: number;
-  }>;
-  const averageGoogleRating =
-    googleReviewCount > 0
-      ? (
-          googleReviews.reduce(
-            (total, review) => total + Number(review.average_rating ?? 0),
-            0,
-          ) / googleReviewCount
-        ).toFixed(2)
-      : "0.00";
+  const googleReviewCount = latestReviewCount;
+  const averageGoogleRating = latestRating.toFixed(2);
 
   /* Hitungan konten (data paling andal) */
   const contentCounts = {
@@ -526,7 +546,7 @@ export default function DashboardAdmin() {
                 <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   {isLoading
                     ? Array.from({ length: 4 }).map((_, index) => (
-                        <div key={index} className="h-[104px] animate-pulse rounded-2xl bg-white shadow-sm" />
+                        <div key={index} className="h-26 animate-pulse rounded-2xl bg-white shadow-sm" />
                       ))
                     : heroKpis.map((kpi) => {
                         const Icon = kpi.icon;
@@ -535,12 +555,12 @@ export default function DashboardAdmin() {
                             key={kpi.label}
                             className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                           >
-                            <div className={`pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-gradient-to-br ${kpi.ring} opacity-10 blur-xl`} />
+                            <div className={`pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-linear-to-br ${kpi.ring} opacity-10 blur-xl`} />
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                                 {kpi.label}
                               </span>
-                              <span className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br ${kpi.ring} text-white shadow-sm`}>
+                              <span className={`flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br ${kpi.ring} text-white shadow-sm`}>
                                 <Icon className="h-4.5 w-4.5" />
                               </span>
                             </div>
@@ -562,7 +582,7 @@ export default function DashboardAdmin() {
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
                     {isLoading
                       ? Array.from({ length: 5 }).map((_, index) => (
-                          <article key={index} className="h-[120px] animate-pulse rounded-xl bg-white shadow-sm" />
+                          <article key={index} className="h-30 animate-pulse rounded-xl bg-white shadow-sm" />
                         ))
                       : metrics.map((metric) => {
                           const Icon = metric.icon;
@@ -602,7 +622,7 @@ export default function DashboardAdmin() {
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                     {isLoading
                       ? Array.from({ length: 4 }).map((_, index) => (
-                          <article key={index} className="h-[132px] animate-pulse rounded-xl bg-white shadow-sm" />
+                          <article key={index} className="h-33 animate-pulse rounded-xl bg-white shadow-sm" />
                         ))
                       : socialCards.map((card) => {
                           const Icon = card.icon;
@@ -679,7 +699,7 @@ export default function DashboardAdmin() {
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
                     {isLoading
                       ? Array.from({ length: 8 }).map((_, index) => (
-                          <div key={index} className="h-[86px] animate-pulse rounded-xl bg-white shadow-sm" />
+                          <div key={index} className="h-21.5 animate-pulse rounded-xl bg-white shadow-sm" />
                         ))
                       : statTiles.map((tile) => (
                           <StatTile
