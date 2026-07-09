@@ -36,15 +36,6 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: 👤 Build & Push Dashboard Admin
-      uses: docker/build-push-action@v5
-      with:
-        context: ./packages/admin-dashboard
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/klinik-dashboard-admin:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
     - name: 🏗️ Build & Push Backend
       uses: docker/build-push-action@v5
       with:
@@ -66,7 +57,7 @@ jobs:
           export MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
           export MYSQL_USER=${{ secrets.MYSQL_USER }}
           export MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-          docker compose pull website dashboard-admin backend
+          docker compose pull backend frontend
           docker compose up -d
           docker system prune -f
           echo "✅ Deploy berhasil!"

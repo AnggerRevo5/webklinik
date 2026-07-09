@@ -273,8 +273,88 @@ export default function AdminReviewPesan() {
     return true;
   });
 
+  const filteredActive = filtered.filter((r) => r.tampil);
+  const filteredInactive = filtered.filter((r) => !r.tampil);
+
   const tampilCount = reviews.filter((r) => r.tampil).length;
   const tersembunyiCount = reviews.filter((r) => !r.tampil).length;
+
+  function renderReviewCard(r: Review) {
+    return (
+      <article
+        key={r.id}
+        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-600 text-[12px] font-bold text-white">
+            {r.nama[0]?.toUpperCase() ?? "?"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-slate-900">{r.nama}</span>
+              {r.tag ? (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[8px] text-slate-500">{r.tag}</span>
+              ) : null}
+              {r.featured ? (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-semibold text-amber-600">Featured</span>
+              ) : null}
+              {!r.tampil ? (
+                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[8px] text-rose-500">Tersembunyi</span>
+              ) : null}
+            </div>
+            <div className="mt-0.5 flex items-center gap-2">
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-3 w-3 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
+                  />
+                ))}
+              </div>
+              <span className="text-[8px] text-slate-400">{r.tanggal}</span>
+            </div>
+            <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-600">{r.komentar}</p>
+          </div>
+
+          <div className="flex shrink-0 flex-wrap gap-1.5">
+            <button
+              type="button"
+              title={r.featured ? "Unfeature" : "Jadikan featured"}
+              onClick={() => handleToggleFeatured(r)}
+              className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[9px] font-medium transition-all hover:-translate-y-0.5 ${r.featured ? "bg-amber-50 text-amber-600 hover:bg-amber-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+            >
+              <Star className={`h-3 w-3 ${r.featured ? "fill-amber-400" : ""}`} />
+            </button>
+            <button
+              type="button"
+              title={r.tampil ? "Sembunyikan" : "Tampilkan"}
+              onClick={() => handleToggleTampil(r)}
+              className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[9px] font-medium transition-all hover:-translate-y-0.5 ${r.tampil ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+            >
+              {r.tampil ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+            </button>
+            <button
+              type="button"
+              aria-label="Edit review"
+              onClick={() => openEdit(r)}
+              className="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-1.5 text-[9px] font-medium text-sky-600 transition-all hover:-translate-y-0.5 hover:bg-sky-100"
+            >
+              <Edit3 className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              aria-label="Hapus review"
+              title="Hapus review ini"
+              onClick={() => handleDelete(r.id, r.nama)}
+              className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2 py-1.5 text-[9px] font-medium text-rose-600 transition-all hover:-translate-y-0.5 hover:bg-rose-100"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <main className="min-h-dvh w-full bg-slate-100 p-0">
@@ -310,9 +390,6 @@ export default function AdminReviewPesan() {
             >
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-[13px] font-semibold text-slate-900">Rating Keseluruhan Klinik</div>
-                <span className="rounded-full bg-sky-50 px-2 py-1 text-[8px] font-semibold text-sky-600">
-                  PUT /api/admin/review/summary
-                </span>
               </div>
               <div className="grid gap-3 md:grid-cols-3">
                 <div>
@@ -436,7 +513,7 @@ export default function AdminReviewPesan() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {googleReviews.map((r) => (
+                  {[...googleReviews].sort((a, b) => Number(b.tampil) - Number(a.tampil)).map((r) => (
                     <article key={r.id} className="rounded-xl border border-slate-200 bg-white p-3">
                       <div className="flex flex-wrap items-start gap-3">
                         <div className="min-w-0 flex-1">
@@ -544,81 +621,40 @@ export default function AdminReviewPesan() {
                   Belum ada review di kategori ini.
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {filtered.map((r) => (
-                    <article
-                      key={r.id}
-                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                    >
-                      <div className="flex flex-wrap items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-600 text-[12px] font-bold text-white">
-                          {r.nama[0]?.toUpperCase() ?? "?"}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[11px] font-semibold text-slate-900">{r.nama}</span>
-                            {r.tag ? (
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[8px] text-slate-500">{r.tag}</span>
-                            ) : null}
-                            {r.featured ? (
-                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-semibold text-amber-600">Featured</span>
-                            ) : null}
-                            {!r.tampil ? (
-                              <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[8px] text-rose-500">Tersembunyi</span>
-                            ) : null}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-2">
-                            <div className="flex gap-0.5">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`h-3 w-3 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
-                                />
-                              ))}
-                            </div>
-                            <span className="text-[8px] text-slate-400">{r.tanggal}</span>
-                          </div>
-                          <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-600">{r.komentar}</p>
-                        </div>
-
-                        <div className="flex shrink-0 flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            title={r.featured ? "Unfeature" : "Jadikan featured"}
-                            onClick={() => handleToggleFeatured(r)}
-                            className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[9px] font-medium transition-all hover:-translate-y-0.5 ${r.featured ? "bg-amber-50 text-amber-600 hover:bg-amber-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
-                          >
-                            <Star className={`h-3 w-3 ${r.featured ? "fill-amber-400" : ""}`} />
-                          </button>
-                          <button
-                            type="button"
-                            title={r.tampil ? "Sembunyikan" : "Tampilkan"}
-                            onClick={() => handleToggleTampil(r)}
-                            className={`inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[9px] font-medium transition-all hover:-translate-y-0.5 ${r.tampil ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
-                          >
-                            {r.tampil ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                          </button>
-                          <button
-                            type="button"
-                            aria-label="Edit review"
-                            onClick={() => openEdit(r)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-1.5 text-[9px] font-medium text-sky-600 transition-all hover:-translate-y-0.5 hover:bg-sky-100"
-                          >
-                            <Edit3 className="h-3 w-3" />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label="Hapus review"
-                            title="Hapus review ini"
-                            onClick={() => handleDelete(r.id, r.nama)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2 py-1.5 text-[9px] font-medium text-rose-600 transition-all hover:-translate-y-0.5 hover:bg-rose-100"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
+                <div>
+                  {/* Review ditampilkan di website */}
+                  {filteredActive.length > 0 && (
+                    <div className="mb-5">
+                      <div className="mb-2.5 flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <span className="text-[10px] font-semibold text-emerald-700">
+                          Ditampilkan di Website
+                        </span>
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-medium text-emerald-700">
+                          {filteredActive.length}
+                        </span>
                       </div>
-                    </article>
-                  ))}
+                      <div className="space-y-3">
+                        {filteredActive.map((r) => renderReviewCard(r))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Divider + review tersembunyi */}
+                  {filteredInactive.length > 0 && (
+                    <div>
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-slate-200" />
+                        <span className="text-[9px] font-medium text-slate-400">
+                          Tidak Ditampilkan ({filteredInactive.length})
+                        </span>
+                        <div className="h-px flex-1 bg-slate-200" />
+                      </div>
+                      <div className="space-y-3">
+                        {filteredInactive.map((r) => renderReviewCard(r))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

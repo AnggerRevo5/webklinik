@@ -307,6 +307,7 @@ export default function LaporanPengunjung() {
                         <th className="px-4 py-3">Browser</th>
                         <th className="px-4 py-3">Halaman</th>
                         <th className="px-4 py-3">Durasi</th>
+                        <th className="px-4 py-3">Lokasi</th>
                         <th className="px-4 py-3">Sumber</th>
                         <th className="px-4 py-3">Mulai</th>
                       </tr>
@@ -334,6 +335,9 @@ export default function LaporanPengunjung() {
                             {s.pages_visited}
                           </td>
                           <td className="px-4 py-2.5 text-slate-500">{formatDuration(s.duration_second)}</td>
+                          <td className="px-4 py-2.5 text-slate-500">
+                            {s.kota ? `${s.kota}${s.provinsi ? `, ${s.provinsi}` : ""}` : "-"}
+                          </td>
                           <td className="px-4 py-2.5">
                             <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[9px] font-medium text-sky-700">
                               {s.source || "direct"}

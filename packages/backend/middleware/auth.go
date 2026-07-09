@@ -24,6 +24,15 @@ func isProtectedReadPath(path string) bool {
 		path == "/api/event"
 }
 
+// analyticsReadPaths = path yang boleh dibaca dengan ANALYTICS_API_KEY (key
+// terbatas untuk dashboard analitik pihak lain). Hanya GET/HEAD, tidak ada
+// path lain (review, audit-log, kelola admin, dsb) yang boleh diakses key ini.
+var analyticsReadPaths = []string{
+	"/api/admin/stats/visitor",
+	"/api/admin/stats/social-clicks",
+	"/api/admin/visitor-sessions",
+}
+
 // AdminAuth memeriksa X-Admin-Key header untuk request mutating dan untuk
 // pembacaan (GET/HEAD) ke path admin/PII. OPTIONS (CORS preflight), GET/HEAD ke
 // path publik, dan mutasi ke publicPOSTPrefixes selalu diizinkan.
@@ -51,6 +60,26 @@ func AdminAuth() gin.HandlerFunc {
 					c.Next()
 					return
 				}
+			}
+		}
+
+		// ANALYTICS_API_KEY: key terbatas untuk dashboard analitik pihak lain.
+		// Hanya lolos untuk GET/HEAD ke analyticsReadPaths; selain itu ditolak
+		// meski key-nya valid, supaya key ini tidak bisa dipakai membaca atau
+		// mengubah data admin lain.
+		if analyticsKey := os.Getenv("ANALYTICS_API_KEY"); analyticsKey != "" {
+			if c.GetHeader("X-Admin-Key") == analyticsKey {
+				if method == "GET" || method == "HEAD" {
+					for _, allowed := range analyticsReadPaths {
+						if path == allowed {
+							c.Next()
+							return
+						}
+					}
+				}
+				c.JSON(http.StatusForbidden, gin.H{"error": "Key ini hanya untuk data analitik"})
+				c.Abort()
+				return
 			}
 		}
 

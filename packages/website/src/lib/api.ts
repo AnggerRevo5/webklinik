@@ -1190,6 +1190,10 @@ export type VisitorSessionItem = {
   pages_visited: number;
   duration_second: number;
   source: string;
+  kota?: string;
+  provinsi?: string;
+  negara?: string;
+  isp?: string;
   started_at: string;
   ended_at: string | null;
 };

@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ${DOCKER_USERNAME:-local}/klinik-backend:latest
     build:
       context: ./packages/backend
       dockerfile: dockerfile
@@ -15,6 +16,7 @@ services:
       - amc_network
 
   frontend:
+    image: ${DOCKER_USERNAME:-local}/klinik-website:latest
     build:
       context: ./packages/website
       dockerfile: dockerfile
