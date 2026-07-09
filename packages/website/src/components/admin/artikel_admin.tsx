@@ -149,7 +149,7 @@ export default function ArtikelAdmin() {
   if (mode === "editor") {
     return (
       <main className="min-h-dvh w-full bg-slate-100 p-0">
-        <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-[#F0F4FA] lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="grid min-h-dvh w-full grid-cols-1 content-start overflow-hidden bg-[#F0F4FA] lg:grid-cols-[240px_minmax(0,1fr)]">
           <SidebarAdmin activeKey="artikel" />
 
           <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
@@ -296,7 +296,7 @@ export default function ArtikelAdmin() {
   /* ── LIST MODE ───────────────────────────────────────────────────────────── */
   return (
     <main className="min-h-dvh w-full bg-slate-100 p-0">
-      <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-[#F0F4FA] lg:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="grid min-h-dvh w-full grid-cols-1 content-start overflow-hidden bg-[#F0F4FA] lg:grid-cols-[240px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="artikel" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">

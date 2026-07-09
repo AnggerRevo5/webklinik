@@ -496,7 +496,7 @@ export default function DashboardAdmin() {
         Dashboard admin dengan overview dan analytics untuk KRI AMC
       </h2>
 
-      <div className="grid min-h-dvh w-full grid-cols-1 gap-4 overflow-hidden bg-[#F0F4FA] shadow-[0_10px_30px_rgba(15,23,42,0.08)] lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6">
+      <div className="grid min-h-dvh w-full grid-cols-1 content-start gap-4 overflow-hidden bg-[#F0F4FA] shadow-[0_10px_30px_rgba(15,23,42,0.08)] lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6">
         <SidebarAdmin activeKey="dashboard" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">

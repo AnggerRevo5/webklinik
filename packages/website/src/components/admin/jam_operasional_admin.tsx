@@ -124,7 +124,7 @@ export default function JamOperasionalAdmin() {
     <main className="min-h-dvh w-full bg-slate-100 p-0">
       <h2 className="sr-only">Pengaturan jam operasional klinik</h2>
 
-      <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-[#F0F4FA] shadow-[0_10px_30px_rgba(15,23,42,0.08)] lg:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="grid min-h-dvh w-full grid-cols-1 content-start overflow-hidden bg-[#F0F4FA] shadow-[0_10px_30px_rgba(15,23,42,0.08)] lg:grid-cols-[240px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="jam" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">

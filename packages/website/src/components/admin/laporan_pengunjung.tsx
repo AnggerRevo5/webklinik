@@ -108,7 +108,7 @@ export default function LaporanPengunjung() {
 
   return (
     <main className="min-h-dvh w-full bg-[#F0F4FA] p-0">
-      <div className="grid min-h-dvh w-full grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid min-h-dvh w-full grid-cols-1 content-start lg:grid-cols-[220px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="pengunjung" />
 
         <section className="flex min-w-0 flex-col">

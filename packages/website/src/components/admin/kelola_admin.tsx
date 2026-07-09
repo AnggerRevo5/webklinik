@@ -123,7 +123,7 @@ export default function KelolaAdmin() {
   if (!meLoading && me?.role !== "superadmin") {
     return (
       <main className="min-h-dvh w-full bg-[#F0F4FA] p-0">
-        <div className="grid min-h-dvh w-full grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="grid min-h-dvh w-full grid-cols-1 content-start lg:grid-cols-[220px_minmax(0,1fr)]">
           <SidebarAdmin activeKey="kelola-admin" />
           <section className="flex min-w-0 flex-col items-center justify-center gap-3 p-8 text-center">
             <ShieldAlert className="h-10 w-10 text-amber-500" />
@@ -137,7 +137,7 @@ export default function KelolaAdmin() {
 
   return (
     <main className="min-h-dvh w-full bg-slate-100 p-0">
-      <div className="grid min-h-dvh w-full grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid min-h-dvh w-full grid-cols-1 content-start lg:grid-cols-[220px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="kelola-admin" />
 
         <section className="flex min-w-0 flex-col bg-[#F0F4FA]">
