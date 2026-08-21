@@ -108,7 +108,7 @@ export default function LaporanPengunjung() {
 
   return (
     <main className="min-h-dvh w-full bg-[#F0F4FA] p-0">
-      <div className="grid min-h-dvh w-full grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid min-h-dvh w-full grid-cols-1 content-start lg:grid-cols-[220px_minmax(0,1fr)]">
         <SidebarAdmin activeKey="pengunjung" />
 
         <section className="flex min-w-0 flex-col">
@@ -307,6 +307,7 @@ export default function LaporanPengunjung() {
                         <th className="px-4 py-3">Browser</th>
                         <th className="px-4 py-3">Halaman</th>
                         <th className="px-4 py-3">Durasi</th>
+                        <th className="px-4 py-3">Lokasi</th>
                         <th className="px-4 py-3">Sumber</th>
                         <th className="px-4 py-3">Mulai</th>
                       </tr>
@@ -334,6 +335,9 @@ export default function LaporanPengunjung() {
                             {s.pages_visited}
                           </td>
                           <td className="px-4 py-2.5 text-slate-500">{formatDuration(s.duration_second)}</td>
+                          <td className="px-4 py-2.5 text-slate-500">
+                            {s.kota ? `${s.kota}${s.provinsi ? `, ${s.provinsi}` : ""}` : "-"}
+                          </td>
                           <td className="px-4 py-2.5">
                             <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[9px] font-medium text-sky-700">
                               {s.source || "direct"}

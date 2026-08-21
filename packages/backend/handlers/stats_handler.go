@@ -172,6 +172,7 @@ func AdminVisitorSessionsListHandler(db *gorm.DB) gin.HandlerFunc {
 		if sessions == nil {
 			sessions = []models.VisitorSession{}
 		}
+		applyDurationFallback(db, sessions)
 
 		totalPages := (total + int64(perPage) - 1) / int64(perPage)
 
@@ -185,6 +186,49 @@ func AdminVisitorSessionsListHandler(db *gorm.DB) gin.HandlerFunc {
 				"total_pages": totalPages,
 			},
 		})
+	}
+}
+
+// applyDurationFallback mengisi duration_second dari pageview terakhir untuk sesi
+// yang tidak sempat mengirim event "end" (browser/tab ditutup langsung tanpa
+// visibilitychange/pagehide sempat terkirim) — supaya laporan tidak menampilkan
+// "-" padahal ada aktivitas pageview yang tercatat di sesi tersebut.
+func applyDurationFallback(db *gorm.DB, sessions []models.VisitorSession) {
+	var missingIDs []string
+	for _, s := range sessions {
+		if s.DurationSecond == 0 {
+			missingIDs = append(missingIDs, s.SessionID)
+		}
+	}
+	if len(missingIDs) == 0 {
+		return
+	}
+
+	type lastView struct {
+		SessionID string    `gorm:"column:session_id"`
+		LastAt    time.Time `gorm:"column:last_at"`
+	}
+	var lastViews []lastView
+	db.Model(&models.PageView{}).
+		Select("session_id, MAX(viewed_at) as last_at").
+		Where("session_id IN ?", missingIDs).
+		Group("session_id").
+		Scan(&lastViews)
+
+	lastAtBySession := make(map[string]time.Time, len(lastViews))
+	for _, lv := range lastViews {
+		lastAtBySession[lv.SessionID] = lv.LastAt
+	}
+
+	for i := range sessions {
+		if sessions[i].DurationSecond != 0 {
+			continue
+		}
+		lastAt, ok := lastAtBySession[sessions[i].SessionID]
+		if !ok || !lastAt.After(sessions[i].StartedAt) {
+			continue
+		}
+		sessions[i].DurationSecond = int(lastAt.Sub(sessions[i].StartedAt).Seconds())
 	}
 }
 

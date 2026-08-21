@@ -61,9 +61,17 @@ export default function SiteAnimations() {
       }
     }
 
+    // Fallback untuk kasus visibilitychange tidak sempat kepicu (tab/browser
+    // ditutup langsung) — pagehide lebih reliable untuk unload di kebanyakan browser.
+    function handlePageHide() {
+      endSession();
+    }
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
       unsubscribe();
     };
   }, []);

@@ -6,9 +6,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  test:
     runs-on: ubuntu-latest
-    
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: packages/backend/go.mod
+    - run: go build ./...
+      working-directory: packages/backend
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+        cache-dependency-path: packages/website/package-lock.json
+    - run: npm ci
+      working-directory: packages/website
+    - run: npm run lint
+      working-directory: packages/website
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
@@ -36,15 +56,6 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: 👤 Build & Push Dashboard Admin
-      uses: docker/build-push-action@v5
-      with:
-        context: ./packages/admin-dashboard
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/klinik-dashboard-admin:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
     - name: 🏗️ Build & Push Backend
       uses: docker/build-push-action@v5
       with:
@@ -66,7 +77,7 @@ jobs:
           export MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
           export MYSQL_USER=${{ secrets.MYSQL_USER }}
           export MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-          docker compose pull website dashboard-admin backend
+          docker compose pull backend frontend
           docker compose up -d
           docker system prune -f
           echo "✅ Deploy berhasil!"
